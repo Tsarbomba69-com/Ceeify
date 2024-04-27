@@ -30,7 +30,7 @@ char* LoadFileText(const char* fileName)
 
 	if (text == NULL)
 	{
-		printf("FATAL: [%s] Failed to allocated memory for file reading\n", fileName);
+		printf("FATAL: [%s] Failed to allocate memory for file reading\n", fileName);
 		return NULL;
 	}
 
@@ -39,11 +39,16 @@ char* LoadFileText(const char* fileName)
 	if (count < size) tmp = (char*)realloc(text, count + 1);
 	if (tmp == NULL)
 	{
-		printf("FATAL: [%s] Failed to reallocated memory for file reading\n", fileName);
+		printf("FATAL: [%s] Failed to reallocate memory for file reading\n", fileName);
 		return NULL;
 	}
 	text = tmp;
 	text[count] = '\0';
 	fclose(file);
 	return text;
+}
+
+void UnloadFileText(char* text) 
+{
+	free(text);
 }

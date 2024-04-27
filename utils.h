@@ -7,6 +7,8 @@
 #include <string.h>
 
 char* LoadFileText(const char* fileName);		// Load text data from file (read), returns a '\0' terminated string
+
+void UnloadFileText(char* text);
 #endif // !UTILS_H
 
 

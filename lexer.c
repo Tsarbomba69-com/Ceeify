@@ -10,16 +10,16 @@ const char* PYTHON_KEYWORD[NUM_KEYWORDS] = {
 };
 
 // TODO: Should return a collection of Tokens
-void Tokenize(Lexer lexer)
+void Tokenize(Lexer* lexer)
 {
-	size_t len = strlen(lexer.source);
+	size_t len = strlen(lexer->source);
 
-	while (lexer.position < len)
+	while (lexer->position < len)
 	{
-		char character = lexer.source[lexer.position];
+		char character = lexer->source[lexer->position];
 		if (character == ' ' || character == '\t')
 		{
-			lexer.position++;
+			lexer->position++;
 			continue;
 		}
 
@@ -28,16 +28,16 @@ void Tokenize(Lexer lexer)
 			char lexeme[32];
 			size_t lexeme_length = 0;
 			lexeme[lexeme_length++] = character;
-			lexer.position++;
+			lexer->position++;
 
 			// Build the lexeme until a non-alphanumeric character is encountered
-			while (lexer.position < len)
+			while (lexer->position < len)
 			{
-				character = lexer.source[lexer.position];
+				character = lexer->source[lexer->position];
 				if (isalnum(character))
 				{
 					lexeme[lexeme_length++] = character;
-					lexer.position++;
+					lexer->position++;
 				}
 				else break;
 			}
@@ -56,8 +56,7 @@ void Tokenize(Lexer lexer)
 			}
 		}
 
-		// printf("%c", character);
-		lexer.position++;
+		lexer->position++;
 	}
 }
 

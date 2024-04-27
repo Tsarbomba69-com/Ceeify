@@ -26,7 +26,7 @@ typedef struct Lexer
 	size_t position;
 } Lexer;
 
-void Tokenize(Lexer lexer);
+void Tokenize(Lexer* lexer);
 
 void PrintToken(Token* token);
 
