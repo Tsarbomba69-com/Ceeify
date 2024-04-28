@@ -9,6 +9,11 @@ const char* PYTHON_KEYWORD[NUM_KEYWORDS] = {
 	"not", "or", "pass", "raise", "return", "try", "while", "with", "yield"
 };
 
+const char OPERATORS[] = { '+', '-', '*', '/', '%', '>', '<', '!', '=', '&', '|', '^', '~' };
+
+const char* EXTENDED_OPERATORS[] = {
+	"//","==", "!=","**",">=", "<=", "&&", "||","+=", "-=", "*=", "/=","%=", "//=", "**=","<<", ">>"
+};
 // TODO: Should return a collection of Tokens
 void Tokenize(Lexer* lexer)
 {
@@ -21,6 +26,48 @@ void Tokenize(Lexer* lexer)
 		{
 			lexer->position++;
 			continue;
+		}
+		// TODO: Abstract token creation
+		bool isOperator = false;
+		int maxLexemeLength = 0;
+		const char* matchedOperator = NULL;
+		for (size_t i = 0; i < ARRAYSIZE(OPERATORS); i++)
+		{
+			if (character == OPERATORS[i])
+			{
+				isOperator = true;
+				maxLexemeLength = 1;
+				matchedOperator = &character;
+				break;
+			}
+		}
+
+		if (isOperator)
+		{
+			// Build the operator lexeme
+			char lexeme[3];
+
+			for (size_t i = 0; i < ARRAYSIZE(EXTENDED_OPERATORS); i++)
+			{
+				const char* operatorStr = EXTENDED_OPERATORS[i];
+				int operatorLength = strlen(operatorStr);
+
+				if (strncmp(&lexer->source[lexer->position], operatorStr, operatorLength) == 0 &&
+					operatorLength > maxLexemeLength)
+				{
+					maxLexemeLength = operatorLength;
+					matchedOperator = operatorStr;
+				}
+			}
+
+			if (matchedOperator)
+			{
+				memcpy(lexeme, matchedOperator, maxLexemeLength);
+				lexeme[maxLexemeLength] = '\0';
+				Token token = { OPERATOR, lexeme};
+				lexer->position += maxLexemeLength;
+				PrintToken(&token);
+			}
 		}
 
 		if (isalpha(character))
@@ -48,9 +95,7 @@ void Tokenize(Lexer* lexer)
 				const char* substring = PYTHON_KEYWORD[i];
 				if (strcmp(lexeme, substring) == 0)
 				{
-					Token token = { 0 };
-					token.lexeme = lexeme;
-					token.type = KEYWORD;
+					Token token = { KEYWORD,  lexeme };
 					PrintToken(&token);
 				}
 			}
@@ -72,8 +117,10 @@ const char* TokenTypeToString(TokenType type)
 	{
 	case KEYWORD:
 		return "KEYWORD";
+	case OPERATOR:
+		return "OPERATOR";
 	default:
-		return "Unknown";
+		return "UNKNOWN";
 	}
 }
 
