@@ -1,4 +1,3 @@
-#include "utils.h"
 #include "lexer.h"
 
 int main(void)
