@@ -6,14 +6,12 @@ const char* PYTHON_KEYWORD[NUM_KEYWORDS] = {
 	"False", "None", "True", "and", "as", "assert", "async", "await", "break",
 	"class", "continue", "def", "del", "elif", "else", "except", "finally",
 	"for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal",
-	"not", "or", "pass", "raise", "return", "try", "while", "with", "yield"
-};
+	"not", "or", "pass", "raise", "return", "try", "while", "with", "yield" };
 
 const char OPERATORS[] = { '+', '-', '*', '/', '%', '>', '<', '!', '=', '&', '|', '^', '~' };
 
 const char* EXTENDED_OPERATORS[] = {
-	"//","==", "!=","**",">=", "<=", "&&", "||","+=", "-=", "*=", "/=","%=", "//=", "**=","<<", ">>"
-};
+	"//", "==", "!=", "**", ">=", "<=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>" };
 // TODO: Should return a collection of Tokens
 void Tokenize(Lexer* lexer)
 {
@@ -28,29 +26,26 @@ void Tokenize(Lexer* lexer)
 			continue;
 		}
 		// TODO: Abstract token creation
-		bool isOperator = false;
-		int maxLexemeLength = 0;
+		// ------------- BEGIN OPERATORS  -------------------------
+		unsigned int maxLexemeLength = 0;
 		const char* matchedOperator = NULL;
 		for (size_t i = 0; i < ARRAYSIZE(OPERATORS); i++)
 		{
 			if (character == OPERATORS[i])
 			{
-				isOperator = true;
 				maxLexemeLength = 1;
 				matchedOperator = &character;
 				break;
 			}
 		}
 
-		if (isOperator)
+		if (matchedOperator != NULL)
 		{
 			// Build the operator lexeme
-			char lexeme[3];
-
 			for (size_t i = 0; i < ARRAYSIZE(EXTENDED_OPERATORS); i++)
 			{
 				const char* operatorStr = EXTENDED_OPERATORS[i];
-				int operatorLength = strlen(operatorStr);
+				size_t operatorLength = strlen(operatorStr);
 
 				if (strncmp(&lexer->source[lexer->position], operatorStr, operatorLength) == 0 &&
 					operatorLength > maxLexemeLength)
@@ -60,16 +55,26 @@ void Tokenize(Lexer* lexer)
 				}
 			}
 
-			if (matchedOperator)
-			{
-				memcpy(lexeme, matchedOperator, maxLexemeLength);
-				lexeme[maxLexemeLength] = '\0';
-				Token token = { OPERATOR, lexeme};
-				lexer->position += maxLexemeLength;
-				PrintToken(&token);
-			}
+			char lexeme[3];
+			memcpy(lexeme, matchedOperator, maxLexemeLength);
+			lexeme[maxLexemeLength] = '\0';
+			Token token = { OPERATOR, lexeme };
+			lexer->position += maxLexemeLength;
+			PrintToken(&token);
+		}
+		// ------------- END OPERATORS  -------------------------
+
+		if (character == '\'' || character == '\"')
+		{
+			size_t start = lexer->position + 1;
+			lexer->position++;
+			while (lexer->source[lexer->position] != character) lexer->position++;
+			char* lexeme = Slice(lexer->source, start, lexer->position);
+			Token token = { STRING, lexeme };
+			PrintToken(&token);
 		}
 
+		// ------------- BEGIN KEYWORDS  -------------------------
 		if (isalpha(character))
 		{
 			char lexeme[32];
@@ -86,7 +91,8 @@ void Tokenize(Lexer* lexer)
 					lexeme[lexeme_length++] = character;
 					lexer->position++;
 				}
-				else break;
+				else
+					break;
 			}
 			lexeme[lexeme_length] = '\0';
 
@@ -95,12 +101,12 @@ void Tokenize(Lexer* lexer)
 				const char* substring = PYTHON_KEYWORD[i];
 				if (strcmp(lexeme, substring) == 0)
 				{
-					Token token = { KEYWORD,  lexeme };
+					Token token = { KEYWORD, lexeme };
 					PrintToken(&token);
 				}
 			}
 		}
-
+		// -------------- END KEYWORDS --------------------------
 		lexer->position++;
 	}
 }
@@ -115,12 +121,9 @@ const char* TokenTypeToString(TokenType type)
 {
 	switch (type)
 	{
-	case KEYWORD:
-		return "KEYWORD";
-	case OPERATOR:
-		return "OPERATOR";
-	default:
-		return "UNKNOWN";
+	case KEYWORD: return "KEYWORD";
+	case OPERATOR: return "OPERATOR";
+	case STRING: return "STRING";
+	default: return "UNKNOWN";
 	}
 }
-
