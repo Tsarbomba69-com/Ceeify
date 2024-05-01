@@ -12,6 +12,7 @@ typedef enum {
 	STRING,
 	OPERATOR,
 	KEYWORD,
+	DELIMITER,
 	NEWLINE
 } TokenType;
 
@@ -35,6 +36,8 @@ ArrayList Tokenize(Lexer* lexer);
 void PrintToken(Token* token);
 
 const char* TokenTypeToString(TokenType type);
+
+Token* CreateDelimiterToken(Lexer* lexer, const char* matchedDelimiter);
 
 Token* CreateStringToken(Lexer* lexer, char character);
 

@@ -14,6 +14,8 @@ const char OPERATORS[] = { '+', '-', '*', '/', '%', '>', '<', '!', '=', '&', '|'
 const char* EXTENDED_OPERATORS[] = {
 	"//", "==", "!=", "**", ">=", "<=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>" };
 
+const char DELIMITERS[] = { '(', ')', '[', ']', '{', '}', ',', ';', '.', ':', '`' };
+
 Lexer CreateLexer(char* source)
 {
 	size_t len = strlen(source);
@@ -44,10 +46,26 @@ ArrayList Tokenize(Lexer* lexer)
 			}
 		}
 
+		const char* matchedDelimiter = NULL;
+		for (size_t i = 0; i < ARRAYSIZE(DELIMITERS); i++)
+		{
+			if (character == DELIMITERS[i])
+			{
+				matchedDelimiter = &character;
+			}
+		}
+
 		if (matchedOperator != NULL)
 		{
 			// Build the operator lexeme
 			token = CreateOperatorToken(lexer, matchedOperator);
+			ArrayListPush(&tokens, token);
+			continue;
+		}
+
+		if (matchedDelimiter != NULL)
+		{
+			token = CreateDelimiterToken(lexer, (const char*)character);
 			ArrayListPush(&tokens, token);
 			continue;
 		}
@@ -96,6 +114,30 @@ Token* CreateStringToken(Lexer* lexer, char character)
 
 	token->type = STRING;
 	token->lexeme = lexeme;
+	return token;
+}
+
+Token* CreateDelimiterToken(Lexer* lexer, const char* character)
+{
+	Token* token = (Token*)malloc(sizeof(Token));
+	if (token == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory for token\n");
+		return NULL;
+	}
+
+	char* lexeme = (char*)malloc(sizeof(char) * 2);
+	if (lexeme == NULL)
+	{
+		fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
+		return NULL;
+	}
+
+	memcpy(lexeme, &character, 2);
+	lexeme[1] = '\0';
+	token->lexeme = lexeme;
+	token->type = DELIMITER;
+	lexer->position++;
 	return token;
 }
 
@@ -200,7 +242,7 @@ Token* CreateNumberToken(Lexer* lexer, char character)
 	while (lexer->position < lexer->sourceLength)
 	{
 		character = lexer->source[lexer->position];
-		if (isdigit(character))
+		if (isdigit(character) || character == '_')
 		{
 			lexeme[lexeme_length++] = character;
 			lexer->position++;
@@ -243,13 +285,14 @@ const char* TokenTypeToString(TokenType type)
 	case OPERATOR: return "OPERATOR";
 	case STRING: return "STRING";
 	case IDENTIFIER: return "IDENTIFIER";
+	case DELIMITER: return "DELIMITER";
 	case INTEGER: return "INTEGER";
 	case FLOAT: return "FLOAT";
 	default: return "UNKNOWN";
 	}
 }
 
-void DestroyToken(Token* token) 
+void DestroyToken(Token* token)
 {
 	free(token->lexeme);
 	free(token);
