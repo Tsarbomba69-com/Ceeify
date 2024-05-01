@@ -20,7 +20,6 @@ Lexer CreateLexer(char* source)
 	return (Lexer) { source, 0, len };
 }
 
-// TODO: Should return a collection of Tokens
 ArrayList Tokenize(Lexer* lexer)
 {
 	size_t len = strlen(lexer->source);
@@ -79,7 +78,7 @@ ArrayList Tokenize(Lexer* lexer)
 void PrintToken(Token* token)
 {
 	const char* type = TokenTypeToString(token->type);
-	printf("{ \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }\n", token->lexeme, type);
+	printf("{ \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", token->lexeme, type);
 }
 
 Token* CreateStringToken(Lexer* lexer, char character)
@@ -115,15 +114,18 @@ Token* CreateOperatorToken(Lexer* lexer, const char* matchedOperator)
 			matchedOperator = operatorStr;
 		}
 	}
+
 	char* lexeme = (char*)malloc(maxLexemeLength * sizeof(char) + 1);
 	if (lexeme == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
 		return NULL;
 	}
+
 	memcpy(lexeme, matchedOperator, maxLexemeLength);
 	lexeme[maxLexemeLength] = '\0';
 	lexer->position += maxLexemeLength;
+
 	Token* token = (Token*)malloc(sizeof(Token));
 	if (token == NULL)
 	{

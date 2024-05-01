@@ -75,7 +75,8 @@ char* Slice(const char* source, size_t start, size_t end)
 	return result;
 }
 
-ArrayList CreateArrayList(size_t initialCapacity) {
+ArrayList CreateArrayList(size_t initialCapacity)
+{
 	ArrayList list = { 0 };
 	list.elements = (void**)malloc(initialCapacity * sizeof(void*));
 	list.size = 0;
@@ -83,7 +84,8 @@ ArrayList CreateArrayList(size_t initialCapacity) {
 	return list;
 }
 
-void ArrayListPush(ArrayList* list, void* value) {
+void ArrayListPush(ArrayList* list, void* value)
+{
 	if (list->size == list->capacity) {
 		size_t newCapacity = list->capacity * 2;
 		void** newArray = (void**)realloc(list->elements, newCapacity * sizeof(void*));
@@ -97,24 +99,25 @@ void ArrayListPush(ArrayList* list, void* value) {
 	list->elements[list->size++] = value;
 }
 
-void ArrayListPrint(ArrayList* list, Action printer) {
-	printf("[");
+void ArrayListPrint(ArrayList* list, Action printer)
+{
+	printf("[\n\t");
 	for (int i = 0; i < list->size; i++)
 	{
 		void* element = list->elements[i];
 		if (element != NULL) printer(element);
 		else printf("NULL\n");
-		if (i != list->size - 1) printf(", ");
+		if (i != list->size - 1) printf(",\n\t");
 	}
-	puts("]");
+	puts("\n]");
 }
 
-void ArrayListClear(ArrayList* list, Action innerFreeCallback)
+void ArrayListClear(ArrayList* list, Action destroy)
 {
 	for (int i = 0; i < list->size; i++)
 	{
 		void* element = list->elements[i];
-		innerFreeCallback(element);
+		destroy(element);
 	}
 	list->size = 0;
 }
