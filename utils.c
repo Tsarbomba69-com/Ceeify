@@ -1,15 +1,15 @@
 #include "utils.h"
 
-char *LoadFileText(const char *fileName)
+char* LoadFileText(const char* fileName)
 {
-	char *text = NULL;
+	char* text = NULL;
 	if (fileName == NULL)
 	{
 		fprintf(stderr, "FATAL: File name provided is not valid\n");
 		return NULL;
 	}
 
-	FILE *file = fopen(fileName, "rt");
+	FILE* file = fopen(fileName, "rt");
 	if (file == NULL)
 	{
 		fprintf(stderr, "FATAL: [%s] Failed to open text file\n", fileName);
@@ -26,7 +26,7 @@ char *LoadFileText(const char *fileName)
 		return NULL;
 	}
 
-	text = (char *)malloc((size + 1) * sizeof(char));
+	text = (char*)malloc((size + 1) * sizeof(char));
 
 	if (text == NULL)
 	{
@@ -35,9 +35,9 @@ char *LoadFileText(const char *fileName)
 	}
 
 	size_t count = fread(text, sizeof(char), size, file);
-	char *tmp = NULL;
+	char* tmp = NULL;
 	if (count < size)
-		tmp = (char *)realloc(text, count + 1);
+		tmp = (char*)realloc(text, count + 1);
 	if (tmp == NULL)
 	{
 		fprintf(stderr, "FATAL: [%s] Failed to reallocate memory for file reading\n", fileName);
@@ -49,12 +49,12 @@ char *LoadFileText(const char *fileName)
 	return text;
 }
 
-void UnloadFileText(char *text)
+void UnloadFileText(char* text)
 {
 	free(text);
 }
 
-char *Slice(const char *source, size_t start, size_t end)
+char* Slice(const char* source, size_t start, size_t end)
 {
 	size_t length = end - start;
 	if (length <= 0)
@@ -63,7 +63,7 @@ char *Slice(const char *source, size_t start, size_t end)
 		return NULL;
 	}
 
-	char *result = (char *)malloc((length + 1) * sizeof(char));
+	char* result = (char*)malloc((length + 1) * sizeof(char));
 	if (result == NULL)
 	{
 		fprintf(stderr, "FATAL: Failed to allocate memory for string slice\n");
@@ -73,4 +73,48 @@ char *Slice(const char *source, size_t start, size_t end)
 	memcpy(result, source + start, end - start);
 	result[length] = '\0';
 	return result;
+}
+
+ArrayList CreateArrayList(size_t initialCapacity) {
+	ArrayList list = { 0 };
+	list.elements = (void**)malloc(initialCapacity * sizeof(void*));
+	list.size = 0;
+	list.capacity = initialCapacity;
+	return list;
+}
+
+void ArrayListPush(ArrayList* list, void* value) {
+	if (list->size == list->capacity) {
+		size_t newCapacity = list->capacity * 2;
+		void** newArray = (void**)realloc(list->elements, newCapacity * sizeof(void*));
+		if (newArray == NULL) {
+			fprintf(stderr, "ERROR: Failed to resize array list\n");
+			return;
+		}
+		list->elements = newArray;
+		list->capacity = newCapacity;
+	}
+	list->elements[list->size++] = value;
+}
+
+void ArrayListPrint(ArrayList* list, Action printer) {
+	printf("[");
+	for (int i = 0; i < list->size; i++)
+	{
+		void* element = list->elements[i];
+		if (element != NULL) printer(element);
+		else printf("NULL\n");
+		if (i != list->size - 1) printf(", ");
+	}
+	puts("]");
+}
+
+void ArrayListClear(ArrayList* list, Action innerFreeCallback)
+{
+	for (int i = 0; i < list->size; i++)
+	{
+		void* element = list->elements[i];
+		innerFreeCallback(element);
+	}
+	list->size = 0;
 }
