@@ -56,7 +56,7 @@ void UnloadFileText(char *text)
 
 char *Slice(const char *source, size_t start, size_t end)
 {
-	int length = end - start;
+	size_t length = end - start;
 	if (length <= 0)
 	{
 		fprintf(stderr, "ERROR: the length of the slice must be greater than zero\n");

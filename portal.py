@@ -7,7 +7,7 @@ class PortalSpider(scrapy.Spider):
     name = "portal"
     allowed_domains = ["portaldeangola.com"]
     start_urls = ["https://www.portaldeangola.com/category/cultura/musica/"]
-
+    sum = 1 + 1.4
     def parse(self, response):
         articles = response.css('.tdi_143 .td-module-container')
         data = []

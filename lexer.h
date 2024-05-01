@@ -7,7 +7,8 @@
 
 typedef enum {
 	IDENTIFIER,
-	NUMBER,
+	INTEGER,
+	FLOAT,
 	STRING,
 	OPERATOR,
 	KEYWORD,
@@ -24,13 +25,24 @@ typedef struct Lexer
 {
 	char* source;
 	size_t position;
+	size_t sourceLength;
 } Lexer;
+
+Lexer CreateLexer(char* source);
 
 void Tokenize(Lexer* lexer);
 
 void PrintToken(Token* token);
 
 const char* TokenTypeToString(TokenType type);
+
+Token CreateStringToken(Lexer* lexer, char character);
+
+Token CreateOperatorToken(Lexer* lexer, const char* matchedOperator);
+
+Token CreateKeywordToken(Lexer* lexer, char character);
+
+Token CreateNumberToken(Lexer* lexer, char character);
 
 #endif // !LEXER_H
 
