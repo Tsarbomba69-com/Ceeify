@@ -8,7 +8,7 @@ const char* PYTHON_KEYWORD[NUM_KEYWORDS] = {
 	"for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal",
 	"not", "or", "pass", "raise", "return", "try", "while", "with", "yield" };
 
-const char OPERATORS[] = { '+', '-', '*', '/', '%', '>', '<', '!', '=', '&', '|', '^', '~' };
+const char OPERATORS[] = { '+', '-', '*', '/', '%', '>', '<', '!', '=', '&', '|', '^', '~', '.'};
 
 const char* EXTENDED_OPERATORS[] = {
 	"//", "==", "!=", "**", ">=", "<=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>" };
@@ -22,6 +22,8 @@ Lexer CreateLexer(char* source)
 // TODO: Should return a collection of Tokens
 void Tokenize(Lexer* lexer)
 {
+	size_t len = strlen(lexer->source);
+
 	while (lexer->position < lexer->sourceLength)
 	{
 		char character = lexer->source[lexer->position];
@@ -47,9 +49,10 @@ void Tokenize(Lexer* lexer)
 			// Build the operator lexeme
 			token = CreateOperatorToken(lexer, matchedOperator);
 			PrintToken(&token);
+			continue;
 		}
-		char nextChar = lexer->source[lexer->position + 1];
-		if (isdigit(character) || character == '-' && (nextChar == '.' || nextChar == isdigit(nextChar)))
+
+		if (isdigit(character))
 		{
 			token = CreateNumberToken(lexer, character);
 			PrintToken(&token);
@@ -65,6 +68,7 @@ void Tokenize(Lexer* lexer)
 		{
 			token = CreateKeywordToken(lexer, character);
 			PrintToken(&token);
+			continue;
 		}
 		lexer->position++;
 	}
