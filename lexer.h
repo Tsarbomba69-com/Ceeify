@@ -13,7 +13,8 @@ typedef enum {
 	OPERATOR,
 	KEYWORD,
 	DELIMITER,
-	NEWLINE
+	NEWLINE,
+	ENDMARKER
 } TokenType;
 
 typedef struct Token
@@ -46,6 +47,8 @@ Token* CreateOperatorToken(Lexer* lexer, const char* matchedOperator);
 Token* CreateKeywordToken(Lexer* lexer, char character);
 
 Token* CreateNumberToken(Lexer* lexer, char character);
+
+Token* CreateEOFToken(Lexer* lexer);
 
 void DestroyToken(Token* token);
 

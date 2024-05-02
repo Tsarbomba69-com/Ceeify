@@ -90,6 +90,8 @@ ArrayList Tokenize(Lexer* lexer)
 		}
 		lexer->position++;
 	}
+	Token* eof = CreateEOFToken(lexer);
+	ArrayListPush(&tokens, eof);
 	return tokens;
 }
 
@@ -138,6 +140,27 @@ Token* CreateDelimiterToken(Lexer* lexer, const char* character)
 	token->lexeme = lexeme;
 	token->type = DELIMITER;
 	lexer->position++;
+	return token;
+}
+
+Token* CreateEOFToken(Lexer* lexer)
+{
+	Token* token = (Token*)malloc(sizeof(Token));
+	if (token == NULL)
+	{
+		fprintf(stderr, "ERROR: Failed to allocate memory for EOF token\n");
+		return NULL;
+	}
+
+	char* lexeme = (char*)malloc(3 * sizeof(char) + 1);
+	if (lexeme == NULL)
+	{
+		fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
+		return NULL;
+	}
+	lexeme = _strdup("EOF");
+	token->type = ENDMARKER;
+	token->lexeme = lexeme;
 	return token;
 }
 
@@ -288,6 +311,7 @@ const char* TokenTypeToString(TokenType type)
 	case DELIMITER: return "DELIMITER";
 	case INTEGER: return "INTEGER";
 	case FLOAT: return "FLOAT";
+	case ENDMARKER: return "ENDMARKER";
 	default: return "UNKNOWN";
 	}
 }
