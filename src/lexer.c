@@ -152,15 +152,8 @@ Token* CreateEOFToken(Lexer* lexer)
 		return NULL;
 	}
 
-	char* lexeme = (char*)malloc(3 * sizeof(char) + 1);
-	if (lexeme == NULL)
-	{
-		fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
-		return NULL;
-	}
-	lexeme = _strdup("EOF");
 	token->type = ENDMARKER;
-	token->lexeme = lexeme;
+	token->lexeme = _strdup("EOF");
 	return token;
 }
 
