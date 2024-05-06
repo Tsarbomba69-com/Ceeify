@@ -17,7 +17,7 @@ typedef enum {
 	ENDMARKER
 } TokenType;
 
-typedef struct Token
+typedef struct
 {
 	TokenType type;
 	char* lexeme;
@@ -47,6 +47,8 @@ Token* CreateOperatorToken(Lexer* lexer, const char* matchedOperator);
 Token* CreateKeywordToken(Lexer* lexer, char character);
 
 Token* CreateNumberToken(Lexer* lexer, char character);
+
+Token* CreateNewLineToken(Lexer* lexer);
 
 Token* CreateEOFToken(Lexer* lexer);
 

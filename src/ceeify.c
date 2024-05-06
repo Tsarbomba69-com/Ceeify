@@ -11,6 +11,7 @@ int main(void)
 	puts("");
 	printf("Token list = ");
 	ArrayListPrint(&tokens, PrintToken);
+	Parse(&tokens);
 	ArrayListClear(&tokens, DestroyToken);
 	return EXIT_SUCCESS;
 }

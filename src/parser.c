@@ -3,23 +3,22 @@
 
 void Parse(ArrayList* tokens)
 {
-	ASTNode* node = NULL;
 	for (size_t i = 0; i < tokens->size; i++)
 	{
-		Token* token = &tokens[i];
+		Token* token = (Token*)ArrayListGet(tokens, i);
 		switch (token->type)
 		{
-		case KEYWORD:
-			node = ParseKeyword(token);
-			break;
+		case KEYWORD: {
+			if (strcmp(token->lexeme, "import") == 0)
+			{
+				printf("\n\n%s\n", token->lexeme);
+			}
+		} break;
+		case IDENTIFIER: {
+			Token* tk = (Token*)ArrayListGet(tokens, i + 1);
+		} break;
 		default:
 			break;
 		}
 	}
-}
-
-ASTNode* ParseKeyword(Token* token)
-{
-	/*if (strcmp(token->lexeme, "import"))
-		return CreateStmtNode();*/
 }

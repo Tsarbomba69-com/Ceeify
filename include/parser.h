@@ -4,24 +4,35 @@
 #include <ctype.h>
 #include "lexer.h"
 
-typedef struct {
-	enum {
-		PROGRAM,
-		STATEMENT,
-		EXPRESSION,
-		IDENTIFIER_NODE,
-		LITERAL
-	} type;
+typedef enum {
+	PROGRAM,
+	ASSIGNMENT,
+	BINARY_OPERATION,
+	UNARY_OPERATION
+} NodeType;
+
+typedef struct Literal {
+	NodeType type;
+	char* value;
+};
+
+typedef struct Node {
+	NodeType type;
 	union {
-		struct ASTNode* children;
+		struct Literal* node;
 		char* identifier;
 	};
-	size_t numChildren;
-} ASTNode;
+} Node;
+
+typedef struct {
+	NodeType type;
+	char* operator;
+	Node* left;
+	Node* right;
+} BinaryOperation;
 
 void Parse(ArrayList* tokens);
 
-ASTNode* ParseKeyword(Token* token);
 #endif // !PARSER_H
 
 

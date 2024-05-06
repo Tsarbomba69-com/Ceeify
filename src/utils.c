@@ -75,26 +75,26 @@ char* Slice(const char* source, size_t start, size_t end)
 	return result;
 }
 
-ArrayList CreateArrayList(size_t initialCapacity)
+ArrayList CreateArrayList(size_t capacity)
 {
 	ArrayList list = { 0 };
-	list.elements = (void**)malloc(initialCapacity * sizeof(void*));
+	list.elements = (void**)malloc(capacity * sizeof(void*));
 	list.size = 0;
-	list.capacity = initialCapacity;
+	list.capacity = capacity;
 	return list;
 }
 
 void ArrayListPush(ArrayList* list, void* value)
 {
 	if (list->size == list->capacity) {
-		size_t newCapacity = list->capacity * 2;
-		void** newArray = (void**)realloc(list->elements, newCapacity * sizeof(void*));
-		if (newArray == NULL) {
+		size_t cap = list->capacity * 2;
+		void** elements = (void**)realloc(list->elements, cap * sizeof(void*));
+		if (elements == NULL) {
 			fprintf(stderr, "ERROR: Failed to resize array list\n");
 			return;
 		}
-		list->elements = newArray;
-		list->capacity = newCapacity;
+		list->elements = elements;
+		list->capacity = cap;
 	}
 	list->elements[list->size++] = value;
 }
