@@ -70,7 +70,7 @@ char* Slice(const char* source, size_t start, size_t end)
 		return NULL;
 	}
 
-	memcpy(result, source + start, end - start);
+	memcpy(result, source + start, length);
 	result[length] = '\0';
 	return result;
 }

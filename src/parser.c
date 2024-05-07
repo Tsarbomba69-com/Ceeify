@@ -11,7 +11,20 @@ void Parse(ArrayList* tokens)
 		case KEYWORD: {
 			if (strcmp(token->lexeme, "import") == 0)
 			{
-				printf("\n\n%s\n", token->lexeme);
+				ImportStmt* importStmt = CreateImportStmt();
+				Token* next = (Token*)ArrayListGet(tokens, i + 1);
+				size_t pos = i;
+				switch (next->type)
+				{
+				case IDENTIFIER: {
+					importStmt->moduleNames[importStmt->moduleNamesCount++] = Slice(next->lexeme, 0, strlen(next->lexeme));
+
+					PrintImportStmt(importStmt);
+				} break;
+				default:
+					fprintf(stderr, "SyntaxError: invalid syntax");
+					return;
+				}
 			}
 		} break;
 		case IDENTIFIER: {
@@ -20,5 +33,34 @@ void Parse(ArrayList* tokens)
 		default:
 			break;
 		}
+	}
+}
+
+ImportStmt* CreateImportStmt()
+{
+	ImportStmt* importStmt = (ImportStmt*)malloc(sizeof(ImportStmt));
+	if (importStmt == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory for import statement\n");
+		return;
+	}
+
+	importStmt->moduleNamesCount = 0;
+	importStmt->type = IMPORT;
+	return importStmt;
+}
+
+void PrintImportStmt(ImportStmt* stmt)
+{
+	const char* type = NodeTypeToString(stmt->type);
+	printf("{ \033[0;36mmoduleNames\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", *stmt->moduleNames, type);
+}
+
+const char* NodeTypeToString(NodeType type)
+{
+	switch (type)
+	{
+	case IMPORT: return "IMPORT";
+	default: return "UNKNOWN";
 	}
 }
