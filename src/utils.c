@@ -99,10 +99,87 @@ void ArrayListPush(ArrayList* list, void* value)
 	list->elements[list->size++] = value;
 }
 
+char* Join(char* separator, char** items, size_t count)
+{
+	if (count == 0)
+	{
+		fprintf(stderr, "ERROR: Count must be greater than zero\n");
+		return NULL;
+	}
+
+	size_t separatorLength = strlen(separator);
+	size_t totalLength = 0;
+	for (size_t i = 0; i < count; i++) {
+		totalLength += strlen(items[i]) + 2;
+	}
+
+	totalLength += (count - 1) * separatorLength + 1; // Add space for separators and null terminator
+
+	char* result = (char*)malloc(totalLength);
+	if (result == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory for slice buffer\n");
+		return NULL;
+	}
+
+	if (strcpy_s(result, totalLength, items[0]) != 0)
+	{
+		free(result);
+		return NULL;
+	}
+
+	for (size_t i = 1; i < count; i++)
+	{
+		if (strcat_s(result, totalLength, separator) != 0 ||
+			strcat_s(result, totalLength, items[i]) != 0)
+		{
+			free(result);
+			return NULL;
+		}
+	}
+
+	return result;
+}
+
+const char* TextFormat(const char* text, ...)
+{
+#ifndef MAX_TEXTFORMAT_BUFFERS
+#define MAX_TEXTFORMAT_BUFFERS      4        // Maximum number of static buffers for text formatting
+#endif
+#ifndef MAX_TEXT_BUFFER_LENGTH
+#define MAX_TEXT_BUFFER_LENGTH   1024        // Maximum size of static text buffer
+#endif
+
+	// We create an array of buffers so strings don't expire until MAX_TEXTFORMAT_BUFFERS invocations
+	static char buffers[MAX_TEXTFORMAT_BUFFERS][MAX_TEXT_BUFFER_LENGTH] = { 0 };
+	static int index = 0;
+
+	char* currentBuffer = buffers[index];
+	memset(currentBuffer, 0, MAX_TEXT_BUFFER_LENGTH);   // Clear buffer before using
+
+	va_list args;
+	va_start(args, text);
+	int requiredByteCount = vsnprintf(currentBuffer, MAX_TEXT_BUFFER_LENGTH, text, args);
+	va_end(args);
+
+	// If requiredByteCount is larger than the MAX_TEXT_BUFFER_LENGTH, then overflow occured
+	if (requiredByteCount >= MAX_TEXT_BUFFER_LENGTH)
+	{
+		// Inserting "..." at the end of the string to mark as truncated
+		char* truncBuffer = buffers[index] + MAX_TEXT_BUFFER_LENGTH - 4; // Adding 4 bytes = "...\0"
+		sprintf_s(truncBuffer, 4, "...");
+	}
+
+	index += 1;     // Move to next buffer for next function call
+	if (index >= MAX_TEXTFORMAT_BUFFERS) index = 0;
+
+	return currentBuffer;
+}
+
 void ArrayListPrint(ArrayList* list, Action printer)
 {
 	printf("[\n\t");
-	for (int i = 0; i < list->size; i++)
+	for (size_t i = 0; i < list->size; i++)
 	{
 		void* element = list->elements[i];
 		if (element != NULL) printer(element);

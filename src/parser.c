@@ -53,7 +53,9 @@ ImportStmt* CreateImportStmt()
 void PrintImportStmt(ImportStmt* stmt)
 {
 	const char* type = NodeTypeToString(stmt->type);
-	printf("{ \033[0;36mmoduleNames\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", *stmt->moduleNames, type);
+	char* moduleNames = Join(", ", stmt->moduleNames, stmt->moduleNamesCount);
+	printf("{ \033[0;36mmoduleNames\033[0m: \033[0;33m[%s]\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", moduleNames, type);
+	free(moduleNames);
 }
 
 const char* NodeTypeToString(NodeType type)
