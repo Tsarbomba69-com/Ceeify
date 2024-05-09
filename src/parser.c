@@ -3,32 +3,36 @@
 
 void Parse(ArrayList* tokens)
 {
+	ArrayList body = CreateArrayList(100);
+	Program program = { PROGRAM, body };
 	for (size_t i = 0; i < tokens->size; i++)
 	{
-		Token* token = (Token*)ArrayListGet(tokens, i);
+		Token* token = ArrayListGet(tokens, i);
 		switch (token->type)
 		{
 		case KEYWORD: {
 			if (strcmp(token->lexeme, "import") == 0)
 			{
-				ImportStmt* importStmt = CreateImportStmt();
-				Token* next = (Token*)ArrayListGet(tokens, i + 1);
-				size_t pos = i;
-				switch (next->type)
-				{
-				case IDENTIFIER: {
-					importStmt->moduleNames[importStmt->moduleNamesCount++] = Slice(next->lexeme, 0, strlen(next->lexeme));
-
-					PrintImportStmt(importStmt);
-				} break;
-				default:
-					fprintf(stderr, "SyntaxError: invalid syntax");
-					return;
-				}
+				Node* importStmt = CreateNode(IMPORT);
+				ArrayListPush(&program.body, importStmt);
 			}
 		} break;
 		case IDENTIFIER: {
-			Token* tk = (Token*)ArrayListGet(tokens, i + 1);
+			Node* prev = ArrayListGet(&program.body, program.body.size - 1);
+			Token* next = ArrayListGet(tokens, i + 1);
+			if (prev != NULL && next != NULL &&
+				prev->type == IMPORT && (strcmp(next->lexeme, ",") == 0 || next->type == NEWLINE)) {
+				ImportStmt* importStmt = prev->importStm;
+				importStmt->moduleNames[importStmt->moduleNamesCount++] = Slice(token->lexeme, 0, strlen(token->lexeme));
+			}
+			else if (prev != NULL) {
+				// TODO: Implemente whatever situation
+				puts("");
+				printf("Abstract Syntax Tree = ");
+				ArrayListPrint(&program.body, PrintNode);
+				puts("");
+				return;
+			}
 		} break;
 		default:
 			break;
@@ -50,11 +54,44 @@ ImportStmt* CreateImportStmt()
 	return importStmt;
 }
 
+Node* CreateNode(NodeType type)
+{
+	Node* node = malloc(sizeof(node));
+	if (node == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory for AST node\n");
+		return NULL;
+	}
+
+	switch (type)
+	{
+	case IMPORT:
+		node->type = IMPORT;
+		node->importStm = CreateImportStmt();
+		return node;
+	default:
+		fprintf(stderr, "WARNING: Unrecognized node type %s\n", NodeTypeToString(type));
+		return node;
+	}
+}
+
+void PrintNode(Node* node)
+{
+	switch (node->type)
+	{
+	case IMPORT:
+		PrintImportStmt(node->importStm);
+		break;
+	default:
+		break;
+	}
+}
+
 void PrintImportStmt(ImportStmt* stmt)
 {
 	const char* type = NodeTypeToString(stmt->type);
 	char* moduleNames = Join(", ", stmt->moduleNames, stmt->moduleNamesCount);
-	printf("{ \033[0;36mmoduleNames\033[0m: \033[0;33m[%s]\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", moduleNames, type);
+	printf("{ \033[0;36mmodules\033[0m: [\033[0;33m%s\033[0m], \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", moduleNames, type);
 	free(moduleNames);
 }
 

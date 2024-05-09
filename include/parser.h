@@ -1,6 +1,7 @@
 #pragma once
 #ifndef PARSER_H
 #include <ctype.h>
+#include <assert.h>
 #include "lexer.h"
 #define PARSER_H
 #define MODULE_NAME_CAP 10
@@ -19,15 +20,16 @@ typedef struct {
 	int moduleNamesCount;
 } ImportStmt;
 
-typedef struct Literal {
+typedef struct {
 	NodeType type;
 	char* value;
-};
+} Literal;
 
 typedef struct Node {
 	NodeType type;
 	union {
-		struct Literal* node;
+		Literal* literal;
+		ImportStmt* importStm;
 		char* identifier;
 	};
 } Node;
@@ -39,9 +41,18 @@ typedef struct {
 	Node* right;
 } BinaryOperation;
 
+typedef struct {
+	NodeType type;
+	ArrayList body;
+} Program;
+
 void Parse(ArrayList* tokens);
 
 ImportStmt* CreateImportStmt();
+
+Node* CreateNode(NodeType type);
+
+void PrintNode(Node* node);
 
 void PrintImportStmt(ImportStmt* stmt);
 

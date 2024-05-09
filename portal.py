@@ -1,6 +1,6 @@
 import json
 
-import scrapy
+import scrapy, json
 
 
 class PortalSpider(scrapy.Spider):
