@@ -18,20 +18,31 @@ void Parse(ArrayList* tokens)
 			}
 		} break;
 		case IDENTIFIER: {
-			Node* prev = ArrayListGet(&program.body, program.body.size - 1);
+			Node* node = ArrayListGet(&program.body, program.body.size - 1);
+			Token* prev = ArrayListGet(tokens, i - 1);
 			Token* next = ArrayListGet(tokens, i + 1);
-			if (prev != NULL && next != NULL &&
-				prev->type == IMPORT && (strcmp(next->lexeme, ",") == 0 || next->type == NEWLINE)) {
-				ImportStmt* importStmt = prev->importStm;
+
+			if ((node == NULL || prev->type == NEWLINE) && strcmp(next->lexeme, "=") == 0) {
+				Node* assign = CreateNode(ASSIGNMENT);
+				Node* var = CreateNode(VARIABLE);
+				var->identifier = token->lexeme;
+				assign->binOp = CreateNode(BINARY_OPERATION);
+				assign->binOp->left = var;
+				ArrayListPush(&program.body, assign);
+				// PrintNode(var);
+			}
+
+			if (node != NULL && next != NULL &&
+				node->type == IMPORT && (strcmp(next->lexeme, ",") == 0 || next->type == NEWLINE)) {
+				ImportStmt* importStmt = node->importStm;
 				importStmt->moduleNames[importStmt->moduleNamesCount++] = Slice(token->lexeme, 0, strlen(token->lexeme));
 			}
-			else if (prev != NULL) {
+			else if (node != NULL) {
 				// TODO: Implemente whatever situation
 				puts("");
 				printf("Abstract Syntax Tree = ");
 				ArrayListPrint(&program.body, PrintNode);
 				puts("");
-				return;
 			}
 		} break;
 		default:
@@ -69,6 +80,12 @@ Node* CreateNode(NodeType type)
 		node->type = IMPORT;
 		node->importStm = CreateImportStmt();
 		return node;
+	case ASSIGNMENT:
+		node->type = ASSIGNMENT;
+		return node;
+	case VARIABLE:
+		node->type = VARIABLE;
+		return node;
 	default:
 		fprintf(stderr, "WARNING: Unrecognized node type %s\n", NodeTypeToString(type));
 		return node;
@@ -77,13 +94,21 @@ Node* CreateNode(NodeType type)
 
 void PrintNode(Node* node)
 {
+	char* type = NodeTypeToString(node->type);
 	switch (node->type)
 	{
 	case IMPORT:
 		PrintImportStmt(node->importStm);
 		break;
-	default:
+	case ASSIGNMENT:
+		PrintNode(node->binOp->left);
 		break;
+	case VARIABLE:
+		printf("{ \033[0;36midentifer\033[0m: \033[0;33m%s\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", node->identifier, type);
+		break;
+	default: {
+		fprintf(stderr, "WARNING: Not implemented for \"%s\"\n", type);
+	} break;
 	}
 }
 
@@ -100,6 +125,8 @@ const char* NodeTypeToString(NodeType type)
 	switch (type)
 	{
 	case IMPORT: return "IMPORT";
+	case PROGRAM: return "PROGRAM";
+	case VARIABLE: return "VARIABLE";
 	default: return "UNKNOWN";
 	}
 }

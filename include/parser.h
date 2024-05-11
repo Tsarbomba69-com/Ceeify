@@ -11,7 +11,8 @@ typedef enum {
 	ASSIGNMENT,
 	IMPORT,
 	BINARY_OPERATION,
-	UNARY_OPERATION
+	UNARY_OPERATION,
+	VARIABLE,
 } NodeType;
 
 typedef struct {
@@ -25,21 +26,22 @@ typedef struct {
 	char* value;
 } Literal;
 
+typedef struct {
+	NodeType type;
+	char* operator;
+	struct Node* left;
+	struct Node* right;
+} BinaryOperation;
+
 typedef struct Node {
 	NodeType type;
 	union {
 		Literal* literal;
 		ImportStmt* importStm;
+		BinaryOperation* binOp;
 		char* identifier;
 	};
 } Node;
-
-typedef struct {
-	NodeType type;
-	char* operator;
-	Node* left;
-	Node* right;
-} BinaryOperation;
 
 typedef struct {
 	NodeType type;
