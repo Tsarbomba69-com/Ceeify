@@ -34,6 +34,10 @@ ArrayList CreateArrayList(size_t capacity);
 
 void ArrayListPush(ArrayList* list, void* value);
 
+inline void Print(char* str) {
+	printf("\033[0;33m\"%s\"\033[0m", str);
+}
+
 // Get the element stored at the index. Returns NULL if index is out-of-bounds
 inline void* ArrayListGet(ArrayList* arrayList, size_t index)
 {

@@ -12,26 +12,37 @@ typedef enum {
 	IMPORT,
 	BINARY_OPERATION,
 	UNARY_OPERATION,
+	LITERAL,
 	VARIABLE,
 } NodeType;
 
 typedef struct {
-	NodeType type;
-	char* moduleNames[MODULE_NAME_CAP];
-	int moduleNamesCount;
+	ArrayList modules;
 } ImportStmt;
 
 typedef struct {
-	NodeType type;
 	char* value;
 } Literal;
 
 typedef struct {
-	NodeType type;
 	char* operator;
 	struct Node* left;
 	struct Node* right;
 } BinaryOperation;
+
+typedef struct {
+	char* id;
+	enum {
+		STORE,
+		DEL,
+		LOAD
+	} ctx;
+} Name;
+
+typedef struct {
+	Name* target;
+	struct Node* value;
+} Assign;
 
 typedef struct Node {
 	NodeType type;
@@ -39,26 +50,34 @@ typedef struct Node {
 		Literal* literal;
 		ImportStmt* importStm;
 		BinaryOperation* binOp;
-		char* identifier;
+		Assign* assignStmt;
+		Name* variable;
 	};
 } Node;
 
-typedef struct {
-	NodeType type;
-	ArrayList body;
-} Program;
+typedef ArrayList Program;
 
 void Parse(ArrayList* tokens);
 
 ImportStmt* CreateImportStmt();
 
+Assign* CreateAssignStmt();
+
+Name* CreateNameExpr();
+
+Literal* CreateLiteral(char* value);
+
 Node* CreateNode(NodeType type);
 
 void PrintNode(Node* node);
 
+void PrintVar(Name* variable);
+
 void PrintImportStmt(ImportStmt* stmt);
 
 const char* NodeTypeToString(NodeType type);
+
+const char* CtxToString(Name* var);
 
 #endif // !PARSER_H
 

@@ -178,20 +178,20 @@ const char* TextFormat(const char* text, ...)
 
 void ArrayListPrint(ArrayList* list, Action printer)
 {
-	printf("[\n\t");
+	printf("[\n    ");
 	for (size_t i = 0; i < list->size; i++)
 	{
 		void* element = list->elements[i];
 		if (element != NULL) printer(element);
 		else printf("NULL\n");
-		if (i != list->size - 1) printf(",\n\t");
+		if (i != list->size - 1) printf(",\n    ");
 	}
-	puts("\n]");
+	printf("\n]");
 }
 
 void ArrayListClear(ArrayList* list, Action destroy)
 {
-	for (int i = 0; i < list->size; i++)
+	for (size_t i = 0; i < list->size; i++)
 	{
 		void* element = list->elements[i];
 		destroy(element);

@@ -35,6 +35,9 @@ ArrayList Tokenize(Lexer* lexer)
 			continue;
 		}
 
+		if (character == '#')
+			while ('\n' != lexer->source[lexer->position++]) continue;
+
 		Token* token;
 		const char* matchedOperator = NULL;
 		for (size_t i = 0; i < ARRAYSIZE(OPERATORS); i++)
