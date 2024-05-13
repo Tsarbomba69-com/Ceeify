@@ -9,8 +9,9 @@ int main(void)
 	ArrayList tokens = Tokenize(&lexer);
 	printf("Total Tokens = \033[0;31m%zu\033[0m\n", tokens.size);
 	puts("");
-	printf("Token list = ");
-	ArrayListPrint(&tokens, PrintToken);
+	printf("Token list = [\n");
+	ArrayListForEach(&tokens, PrintToken);
+	printf("]\n");
 	Parse(&tokens);
 	ArrayListClear(&tokens, DestroyToken);
 	return EXIT_SUCCESS;

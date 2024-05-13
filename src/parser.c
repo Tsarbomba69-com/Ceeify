@@ -62,8 +62,9 @@ void Parse(ArrayList* tokens)
 		}
 	}
 	puts("");
-	printf("Abstract Syntax Tree = ");
-	ArrayListPrint(&program, PrintNode);
+	printf("Abstract Syntax Tree = [\n");
+	ArrayListForEach(&program, PrintNode);
+	printf("]\n");
 }
 
 ImportStmt* CreateImportStmt()
@@ -171,6 +172,7 @@ void PrintNode(Node* node)
 		fprintf(stderr, "WARNING: Not implemented for \"%s\"\n", type);
 	} break;
 	}
+	printf(",\n");
 }
 
 void PrintVar(Name* variable)
@@ -181,8 +183,9 @@ void PrintVar(Name* variable)
 void PrintImportStmt(ImportStmt* stmt)
 {
 	const char* type = NodeTypeToString(IMPORT);
-	printf("{ \033[0;36mmodules\033[0m: ");
-	ArrayListPrint(&stmt->modules, Print);
+	printf("{ \033[0;36mmodules\033[0m: [ ");
+	ArrayListForEach(&stmt->modules, Print);
+	printf("]");
 	printf(", \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", type);
 }
 

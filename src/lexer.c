@@ -108,7 +108,7 @@ ArrayList Tokenize(Lexer* lexer)
 void PrintToken(Token* token)
 {
 	const char* type = TokenTypeToString(token->type);
-	printf("{ \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", token->lexeme, type);
+	printf("    { \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m },\n", token->lexeme, type);
 }
 
 Token* CreateStringToken(Lexer* lexer, char character)

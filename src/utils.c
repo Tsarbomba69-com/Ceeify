@@ -176,17 +176,13 @@ const char* TextFormat(const char* text, ...)
 	return currentBuffer;
 }
 
-void ArrayListPrint(ArrayList* list, Action printer)
+void ArrayListForEach(ArrayList* list, Action callback)
 {
-	printf("[\n    ");
 	for (size_t i = 0; i < list->size; i++)
 	{
 		void* element = list->elements[i];
-		if (element != NULL) printer(element);
-		else printf("NULL\n");
-		if (i != list->size - 1) printf(",\n    ");
+		if (element != NULL) callback(element);
 	}
-	printf("\n]");
 }
 
 void ArrayListClear(ArrayList* list, Action destroy)
