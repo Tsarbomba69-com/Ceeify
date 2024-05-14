@@ -156,11 +156,15 @@ void PrintNode(Node* node)
 	{
 	case IMPORT:
 		PrintImportStmt(node->importStm);
+		printf(",\n");
 		break;
 	case ASSIGNMENT:
+		printf("{ \n    \033[0;36mtarget\033[0m: ");
 		PrintVar(node->assignStmt->target);
-		printf(" = ");
+		printf(", \n    \033[0;36mexpression\033[0m: ");
 		PrintNode(node->assignStmt->value);
+		printf(", \n    \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n}", type);
+		printf(",\n");
 		break;
 	case VARIABLE:
 		PrintVar(node->variable);
@@ -172,7 +176,6 @@ void PrintNode(Node* node)
 		fprintf(stderr, "WARNING: Not implemented for \"%s\"\n", type);
 	} break;
 	}
-	printf(",\n");
 }
 
 void PrintVar(Name* variable)
