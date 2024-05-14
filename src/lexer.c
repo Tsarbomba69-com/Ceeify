@@ -77,12 +77,14 @@ ArrayList Tokenize(Lexer* lexer)
 		{
 			token = CreateNumberToken(lexer, character);
 			ArrayListPush(&tokens, token);
+			continue;
 		}
 
 		if (character == '\'' || character == '\"')
 		{
 			token = CreateStringToken(lexer, character);
 			ArrayListPush(&tokens, token);
+			continue;
 		}
 
 		if (isalpha(character) || character == '_')
@@ -124,6 +126,7 @@ Token* CreateStringToken(Lexer* lexer, char character)
 		return NULL;
 	}
 
+	lexer->position++;
 	token->type = STRING;
 	token->lexeme = lexeme;
 	return token;

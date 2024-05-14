@@ -7,6 +7,10 @@ void Parse(ArrayList* tokens)
 	for (size_t i = 0; i < tokens->size; i++)
 	{
 		Token* token = ArrayListGet(tokens, i);
+		Node* node = ArrayListGet(&program, program.size - 1);
+		Token* prev = ArrayListGet(tokens, i - 1);
+		Token* next = ArrayListGet(tokens, i + 1);
+
 		switch (token->type)
 		{
 		case KEYWORD: {
@@ -16,11 +20,15 @@ void Parse(ArrayList* tokens)
 				ArrayListPush(&program, importStmt);
 			}
 		} break;
+		case OPERATOR: {
+			if (node != NULL && node->type == ASSIGNMENT && strcmp(next->lexeme, "-") == 0) {
+				Node* operand = CreateNode(UNARY_OPERATION);
+				operand->unOp = CreateUnaryOp(next->lexeme);
+				operand->depth += node->depth;
+				node->assignStmt->value = operand;
+			}
+		} break;
 		case IDENTIFIER: {
-			Node* node = ArrayListGet(&program, program.size - 1);
-			Token* prev = ArrayListGet(tokens, i - 1);
-			Token* next = ArrayListGet(tokens, i + 1);
-
 			if ((node == NULL || prev->type == NEWLINE) && strcmp(next->lexeme, "=") == 0) {
 				node = CreateNode(ASSIGNMENT);
 				Assign* assign = node->assignStmt;
@@ -38,7 +46,11 @@ void Parse(ArrayList* tokens)
 				Node* var = CreateNode(VARIABLE);
 				var->variable->ctx = LOAD;
 				var->variable->id = token->lexeme;
-				assign->value = var;
+				var->depth += node->depth;
+				if (assign->value != NULL && assign->value->type == UNARY_OPERATION)
+					assign->value->unOp->operand = var;
+				else
+					assign->value = var;
 				break;
 			}
 
@@ -48,12 +60,21 @@ void Parse(ArrayList* tokens)
 				ArrayListPush(&importStmt->modules, Slice(token->lexeme, 0, strlen(token->lexeme)));
 			}
 		} break;
+		case INTEGER: {
+			if (node != NULL && node->type == ASSIGNMENT) {
+				Node* assignV = node->assignStmt->value;
+				Node* literal = CreateNode(LITERAL);
+				literal->literal = CreateLiteral(token->lexeme);
+				literal->depth += node->depth;
+				if (assignV != NULL && assignV->type == UNARY_OPERATION) assignV->unOp->operand = literal;
+				else node->assignStmt->value = literal;
+			}
+		} break;
 		case STRING: {
-			Node* node = ArrayListGet(&program, program.size - 1);
-
 			if (node != NULL && node->type == ASSIGNMENT) {
 				Node* literal = CreateNode(LITERAL);
 				literal->literal = CreateLiteral(token->lexeme);
+				literal->depth += node->depth;
 				node->assignStmt->value = literal;
 			}
 		} break;
@@ -119,6 +140,19 @@ Name* CreateNameExpr()
 	return variable;
 }
 
+UnaryOperation* CreateUnaryOp(char* op)
+{
+	UnaryOperation* operation = malloc(sizeof(operation));
+	if (operation == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory for unary operation expression\n");
+		return;
+	}
+
+	operation->operator = op;
+	return operation;
+}
+
 Node* CreateNode(NodeType type)
 {
 	Node* node = malloc(sizeof(node));
@@ -129,6 +163,7 @@ Node* CreateNode(NodeType type)
 	}
 
 	node->type = type;
+	node->depth = 1;
 	switch (type)
 	{
 	case IMPORT:
@@ -140,6 +175,7 @@ Node* CreateNode(NodeType type)
 	case VARIABLE:
 		node->variable = CreateNameExpr();
 		return node;
+	case UNARY_OPERATION:
 	case LITERAL:
 		return node;
 	default:
@@ -152,18 +188,28 @@ void PrintNode(Node* node)
 {
 	if (node == NULL) return;
 	char* type = NodeTypeToString(node->type);
+	char* spaces = Repeat(" ", node->depth * 4);
 	switch (node->type)
 	{
 	case IMPORT:
 		PrintImportStmt(node->importStm);
 		printf(",\n");
 		break;
+	case UNARY_OPERATION:
+		printf("{ \n%s\033[0;36moperator\033[0m: ", spaces);
+		Print(node->unOp->operator);
+		printf("\n%s\033[0;36moperand\033[0m: ", spaces);
+		PrintNode(node->unOp->operand);
+		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n%s}",
+			spaces, type, Slice(spaces, 0, 4 * (node->depth - 1)));
+		// printf(",\n");
+		break;
 	case ASSIGNMENT:
-		printf("{ \n    \033[0;36mtarget\033[0m: ");
+		printf("{ \n%s\033[0;36mtarget\033[0m: ", spaces);
 		PrintVar(node->assignStmt->target);
-		printf(", \n    \033[0;36mexpression\033[0m: ");
+		printf(", \n%s\033[0;36mexpression\033[0m: ", spaces);
 		PrintNode(node->assignStmt->value);
-		printf(", \n    \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n}", type);
+		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n}", spaces, type);
 		printf(",\n");
 		break;
 	case VARIABLE:
@@ -201,6 +247,7 @@ const char* NodeTypeToString(NodeType type)
 	case VARIABLE: return "VARIABLE";
 	case ASSIGNMENT: return "ASSIGNMENT";
 	case LITERAL: return "LITERAL";
+	case UNARY_OPERATION: return "UNARY OPERATION";
 	default: return "UNKNOWN";
 	}
 }

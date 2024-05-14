@@ -28,6 +28,8 @@ char* Slice(const char* source, size_t start, size_t end);
 
 char* Join(char* separator, char** items, size_t count);
 
+char* Repeat(const char* str, size_t count);
+
 const char* TextFormat(const char* text, ...);
 
 ArrayList CreateArrayList(size_t capacity);

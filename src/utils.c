@@ -99,6 +99,25 @@ void ArrayListPush(ArrayList* list, void* value)
 	list->elements[list->size++] = value;
 }
 
+char* Repeat(const char* str, size_t count) {
+	size_t str_len = strlen(str);
+	size_t result_len = str_len * count;
+	char* result = (char*)malloc((result_len + 1) * sizeof(char));
+
+	if (result == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory to repeat \"%s\" \"%zu\" times", str, count);
+		return NULL;
+	}
+
+	for (size_t i = 0; i < count; i++) {
+		memcpy(result + (i * str_len), str, str_len);
+	}
+
+	result[result_len] = '\0';
+	return result;
+}
+
 char* Join(char* separator, char** items, size_t count)
 {
 	if (count == 0)

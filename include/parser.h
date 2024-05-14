@@ -31,6 +31,11 @@ typedef struct {
 } BinaryOperation;
 
 typedef struct {
+	char* operator;
+	struct Node* operand;
+} UnaryOperation;
+
+typedef struct {
 	char* id;
 	enum {
 		STORE,
@@ -46,10 +51,12 @@ typedef struct {
 
 typedef struct Node {
 	NodeType type;
+	size_t depth;
 	union {
 		Literal* literal;
 		ImportStmt* importStm;
 		BinaryOperation* binOp;
+		UnaryOperation* unOp;
 		Assign* assignStmt;
 		Name* variable;
 	};
@@ -64,6 +71,8 @@ ImportStmt* CreateImportStmt();
 Assign* CreateAssignStmt();
 
 Name* CreateNameExpr();
+
+UnaryOperation* CreateUnaryOp(char* op);
 
 Literal* CreateLiteral(char* value);
 
