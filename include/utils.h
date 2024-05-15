@@ -9,7 +9,6 @@
 
 #define ARRAYSIZE(a) (sizeof(a)/sizeof((a)[0]))
 
-
 typedef struct {
 	void** elements;
 	size_t size;
@@ -17,6 +16,8 @@ typedef struct {
 } ArrayList;
 
 typedef void (*Action)(void*);
+
+typedef bool (*CompareFn)(const void*, const void*);
 
 // Load text data from file (read), returns a '\0' terminated string
 char* LoadFileText(const char* fileName);
@@ -31,6 +32,12 @@ char* Join(char* separator, char** items, size_t count);
 char* Repeat(const char* str, size_t count);
 
 const char* TextFormat(const char* text, ...);
+
+inline bool StrEQ(char* str1, char* str2) {
+	return strcmp(str1, str2) == 0;
+}
+
+bool Contains(void* arr[], size_t, void*, CompareFn);
 
 ArrayList CreateArrayList(size_t capacity);
 

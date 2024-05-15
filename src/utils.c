@@ -118,6 +118,16 @@ char* Repeat(const char* str, size_t count) {
 	return result;
 }
 
+bool Contains(void* arr[], size_t size, void* el, CompareFn fn)
+{
+	for (size_t i = 0; i < size; i++) {
+		if (fn(arr[i], el)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 char* Join(char* separator, char** items, size_t count)
 {
 	if (count == 0)

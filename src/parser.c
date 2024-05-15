@@ -1,5 +1,6 @@
 #include "parser.h"
 
+const char* BIN_OPERATORS[] = { "+", "-", "*", "/", "%", ">", "<", "==", "&", "|", "^", "~", "&&", "||" };
 
 void Parse(ArrayList* tokens)
 {
@@ -47,6 +48,9 @@ void Parse(ArrayList* tokens)
 				var->variable->ctx = LOAD;
 				var->variable->id = token->lexeme;
 				var->depth += node->depth;
+				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+					printf("HERE: %s = %s %s %s", assign->target->id, token->lexeme, next->lexeme, "(term expand)");
+				}
 				if (assign->value != NULL && assign->value->type == UNARY_OPERATION)
 					assign->value->unOp->operand = var;
 				else
