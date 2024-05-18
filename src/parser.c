@@ -49,7 +49,16 @@ void Parse(ArrayList* tokens)
 				var->variable->id = token->lexeme;
 				var->depth += node->depth;
 				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
-					printf("HERE: %s = %s %s %s", assign->target->id, token->lexeme, next->lexeme, "(term expand)");
+					ArrayList expression = CreateArrayList(20);
+					for (size_t j = i + 1; token->type != NEWLINE; ++j) {
+						ArrayListPush(&expression, token);
+						token = ArrayListGet(tokens, j);
+						i = j;
+					}
+					// TODO: 
+					expression = InfixToPostfix(&expression);
+					// Shanting yard
+					break;
 				}
 				if (assign->value != NULL && assign->value->type == UNARY_OPERATION)
 					assign->value->unOp->operand = var;
@@ -188,6 +197,29 @@ Node* CreateNode(NodeType type)
 	}
 }
 
+Tokens InfixToPostfix(Tokens* tokens)
+{
+	Tokens stack = CreateArrayList(10);
+	Tokens postfix = CreateArrayList(10);
+
+	for (size_t i = 0; i < tokens->size; i++)
+	{
+		Token* token = ArrayListGet(tokens, i);
+		if (token->type == IDENTIFIER || token->type == INTEGER || token->type == FLOAT) {
+			ArrayListPush(&postfix, token);
+		}
+		else {
+			Token* last = ArrayListGet(&stack, stack.size - 1);
+			while (stack.size > 0 && Precedence(last->lexeme[0]) > Precedence(token->lexeme[0]))
+				ArrayListPush(&postfix, ArrayListPop(&stack));
+			ArrayListPush(&stack, token);
+		}
+	}
+	
+	while (stack.size > 0) ArrayListPush(&postfix, ArrayListPop(&stack));
+	return postfix;
+}
+
 void PrintNode(Node* node)
 {
 	if (node == NULL) return;
@@ -264,5 +296,20 @@ const char* CtxToString(Name* var)
 	case STORE: return "STORE";
 	case DEL: return "DEL";
 	default: return "UNKNOWN";
+	}
+}
+
+size_t Precedence(char op) {
+	switch (op) {
+	case '+':
+	case '-':
+		return 1;
+	case '*':
+	case '/':
+		return 2;
+	case '^':
+		return 3;
+	default:
+		return -1;
 	}
 }

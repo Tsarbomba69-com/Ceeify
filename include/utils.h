@@ -43,6 +43,8 @@ ArrayList CreateArrayList(size_t capacity);
 
 void ArrayListPush(ArrayList* list, void* value);
 
+void* ArrayListPop(ArrayList* list);
+
 inline void Print(char* str) {
 	printf("\033[0;33m\"%s\"\033[0m, ", str);
 }

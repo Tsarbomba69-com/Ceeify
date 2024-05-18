@@ -78,6 +78,8 @@ Literal* CreateLiteral(char* value);
 
 Node* CreateNode(NodeType type);
 
+Tokens InfixToPostfix(Tokens* tokens);
+
 void PrintNode(Node* node);
 
 void PrintVar(Name* variable);
@@ -87,6 +89,8 @@ void PrintImportStmt(ImportStmt* stmt);
 const char* NodeTypeToString(NodeType type);
 
 const char* CtxToString(Name* var);
+
+size_t Precedence(char op);
 
 #endif // !PARSER_H
 

@@ -22,7 +22,7 @@ Lexer CreateLexer(char* source)
 	return (Lexer) { source, 0, len };
 }
 
-ArrayList Tokenize(Lexer* lexer)
+Tokens Tokenize(Lexer* lexer)
 {
 	size_t len = strlen(lexer->source);
 	ArrayList tokens = CreateArrayList(100);

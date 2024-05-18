@@ -99,6 +99,16 @@ void ArrayListPush(ArrayList* list, void* value)
 	list->elements[list->size++] = value;
 }
 
+void* ArrayListPop(ArrayList* list) {
+	if (list->size == 0) {
+		return NULL; // ArrayList is empty, return NULL
+	}
+
+	void* element = list->elements[list->size - 1]; // Get the last element
+	list->size--; // Decrement the size
+	return element; // Return the last element
+}
+
 char* Repeat(const char* str, size_t count) {
 	size_t str_len = strlen(str);
 	size_t result_len = str_len * count;

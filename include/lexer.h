@@ -30,6 +30,8 @@ typedef struct Lexer
 	size_t sourceLength;
 } Lexer;
 
+typedef ArrayList Tokens;
+
 Lexer CreateLexer(char* source);
 
 ArrayList Tokenize(Lexer* lexer);
