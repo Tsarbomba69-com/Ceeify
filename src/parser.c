@@ -2,7 +2,7 @@
 
 const char* BIN_OPERATORS[] = { "+", "-", "*", "/", "%", ">", "<", "==", "&", "|", "^", "~", "&&", "||" };
 
-void Parse(ArrayList* tokens)
+void Parse(Tokens* tokens)
 {
 	Program program = CreateArrayList(100);
 	for (size_t i = 0; i < tokens->size; i++)
@@ -55,8 +55,11 @@ void Parse(ArrayList* tokens)
 						token = ArrayListGet(tokens, j);
 						i = j;
 					}
+					ArrayListForEach(&expression, PrintToken);
 					expression = InfixToPostfix(&expression);
-					assign->value = ShantingYard(&expression);
+					puts("");
+					ArrayListForEach(&expression, PrintToken);
+					assign->value = ShantingYard(&expression, node->depth);
 					break;
 				}
 				if (assign->value != NULL && assign->value->type == UNARY_OPERATION)
@@ -250,7 +253,7 @@ Tokens InfixToPostfix(Tokens* tokens)
 Node* ShantingYard(Tokens* tokens)
 {
 	ArrayList stack = CreateArrayList(10);
-	size_t max_depth = 0;
+
 	for (size_t i = 0; i < tokens->size; i++)
 	{
 		Token* token = ArrayListGet(tokens, i);
@@ -259,16 +262,12 @@ Node* ShantingYard(Tokens* tokens)
 			Node* var = CreateNode(VARIABLE);
 			var->variable->ctx = LOAD;
 			var->variable->id = token->lexeme;
-			var->depth = max_depth + 1;
-			max_depth = var->depth;
 			ArrayListPush(&stack, var);
 		} break;
 		case INTEGER:
 		case FLOAT: {
 			Node* literal = CreateNode(LITERAL);
 			literal->literal = CreateLiteral(token->lexeme);
-			literal->depth = max_depth + 1;
-			max_depth = literal->depth;
 			ArrayListPush(&stack, literal);
 		} break;
 		case DELIMITER:
@@ -277,21 +276,18 @@ Node* ShantingYard(Tokens* tokens)
 			Node* right = ArrayListPop(&stack);
 			Node* left = ArrayListPop(&stack);
 			Node* bin = CreateBinOp(token, left, right);
-			bin->depth = max_depth;
-			max_depth -= max_depth > 0;
 			ArrayListPush(&stack, bin);
 		} break;
 		}
 	}
 	Node* root = ArrayListPop(&stack);
-	root->depth = max_depth;
 	return root;
 }
 
 Node* CreateBinOp(Token* token, Node* left, Node* right)
 {
 	Node* node = CreateNode(BINARY_OPERATION);
-	node->depth = left->depth - 1;
+	node->depth = left->depth;
 	node->binOp = malloc(sizeof(node->binOp));
 	if (node->binOp == NULL) {
 		fprintf(stderr, "ERROR: Could not allocate memory for binary operation\n");
@@ -306,12 +302,13 @@ Node* CreateBinOp(Token* token, Node* left, Node* right)
 void PrintNode(Node* node)
 {
 	if (node == NULL) return;
+	TraverseTree(node, node->depth);
 	char* type = NodeTypeToString(node->type);
-	char* spaces = Repeat(" ", node->depth * 4);
+	char* spaces = Repeat(" ", node->depth * 2);
 	switch (node->type)
 	{
 	case IMPORT:
-		PrintImportStmt(node->importStm);
+		PrintImportStmt(node);
 		printf(",\n");
 		break;
 	case UNARY_OPERATION:
@@ -320,7 +317,7 @@ void PrintNode(Node* node)
 		printf("\n%s\033[0;36moperand\033[0m: ", spaces);
 		PrintNode(node->unOp->operand);
 		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n%s}",
-			spaces, type, Slice(spaces, 0, 4 * (node->depth - (node->depth > 1))));
+			spaces, type, Slice(spaces, 0, 2 * (node->depth - (node->depth > 1))));
 		break;
 	case BINARY_OPERATION:
 		printf("{ \n%s\033[0;36moperator\033[0m: ", spaces);
@@ -329,22 +326,22 @@ void PrintNode(Node* node)
 		PrintNode(node->binOp->left);
 		printf(",\n%s\033[0;36mright\033[0m: ", spaces);
 		PrintNode(node->binOp->right);
-		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n%s}",
-			spaces, type, Slice(spaces, 0, 4 * (node->depth - (node->depth > 1))));
+		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
+			spaces, type, node->depth, Slice(spaces, 0, 4 * (node->depth - (node->depth > 1))));
 		break;
 	case ASSIGNMENT:
 		printf("{ \n%s\033[0;36mtarget\033[0m: ", spaces);
-		PrintVar(node->assignStmt->target);
+		PrintVar(node->assignStmt->target, node->depth);
 		printf(", \n%s\033[0;36mexpression\033[0m: ", spaces);
-		PrintNode(node->assignStmt->value);
-		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n}", spaces, type);
+		PrintNode(node->assignStmt->value, node->depth);
+		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n}", spaces, type, node->depth);
 		printf(",\n");
 		break;
 	case VARIABLE:
-		PrintVar(node->variable);
+		PrintVar(node->variable, node->depth);
 		break;
 	case LITERAL:
-		printf("{ \033[0;36mvalue\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", node->literal->value, NodeTypeToString(node->type));
+		printf("{ \033[0;36mvalue\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m }", node->literal->value, NodeTypeToString(node->type), node->depth);
 		break;
 	default: {
 		fprintf(stderr, "WARNING: Not implemented for \"%s\"\n", type);
@@ -352,18 +349,40 @@ void PrintNode(Node* node)
 	}
 }
 
-void PrintVar(Name* variable)
+void TraverseTree(Node* node, size_t depth)
 {
-	printf("{ \033[0;36midentifer\033[0m: \033[0;33m%s\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mctx\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", variable->id, NodeTypeToString(VARIABLE), CtxToString(variable));
+	if (node == NULL) return;
+	
+	node->depth = depth;
+	switch (node->type)
+	{
+	case UNARY_OPERATION:
+		TraverseTree(node->unOp->operand, depth + 1);
+		break;
+	case BINARY_OPERATION:
+		TraverseTree(node->binOp->left, depth + 1);
+		TraverseTree(node->binOp->right, depth + 1);
+		break;
+	case ASSIGNMENT:
+		TraverseTree(node->assignStmt->value, node->depth + 1);
+		break;
+	default: {
+	} break;
+	}
 }
 
-void PrintImportStmt(ImportStmt* stmt)
+void PrintVar(Name* variable, size_t depth)
+{
+	printf("{ \033[0;36midentifer\033[0m: \033[0;33m%s\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mctx\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m }", variable->id, NodeTypeToString(VARIABLE), CtxToString(variable), depth);
+}
+
+void PrintImportStmt(Node* stmt)
 {
 	const char* type = NodeTypeToString(IMPORT);
 	printf("{ \033[0;36mmodules\033[0m: [ ");
-	ArrayListForEach(&stmt->modules, Print);
+	ArrayListForEach(&stmt->importStm->modules, Print);
 	printf("]");
-	printf(", \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m }", type);
+	printf(", \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m }", type, stmt->depth);
 }
 
 const char* NodeTypeToString(NodeType type)

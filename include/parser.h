@@ -68,7 +68,7 @@ typedef ArrayList Program;
 
 typedef ArrayList Nodes;
 
-void Parse(ArrayList* tokens);
+void Parse(Tokens* tokens);
 
 ImportStmt* CreateImportStmt();
 
@@ -78,27 +78,30 @@ Name* CreateNameExpr();
 
 UnaryOperation* CreateUnaryOp(char* op);
 
+Node* ShantingYard(Tokens* tokens);
+
+
 Literal* CreateLiteral(char* value);
 
 Node* CreateNode(NodeType type);
 
 Tokens InfixToPostfix(Tokens* tokens);
 
-Node* ShantingYard(Tokens* tokens);
-
 Node* CreateBinOp(Token* token, Node* left, Node* right);
 
 void PrintNode(Node* node);
 
-void PrintVar(Name* variable);
+void PrintVar(Name*, size_t);
 
-void PrintImportStmt(ImportStmt* stmt);
+void PrintImportStmt(Node*);
+
+size_t Precedence(char op);
 
 const char* NodeTypeToString(NodeType type);
 
 const char* CtxToString(Name* var);
 
-size_t Precedence(char op);
+void TraverseTree(Node* node, size_t depth);
 
 #endif // !PARSER_H
 
