@@ -14,6 +14,8 @@ typedef enum {
 	UNARY_OPERATION,
 	LITERAL,
 	VARIABLE,
+	OPEN_PAREN,
+	CLOSE_PAREN
 } NodeType;
 
 typedef struct {
@@ -64,6 +66,8 @@ typedef struct Node {
 
 typedef ArrayList Program;
 
+typedef ArrayList Nodes;
+
 void Parse(ArrayList* tokens);
 
 ImportStmt* CreateImportStmt();
@@ -79,6 +83,10 @@ Literal* CreateLiteral(char* value);
 Node* CreateNode(NodeType type);
 
 Tokens InfixToPostfix(Tokens* tokens);
+
+Node* ShantingYard(Tokens* tokens);
+
+Node* CreateBinOp(Token* token, Node* left, Node* right);
 
 void PrintNode(Node* node);
 

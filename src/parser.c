@@ -49,15 +49,14 @@ void Parse(ArrayList* tokens)
 				var->variable->id = token->lexeme;
 				var->depth += node->depth;
 				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
-					ArrayList expression = CreateArrayList(20);
+					Tokens expression = CreateArrayList(20);
 					for (size_t j = i + 1; token->type != NEWLINE; ++j) {
 						ArrayListPush(&expression, token);
 						token = ArrayListGet(tokens, j);
 						i = j;
 					}
-					// TODO: 
 					expression = InfixToPostfix(&expression);
-					// Shanting yard
+					assign->value = ShantingYard(&expression);
 					break;
 				}
 				if (assign->value != NULL && assign->value->type == UNARY_OPERATION)
@@ -190,6 +189,7 @@ Node* CreateNode(NodeType type)
 		return node;
 	case UNARY_OPERATION:
 	case LITERAL:
+	case BINARY_OPERATION:
 		return node;
 	default:
 		fprintf(stderr, "WARNING: Unrecognized node type %s\n", NodeTypeToString(type));
@@ -205,19 +205,102 @@ Tokens InfixToPostfix(Tokens* tokens)
 	for (size_t i = 0; i < tokens->size; i++)
 	{
 		Token* token = ArrayListGet(tokens, i);
-		if (token->type == IDENTIFIER || token->type == INTEGER || token->type == FLOAT) {
+		if (token->type == IDENTIFIER || token->type == INTEGER || token->type == FLOAT)
+		{
 			ArrayListPush(&postfix, token);
 		}
-		else {
+		else if (strcmp(token->lexeme, "(") == 0)
+		{
+			ArrayListPush(&stack, token);
+		}
+		else if (strcmp(token->lexeme, ")") == 0)
+		{
 			Token* last = ArrayListGet(&stack, stack.size - 1);
-			while (stack.size > 0 && Precedence(last->lexeme[0]) > Precedence(token->lexeme[0]))
+			while (stack.size > 0 && strcmp(last->lexeme, "(") != 0)
+			{
 				ArrayListPush(&postfix, ArrayListPop(&stack));
+			}
+			if (stack.size > 0 && strcmp(last->lexeme, "(") == 0)
+			{
+				ArrayListPop(&stack); // Pop the open bracket
+			}
+		}
+		else
+		{
+			Token* last = ArrayListGet(&stack, stack.size - 1);
+			while (stack.size > 0 && Precedence(last->lexeme[0]) >= Precedence(token->lexeme[0]) && strcmp(last->lexeme, "(") != 0)
+			{
+				ArrayListPush(&postfix, ArrayListPop(&stack));
+				if (stack.size > 0)
+				{
+					last = ArrayListGet(&stack, stack.size - 1);
+				}
+			}
 			ArrayListPush(&stack, token);
 		}
 	}
-	
-	while (stack.size > 0) ArrayListPush(&postfix, ArrayListPop(&stack));
+
+	while (stack.size > 0)
+	{
+		ArrayListPush(&postfix, ArrayListPop(&stack));
+	}
 	return postfix;
+}
+
+Node* ShantingYard(Tokens* tokens)
+{
+	ArrayList stack = CreateArrayList(10);
+	size_t max_depth = 0;
+	for (size_t i = 0; i < tokens->size; i++)
+	{
+		Token* token = ArrayListGet(tokens, i);
+		switch (token->type) {
+		case IDENTIFIER: {
+			Node* var = CreateNode(VARIABLE);
+			var->variable->ctx = LOAD;
+			var->variable->id = token->lexeme;
+			var->depth = max_depth + 1;
+			max_depth = var->depth;
+			ArrayListPush(&stack, var);
+		} break;
+		case INTEGER:
+		case FLOAT: {
+			Node* literal = CreateNode(LITERAL);
+			literal->literal = CreateLiteral(token->lexeme);
+			literal->depth = max_depth + 1;
+			max_depth = literal->depth;
+			ArrayListPush(&stack, literal);
+		} break;
+		case DELIMITER:
+			break;
+		default: {
+			Node* right = ArrayListPop(&stack);
+			Node* left = ArrayListPop(&stack);
+			Node* bin = CreateBinOp(token, left, right);
+			bin->depth = max_depth;
+			max_depth -= max_depth > 0;
+			ArrayListPush(&stack, bin);
+		} break;
+		}
+	}
+	Node* root = ArrayListPop(&stack);
+	root->depth = max_depth;
+	return root;
+}
+
+Node* CreateBinOp(Token* token, Node* left, Node* right)
+{
+	Node* node = CreateNode(BINARY_OPERATION);
+	node->depth = left->depth - 1;
+	node->binOp = malloc(sizeof(node->binOp));
+	if (node->binOp == NULL) {
+		fprintf(stderr, "ERROR: Could not allocate memory for binary operation\n");
+		return NULL;
+	}
+	node->binOp->left = left;
+	node->binOp->right = right;
+	node->binOp->operator = token->lexeme;
+	return node;
 }
 
 void PrintNode(Node* node)
@@ -237,8 +320,17 @@ void PrintNode(Node* node)
 		printf("\n%s\033[0;36moperand\033[0m: ", spaces);
 		PrintNode(node->unOp->operand);
 		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n%s}",
-			spaces, type, Slice(spaces, 0, 4 * (node->depth - 1)));
-		// printf(",\n");
+			spaces, type, Slice(spaces, 0, 4 * (node->depth - (node->depth > 1))));
+		break;
+	case BINARY_OPERATION:
+		printf("{ \n%s\033[0;36moperator\033[0m: ", spaces);
+		Print(node->binOp->operator);
+		printf("\n%s\033[0;36mleft\033[0m: ", spaces);
+		PrintNode(node->binOp->left);
+		printf(",\n%s\033[0;36mright\033[0m: ", spaces);
+		PrintNode(node->binOp->right);
+		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n%s}",
+			spaces, type, Slice(spaces, 0, 4 * (node->depth - (node->depth > 1))));
 		break;
 	case ASSIGNMENT:
 		printf("{ \n%s\033[0;36mtarget\033[0m: ", spaces);
@@ -284,6 +376,7 @@ const char* NodeTypeToString(NodeType type)
 	case ASSIGNMENT: return "ASSIGNMENT";
 	case LITERAL: return "LITERAL";
 	case UNARY_OPERATION: return "UNARY OPERATION";
+	case BINARY_OPERATION: return "BINARY OPERATION";
 	default: return "UNKNOWN";
 	}
 }

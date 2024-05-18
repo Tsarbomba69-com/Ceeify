@@ -116,7 +116,7 @@ char* Repeat(const char* str, size_t count) {
 
 	if (result == NULL)
 	{
-		fprintf(stderr, "ERROR: Could not allocate memory to repeat \"%s\" \"%zu\" times", str, count);
+		fprintf(stderr, "ERROR: Could not allocate memory to repeat \"%s\" %zu times\n", str, count);
 		return NULL;
 	}
 
