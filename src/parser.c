@@ -55,10 +55,7 @@ void Parse(Tokens* tokens)
 						token = ArrayListGet(tokens, j);
 						i = j;
 					}
-					ArrayListForEach(&expression, PrintToken);
 					expression = InfixToPostfix(&expression);
-					puts("");
-					ArrayListForEach(&expression, PrintToken);
 					assign->value = ShantingYard(&expression, node->depth);
 					break;
 				}
