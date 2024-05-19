@@ -6,6 +6,10 @@
 #define PARSER_H
 #define MODULE_NAME_CAP 10
 
+typedef ArrayList Program;
+
+typedef ArrayList Nodes;
+
 typedef enum {
 	PROGRAM,
 	ASSIGNMENT,
@@ -14,9 +18,14 @@ typedef enum {
 	UNARY_OPERATION,
 	LITERAL,
 	VARIABLE,
-	OPEN_PAREN,
-	CLOSE_PAREN
+	LIST
 } NodeType;
+
+typedef enum {
+	STORE,
+	DEL,
+	LOAD
+} Context;
 
 typedef struct {
 	ArrayList modules;
@@ -39,17 +48,18 @@ typedef struct {
 
 typedef struct {
 	char* id;
-	enum {
-		STORE,
-		DEL,
-		LOAD
-	} ctx;
+	Context ctx;
 } Name;
 
 typedef struct {
 	Name* target;
 	struct Node* value;
 } Assign;
+
+typedef struct {
+	Nodes elts;
+	Context ctx;
+} List;
 
 typedef struct Node {
 	NodeType type;
@@ -61,12 +71,9 @@ typedef struct Node {
 		UnaryOperation* unOp;
 		Assign* assignStmt;
 		Name* variable;
+		List* list;
 	};
 } Node;
-
-typedef ArrayList Program;
-
-typedef ArrayList Nodes;
 
 void Parse(Tokens* tokens);
 
@@ -80,6 +87,7 @@ UnaryOperation* CreateUnaryOp(char* op);
 
 Node* ShantingYard(Tokens* tokens);
 
+void PrintList(Node* node);
 
 Literal* CreateLiteral(char* value);
 
@@ -88,6 +96,8 @@ Node* CreateNode(NodeType type);
 Tokens InfixToPostfix(Tokens* tokens);
 
 Node* CreateBinOp(Token* token, Node* left, Node* right);
+
+Node* CreateListNode(Tokens* elements);
 
 void PrintNode(Node* node);
 

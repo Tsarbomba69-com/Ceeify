@@ -47,7 +47,7 @@ void Parse(Tokens* tokens)
 				Node* var = CreateNode(VARIABLE);
 				var->variable->ctx = LOAD;
 				var->variable->id = token->lexeme;
-				var->depth += node->depth;
+
 				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
 					Tokens expression = CreateArrayList(20);
 					for (size_t j = i + 1; token->type != NEWLINE; ++j) {
@@ -56,9 +56,10 @@ void Parse(Tokens* tokens)
 						i = j;
 					}
 					expression = InfixToPostfix(&expression);
-					assign->value = ShantingYard(&expression, node->depth);
+					assign->value = ShantingYard(&expression);
 					break;
 				}
+
 				if (assign->value != NULL && assign->value->type == UNARY_OPERATION)
 					assign->value->unOp->operand = var;
 				else
@@ -77,7 +78,6 @@ void Parse(Tokens* tokens)
 				Node* assignV = node->assignStmt->value;
 				Node* literal = CreateNode(LITERAL);
 				literal->literal = CreateLiteral(token->lexeme);
-				literal->depth += node->depth;
 				if (assignV != NULL && assignV->type == UNARY_OPERATION) assignV->unOp->operand = literal;
 				else node->assignStmt->value = literal;
 			}
@@ -86,8 +86,20 @@ void Parse(Tokens* tokens)
 			if (node != NULL && node->type == ASSIGNMENT) {
 				Node* literal = CreateNode(LITERAL);
 				literal->literal = CreateLiteral(token->lexeme);
-				literal->depth += node->depth;
 				node->assignStmt->value = literal;
+			}
+		} break;
+		case DELIMITER: {
+			if (strcmp(token->lexeme, "[") == 0) {
+				Tokens elements = CreateArrayList(20);
+				for (size_t j = i + 1; strcmp(token->lexeme, "]") != 0; ++j) {
+					ArrayListPush(&elements, token);
+					token = ArrayListGet(tokens, j);
+					i = j;
+				}
+				if (node != NULL && node->type == ASSIGNMENT) {
+					node->assignStmt->value = CreateListNode(&elements);
+				}
 			}
 		} break;
 		default:
@@ -111,6 +123,31 @@ ImportStmt* CreateImportStmt()
 
 	importStmt->modules = CreateArrayList(10);
 	return importStmt;
+}
+
+Node* CreateListNode(Tokens* elements)
+{
+	Node* node = CreateNode(LIST);
+	node->list->elts = CreateArrayList(20);
+	for (size_t i = 0; i < elements->size; i++)
+	{
+		Token* token = ArrayListGet(elements, i);
+		Node* el = NULL;
+		switch (token->type)
+		{
+		case INTEGER:
+		case STRING:
+		case FLOAT: {
+			el = CreateNode(LITERAL);
+			el->literal = CreateLiteral(token->lexeme);
+		} break;
+		default:
+			fprintf(stderr, "WARNING: Not implemented!");
+			break;
+		}
+		if (el != NULL) ArrayListPush(&node->list->elts, el);
+	}
+	return node;
 }
 
 Literal* CreateLiteral(char* value)
@@ -190,6 +227,9 @@ Node* CreateNode(NodeType type)
 	case UNARY_OPERATION:
 	case LITERAL:
 	case BINARY_OPERATION:
+		return node;
+	case LIST:
+		node->list = malloc(sizeof(node->list));
 		return node;
 	default:
 		fprintf(stderr, "WARNING: Unrecognized node type %s\n", NodeTypeToString(type));
@@ -284,7 +324,6 @@ Node* ShantingYard(Tokens* tokens)
 Node* CreateBinOp(Token* token, Node* left, Node* right)
 {
 	Node* node = CreateNode(BINARY_OPERATION);
-	node->depth = left->depth;
 	node->binOp = malloc(sizeof(node->binOp));
 	if (node->binOp == NULL) {
 		fprintf(stderr, "ERROR: Could not allocate memory for binary operation\n");
@@ -340,21 +379,37 @@ void PrintNode(Node* node)
 	case LITERAL:
 		printf("{ \033[0;36mvalue\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m }", node->literal->value, NodeTypeToString(node->type), node->depth);
 		break;
+	case LIST:
+		PrintList(node);
+		break;
 	default: {
 		fprintf(stderr, "WARNING: Not implemented for \"%s\"\n", type);
 	} break;
 	}
 }
 
+void PrintList(Node* node) {
+	const char* type = NodeTypeToString(IMPORT);
+	printf("{ \033[0;36melements\033[0m: [ ");
+	for (size_t i = 0; i < node->list->elts.size; i++)
+	{
+		Node* el = ArrayListGet(&node->list->elts, i);
+		PrintNode(el);
+		printf(", ");
+	}
+	printf("]");
+	printf(", \n\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m }", type, node->depth);
+}
+
 void TraverseTree(Node* node, size_t depth)
 {
 	if (node == NULL) return;
-	
+
 	node->depth = depth;
 	switch (node->type)
 	{
 	case UNARY_OPERATION:
-		TraverseTree(node->unOp->operand, depth + 1);
+		TraverseTree(node->unOp->operand, depth);
 		break;
 	case BINARY_OPERATION:
 		TraverseTree(node->binOp->left, depth + 1);
@@ -362,6 +417,13 @@ void TraverseTree(Node* node, size_t depth)
 		break;
 	case ASSIGNMENT:
 		TraverseTree(node->assignStmt->value, node->depth + 1);
+		break;
+	case LIST:
+		for (size_t i = 0; i < node->list->elts.size; i++)
+		{
+			Node* el = ArrayListGet(&node->list->elts, i);
+			TraverseTree(el, node->depth);
+		}
 		break;
 	default: {
 	} break;
