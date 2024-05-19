@@ -382,7 +382,7 @@ void PrintNode(Node* node)
 		printf("{ \033[0;36mvalue\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m }", node->literal->value, NodeTypeToString(node->type), node->depth);
 		break;
 	case LIST:
-		PrintList(node);
+		PrintList(node, spaces);
 		break;
 	default: {
 		fprintf(stderr, "WARNING: Not implemented for \"%s\"\n", type);
@@ -390,17 +390,18 @@ void PrintNode(Node* node)
 	}
 }
 
-void PrintList(Node* node) {
-	const char* type = NodeTypeToString(IMPORT);
-	printf("{ \033[0;36melements\033[0m: [ ");
+void PrintList(Node* node, char* spaces) {
+	const char* type = NodeTypeToString(node->type);
+	printf("{ \n%s\033[0;36melements\033[0m: [ \n", spaces);
+	printf("    %s", spaces);
 	for (size_t i = 0; i < node->list->elts.size; i++)
 	{
 		Node* el = ArrayListGet(&node->list->elts, i);
 		PrintNode(el);
 		printf(", ");
 	}
-	printf("]");
-	printf(", \n\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m }", type, node->depth);
+	printf("\n%s]", spaces);
+	printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m \n%s}", spaces, type, node->depth, spaces);
 }
 
 void TraverseTree(Node* node, size_t depth)
@@ -457,6 +458,7 @@ const char* NodeTypeToString(NodeType type)
 	case LITERAL: return "LITERAL";
 	case UNARY_OPERATION: return "UNARY OPERATION";
 	case BINARY_OPERATION: return "BINARY OPERATION";
+	case LIST: return "LIST";
 	default: return "UNKNOWN";
 	}
 }

@@ -87,7 +87,7 @@ UnaryOperation* CreateUnaryOp(char* op);
 
 Node* ShantingYard(Tokens* tokens);
 
-void PrintList(Node* node);
+void PrintList(Node* node, char* spaces);
 
 Literal* CreateLiteral(char* value);
 
