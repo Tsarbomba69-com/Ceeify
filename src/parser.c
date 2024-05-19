@@ -141,6 +141,8 @@ Node* CreateListNode(Tokens* elements)
 			el = CreateNode(LITERAL);
 			el->literal = CreateLiteral(token->lexeme);
 		} break;
+		case DELIMITER:
+			break;
 		default:
 			fprintf(stderr, "WARNING: Not implemented!");
 			break;
