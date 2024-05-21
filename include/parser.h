@@ -52,6 +52,12 @@ typedef struct {
 } Name;
 
 typedef struct {
+	struct Node* test;
+	struct Node* body;
+	struct Node* orelse;
+} IfExp;
+
+typedef struct {
 	Name* target;
 	struct Node* value;
 } Assign;
@@ -66,10 +72,11 @@ typedef struct Node {
 	size_t depth;
 	union {
 		Literal* literal;
-		ImportStmt* importStm;
-		BinaryOperation* binOp;
+		ImportStmt* import_stm;
+		IfExp* if_expr;
+		BinaryOperation* bin_op;
 		UnaryOperation* unOp;
-		Assign* assignStmt;
+		Assign* assign_stmt;
 		Name* variable;
 		List* list;
 	};
@@ -105,7 +112,9 @@ void PrintVar(Name*, size_t);
 
 void PrintImportStmt(Node*);
 
-size_t Precedence(char op);
+size_t Precedence(const char*);
+
+Tokens CollectExpression(Tokens* tokens, size_t from);
 
 const char* NodeTypeToString(NodeType type);
 

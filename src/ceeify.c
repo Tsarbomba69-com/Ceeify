@@ -11,6 +11,11 @@ int main(void)
 	puts("");
 	printf("Token list = [\n");
 	ArrayListForEach(&tokens, PrintToken);
+	//for (size_t i = 0; i < tokens.size; i++)
+	//{
+	//	printf("%zu ", i);
+	//	PrintToken(tokens.elements[i]);
+	//}
 	printf("]\n");
 	Parse(&tokens);
 	ArrayListClear(&tokens, DestroyToken);

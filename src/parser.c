@@ -1,6 +1,9 @@
 #include "parser.h"
 
-const char* BIN_OPERATORS[] = { "+", "-", "*", "/", "%", ">", "<", "==", "&", "|", "^", "~", "&&", "||" };
+const char* BIN_OPERATORS[] = { 
+	"+", "-", "*", "/", "%", ">", "<", "==", "&", "|", "^", "~", "&&", "||",
+	"//", "==", "!=", "**", ">=", "<=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>"
+};
 
 void Parse(Tokens* tokens)
 {
@@ -26,13 +29,17 @@ void Parse(Tokens* tokens)
 				Node* operand = CreateNode(UNARY_OPERATION);
 				operand->unOp = CreateUnaryOp(next->lexeme);
 				operand->depth += node->depth;
-				node->assignStmt->value = operand;
+				node->assign_stmt->value = operand;
+			}
+
+			if (strcmp(next->lexeme, "")) {
+
 			}
 		} break;
 		case IDENTIFIER: {
 			if ((node == NULL || prev->type == NEWLINE) && strcmp(next->lexeme, "=") == 0) {
 				node = CreateNode(ASSIGNMENT);
-				Assign* assign = node->assignStmt;
+				Assign* assign = node->assign_stmt;
 				Name* var = (CreateNode(VARIABLE))->variable;
 				var->id = token->lexeme;
 				var->ctx = STORE;
@@ -42,23 +49,20 @@ void Parse(Tokens* tokens)
 				break;
 			}
 
-			if (node != NULL && node->type == ASSIGNMENT && node->assignStmt->target->ctx == STORE) {
-				Assign* assign = node->assignStmt;
-				Node* var = CreateNode(VARIABLE);
-				var->variable->ctx = LOAD;
-				var->variable->id = token->lexeme;
+			if (node != NULL && node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
+				Assign* assign = node->assign_stmt;
 
 				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
-					Tokens expression = CreateArrayList(20);
-					for (size_t j = i + 1; token->type != NEWLINE; ++j) {
-						ArrayListPush(&expression, token);
-						token = ArrayListGet(tokens, j);
-						i = j;
-					}
+					Tokens expression = CollectExpression(tokens, i);
+					i += expression.size - 1;
 					expression = InfixToPostfix(&expression);
 					assign->value = ShantingYard(&expression);
 					break;
 				}
+
+				Node* var = CreateNode(VARIABLE);
+				var->variable->ctx = LOAD;
+				var->variable->id = token->lexeme;
 
 				if (assign->value != NULL && assign->value->type == UNARY_OPERATION)
 					assign->value->unOp->operand = var;
@@ -69,36 +73,48 @@ void Parse(Tokens* tokens)
 
 			if (node != NULL && next != NULL &&
 				node->type == IMPORT && (strcmp(next->lexeme, ",") == 0 || next->type == NEWLINE)) {
-				ImportStmt* importStmt = node->importStm;
+				ImportStmt* importStmt = node->import_stm;
 				ArrayListPush(&importStmt->modules, Slice(token->lexeme, 0, strlen(token->lexeme)));
 			}
 		} break;
 		case INTEGER: {
+			if (node != NULL && node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
+				Assign* assign = node->assign_stmt;
+
+				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+					Tokens expression = CollectExpression(tokens, i);
+					i += expression.size - 1;
+					expression = InfixToPostfix(&expression);
+					assign->value = ShantingYard(&expression);
+					break;
+				}
+			}
+
 			if (node != NULL && node->type == ASSIGNMENT) {
-				Node* assignV = node->assignStmt->value;
+				Node* assignV = node->assign_stmt->value;
 				Node* literal = CreateNode(LITERAL);
 				literal->literal = CreateLiteral(token->lexeme);
 				if (assignV != NULL && assignV->type == UNARY_OPERATION) assignV->unOp->operand = literal;
-				else node->assignStmt->value = literal;
+				else node->assign_stmt->value = literal;
 			}
 		} break;
 		case STRING: {
 			if (node != NULL && node->type == ASSIGNMENT) {
 				Node* literal = CreateNode(LITERAL);
 				literal->literal = CreateLiteral(token->lexeme);
-				node->assignStmt->value = literal;
+				node->assign_stmt->value = literal;
 			}
 		} break;
 		case DELIMITER: {
 			if (strcmp(token->lexeme, "[") == 0) {
 				Tokens elements = CreateArrayList(20);
-				for (size_t j = i + 1; strcmp(token->lexeme, "]") != 0; ++j) {
+				for (size_t j = i; strcmp(token->lexeme, "]") != 0; ++j) {
 					ArrayListPush(&elements, token);
 					token = ArrayListGet(tokens, j);
-					i = j;
+					i = j - 1;
 				}
 				if (node != NULL && node->type == ASSIGNMENT) {
-					node->assignStmt->value = CreateListNode(&elements);
+					node->assign_stmt->value = CreateListNode(&elements);
 				}
 			}
 		} break;
@@ -123,6 +139,17 @@ ImportStmt* CreateImportStmt()
 
 	importStmt->modules = CreateArrayList(10);
 	return importStmt;
+}
+
+Tokens CollectExpression(Tokens* tokens, size_t from)
+{
+	Token* token = ArrayListGet(tokens, from);
+	Tokens expression = CreateArrayList(20);
+	for (size_t j = from; (token->type != NEWLINE && token->type != ENDMARKER); ++j) {
+		ArrayListPush(&expression, token);
+		token = ArrayListGet(tokens, j);
+	}
+	return expression;
 }
 
 Node* CreateListNode(Tokens* elements)
@@ -218,10 +245,10 @@ Node* CreateNode(NodeType type)
 	switch (type)
 	{
 	case IMPORT:
-		node->importStm = CreateImportStmt();
+		node->import_stm = CreateImportStmt();
 		return node;
 	case ASSIGNMENT:
-		node->assignStmt = CreateAssignStmt();
+		node->assign_stmt = CreateAssignStmt();
 		return node;
 	case VARIABLE:
 		node->variable = CreateNameExpr();
@@ -270,7 +297,7 @@ Tokens InfixToPostfix(Tokens* tokens)
 		else
 		{
 			Token* last = ArrayListGet(&stack, stack.size - 1);
-			while (stack.size > 0 && Precedence(last->lexeme[0]) >= Precedence(token->lexeme[0]) && strcmp(last->lexeme, "(") != 0)
+			while (stack.size > 0 && Precedence(last->lexeme) >= Precedence(token->lexeme) && strcmp(last->lexeme, "(") != 0)
 			{
 				ArrayListPush(&postfix, ArrayListPop(&stack));
 				if (stack.size > 0)
@@ -326,14 +353,14 @@ Node* ShantingYard(Tokens* tokens)
 Node* CreateBinOp(Token* token, Node* left, Node* right)
 {
 	Node* node = CreateNode(BINARY_OPERATION);
-	node->binOp = malloc(sizeof(node->binOp));
-	if (node->binOp == NULL) {
+	node->bin_op = malloc(sizeof(node->bin_op));
+	if (node->bin_op == NULL) {
 		fprintf(stderr, "ERROR: Could not allocate memory for binary operation\n");
 		return NULL;
 	}
-	node->binOp->left = left;
-	node->binOp->right = right;
-	node->binOp->operator = token->lexeme;
+	node->bin_op->left = left;
+	node->bin_op->right = right;
+	node->bin_op->operator = token->lexeme;
 	return node;
 }
 
@@ -359,19 +386,19 @@ void PrintNode(Node* node)
 		break;
 	case BINARY_OPERATION:
 		printf("{ \n%s\033[0;36moperator\033[0m: ", spaces);
-		Print(node->binOp->operator);
+		Print(node->bin_op->operator);
 		printf("\n%s\033[0;36mleft\033[0m: ", spaces);
-		PrintNode(node->binOp->left);
+		PrintNode(node->bin_op->left);
 		printf(",\n%s\033[0;36mright\033[0m: ", spaces);
-		PrintNode(node->binOp->right);
+		PrintNode(node->bin_op->right);
 		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
 			spaces, type, node->depth, Slice(spaces, 0, 4 * (node->depth - (node->depth > 1))));
 		break;
 	case ASSIGNMENT:
 		printf("{ \n%s\033[0;36mtarget\033[0m: ", spaces);
-		PrintVar(node->assignStmt->target, node->depth);
+		PrintVar(node->assign_stmt->target, node->depth);
 		printf(", \n%s\033[0;36mexpression\033[0m: ", spaces);
-		PrintNode(node->assignStmt->value, node->depth);
+		PrintNode(node->assign_stmt->value, node->depth);
 		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n}", spaces, type, node->depth);
 		printf(",\n");
 		break;
@@ -415,11 +442,11 @@ void TraverseTree(Node* node, size_t depth)
 		TraverseTree(node->unOp->operand, depth);
 		break;
 	case BINARY_OPERATION:
-		TraverseTree(node->binOp->left, depth + 1);
-		TraverseTree(node->binOp->right, depth + 1);
+		TraverseTree(node->bin_op->left, depth + 1);
+		TraverseTree(node->bin_op->right, depth + 1);
 		break;
 	case ASSIGNMENT:
-		TraverseTree(node->assignStmt->value, node->depth + 1);
+		TraverseTree(node->assign_stmt->value, node->depth + 1);
 		break;
 	case LIST:
 		for (size_t i = 0; i < node->list->elts.size; i++)
@@ -442,7 +469,7 @@ void PrintImportStmt(Node* stmt)
 {
 	const char* type = NodeTypeToString(IMPORT);
 	printf("{ \033[0;36mmodules\033[0m: [ ");
-	ArrayListForEach(&stmt->importStm->modules, Print);
+	ArrayListForEach(&stmt->import_stm->modules, Print);
 	printf("]");
 	printf(", \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m }", type, stmt->depth);
 }
@@ -474,17 +501,21 @@ const char* CtxToString(Name* var)
 	}
 }
 
-size_t Precedence(char op) {
-	switch (op) {
-	case '+':
-	case '-':
+size_t Precedence(const char* op) {
+	if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0) {
 		return 1;
-	case '*':
-	case '/':
-		return 2;
-	case '^':
-		return 3;
-	default:
-		return -1;
 	}
+	else if (strcmp(op, "*") == 0 || strcmp(op, "/") == 0) {
+		return 2;
+	}
+	else if (strcmp(op, "^") == 0) {
+		return 3;
+	}
+	else if (strcmp(op, "<") == 0 || strcmp(op, ">") == 0 ||
+		strcmp(op, "<=") == 0 || strcmp(op, ">=") == 0 ||
+		strcmp(op, "==") == 0 || strcmp(op, "!=") == 0) {
+		return 4;
+	}
+	else return -1;
+
 }

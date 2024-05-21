@@ -36,7 +36,7 @@ Tokens Tokenize(Lexer* lexer)
 		}
 
 		if (character == '#')
-			while ('\n' != lexer->source[lexer->position++]) continue;
+			while ('\n' != lexer->source[++lexer->position]) continue;
 
 		Token* token;
 		const char* matchedOperator = NULL;

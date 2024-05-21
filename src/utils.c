@@ -17,7 +17,7 @@ char* LoadFileText(const char* fileName)
 	}
 
 	fseek(file, 0, SEEK_END);
-	unsigned int size = (unsigned int)ftell(file);
+	size_t size = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
 	if (size <= 0)
