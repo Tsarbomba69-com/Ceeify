@@ -8,5 +8,6 @@ a = a + b * (a - 1)
 c = [1, 2, 3, 4]
 d = ["a", "b", "c"]
 
-# if 1 <= a < 10:
+if 1 <= a < 10:
+    pow = a^2  
 #     print("Error")

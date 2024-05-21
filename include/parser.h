@@ -18,6 +18,7 @@ typedef enum {
 	UNARY_OPERATION,
 	LITERAL,
 	VARIABLE,
+	IF,
 	LIST
 } NodeType;
 
@@ -53,9 +54,9 @@ typedef struct {
 
 typedef struct {
 	struct Node* test;
-	struct Node* body;
+	struct Program* body;
 	struct Node* orelse;
-} IfExp;
+} IfStmt;
 
 typedef struct {
 	Name* target;
@@ -73,7 +74,7 @@ typedef struct Node {
 	union {
 		Literal* literal;
 		ImportStmt* import_stm;
-		IfExp* if_expr;
+		IfStmt* if_stmt;
 		BinaryOperation* bin_op;
 		UnaryOperation* unOp;
 		Assign* assign_stmt;
@@ -97,6 +98,8 @@ Node* ShantingYard(Tokens* tokens);
 void PrintList(Node* node, char* spaces);
 
 Literal* CreateLiteral(char* value);
+
+IfStmt* CreateIfStmt();
 
 Node* CreateNode(NodeType type);
 

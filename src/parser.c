@@ -1,6 +1,6 @@
 #include "parser.h"
 
-const char* BIN_OPERATORS[] = { 
+const char* BIN_OPERATORS[] = {
 	"+", "-", "*", "/", "%", ">", "<", "==", "&", "|", "^", "~", "&&", "||",
 	"//", "==", "!=", "**", ">=", "<=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>"
 };
@@ -23,29 +23,49 @@ void Parse(Tokens* tokens)
 				Node* importStmt = CreateNode(IMPORT);
 				ArrayListPush(&program, importStmt);
 			}
+
+			if (strcmp(token->lexeme, "if") == 0) {
+				Node* if_node = CreateNode(IF);
+				ArrayListPush(&program, if_node);
+			}
 		} break;
 		case OPERATOR: {
 			if (node != NULL && node->type == ASSIGNMENT && strcmp(next->lexeme, "-") == 0) {
 				Node* operand = CreateNode(UNARY_OPERATION);
 				operand->unOp = CreateUnaryOp(next->lexeme);
-				operand->depth += node->depth;
 				node->assign_stmt->value = operand;
-			}
-
-			if (strcmp(next->lexeme, "")) {
-
 			}
 		} break;
 		case IDENTIFIER: {
-			if ((node == NULL || prev->type == NEWLINE) && strcmp(next->lexeme, "=") == 0) {
-				node = CreateNode(ASSIGNMENT);
-				Assign* assign = node->assign_stmt;
+			if (node != NULL && node->type == IF) {
+				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+					Tokens expression = CollectExpression(tokens, i);
+					i += expression.size - 1;
+					expression = InfixToPostfix(&expression);
+					if (node->if_stmt->test == NULL)
+						node->if_stmt->test = ShantingYard(&expression);
+					else if (node->if_stmt->body == NULL)
+						node->if_stmt->body = ShantingYard(&expression);
+					else
+						node->if_stmt->orelse = ShantingYard(&expression);
+					break;
+				}
+			}
+
+			if (prev->type == NEWLINE && strcmp(next->lexeme, "=") == 0) {
+				Node* ass = CreateNode(ASSIGNMENT);
+				Assign* assign = ass->assign_stmt;
 				Name* var = (CreateNode(VARIABLE))->variable;
 				var->id = token->lexeme;
 				var->ctx = STORE;
 				assign->target = var;
 				assign->value = NULL;
-				ArrayListPush(&program, node);
+				if (node != NULL && node->type == IF) {
+					if (node->if_stmt->body == NULL) node->if_stmt->body = ass;
+					else node->if_stmt->orelse = ass;
+					break;
+				}
+				ArrayListPush(&program, ass);
 				break;
 			}
 
@@ -78,7 +98,9 @@ void Parse(Tokens* tokens)
 			}
 		} break;
 		case INTEGER: {
-			if (node != NULL && node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
+			if (node == NULL) break;
+
+			if (node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
 				Assign* assign = node->assign_stmt;
 
 				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
@@ -86,6 +108,21 @@ void Parse(Tokens* tokens)
 					i += expression.size - 1;
 					expression = InfixToPostfix(&expression);
 					assign->value = ShantingYard(&expression);
+					break;
+				}
+			}
+
+			if (node->type == IF) {
+				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+					Tokens expression = CollectExpression(tokens, i);
+					i += expression.size - 1;
+					expression = InfixToPostfix(&expression);
+					if (node->if_stmt->test == NULL)
+						node->if_stmt->test = ShantingYard(&expression);
+					else if (node->if_stmt->body == NULL)
+						node->if_stmt->body = ShantingYard(&expression);
+					else
+						node->if_stmt->orelse = ShantingYard(&expression);
 					break;
 				}
 			}
@@ -141,11 +178,46 @@ ImportStmt* CreateImportStmt()
 	return importStmt;
 }
 
+IfStmt* CreateIfStmt()
+{
+	IfStmt* if_expr = malloc(sizeof(if_expr));
+	if (if_expr == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory for import if statement\n");
+		return NULL;
+	}
+
+	if_expr->test = malloc(sizeof(if_expr->test));
+	if (if_expr->test == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory for test expression for if statement\n");
+		return NULL;
+	}
+
+	if_expr->body = malloc(sizeof(if_expr->body));
+	if (if_expr->body == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory for body statements for if statement\n");
+		return NULL;
+	}
+
+	if_expr->orelse = malloc(sizeof(if_expr->orelse));
+	if (if_expr->orelse == NULL)
+	{
+		fprintf(stderr, "ERROR: Could not allocate memory for orelse statements for if statement\n");
+		return NULL;
+	}
+	if_expr->test = NULL;
+	if_expr->body = NULL;
+	if_expr->orelse = NULL;
+	return if_expr;
+}
+
 Tokens CollectExpression(Tokens* tokens, size_t from)
 {
 	Token* token = ArrayListGet(tokens, from);
 	Tokens expression = CreateArrayList(20);
-	for (size_t j = from; (token->type != NEWLINE && token->type != ENDMARKER); ++j) {
+	for (size_t j = from; (token->type != NEWLINE && token->type != ENDMARKER && strcmp(token->lexeme, ":") != 0); ++j) {
 		ArrayListPush(&expression, token);
 		token = ArrayListGet(tokens, j);
 	}
@@ -259,6 +331,9 @@ Node* CreateNode(NodeType type)
 		return node;
 	case LIST:
 		node->list = malloc(sizeof(node->list));
+		return node;
+	case IF:
+		node->if_stmt = CreateIfStmt();
 		return node;
 	default:
 		fprintf(stderr, "WARNING: Unrecognized node type %s\n", NodeTypeToString(type));
@@ -411,8 +486,18 @@ void PrintNode(Node* node)
 	case LIST:
 		PrintList(node, spaces);
 		break;
+	case IF:
+		printf("{ \n%s\033[0;36mtest\033[0m: ", spaces);
+		PrintNode(node->if_stmt->test);
+		printf("\n%s\033[0;36mbody\033[0m: ", spaces);
+		PrintNode(node->if_stmt->body);
+		printf(",\n%s\033[0;36mright\033[0m: ", spaces);
+		PrintNode(node->if_stmt->orelse);
+		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
+			spaces, type, node->depth, Slice(spaces, 0, 4 * (node->depth - (node->depth > 1))));
+		break;
 	default: {
-		fprintf(stderr, "WARNING: Not implemented for \"%s\"\n", type);
+		fprintf(stderr, "WARNING: Not implemented for type: \"%s\"\n", type);
 	} break;
 	}
 }
@@ -447,6 +532,11 @@ void TraverseTree(Node* node, size_t depth)
 		break;
 	case ASSIGNMENT:
 		TraverseTree(node->assign_stmt->value, node->depth + 1);
+		break;
+	case IF:
+		TraverseTree(node->if_stmt->test, depth + 1);
+		TraverseTree(node->if_stmt->body, depth + 1);
+		TraverseTree(node->if_stmt->orelse, depth + 1);
 		break;
 	case LIST:
 		for (size_t i = 0; i < node->list->elts.size; i++)
@@ -486,6 +576,7 @@ const char* NodeTypeToString(NodeType type)
 	case UNARY_OPERATION: return "UNARY OPERATION";
 	case BINARY_OPERATION: return "BINARY OPERATION";
 	case LIST: return "LIST";
+	case IF: return "IF";
 	default: return "UNKNOWN";
 	}
 }
