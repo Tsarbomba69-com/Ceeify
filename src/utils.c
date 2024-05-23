@@ -1,5 +1,7 @@
 #include "utils.h"
 
+// TODO: Introduce memory arena. Source: https://github.com/tsoding/arena
+
 char* LoadFileText(const char* fileName)
 {
 	char* text = NULL;

@@ -14,6 +14,8 @@ typedef enum {
 	KEYWORD,
 	DELIMITER,
 	NEWLINE,
+	INDENT,
+	DEDENT,
 	ENDMARKER
 } TokenType;
 
@@ -21,6 +23,8 @@ typedef struct
 {
 	TokenType type;
 	char* lexeme;
+	size_t line;
+	size_t col;
 } Token;
 
 typedef struct Lexer
@@ -40,6 +44,8 @@ void PrintToken(Token* token);
 
 const char* TokenTypeToString(TokenType type);
 
+Token* CreateToken(TokenType type);
+
 Token* CreateDelimiterToken(Lexer* lexer, const char* matchedDelimiter);
 
 Token* CreateStringToken(Lexer* lexer, char character);
@@ -50,7 +56,7 @@ Token* CreateKeywordToken(Lexer* lexer, char character);
 
 Token* CreateNumberToken(Lexer* lexer, char character);
 
-Token* CreateNewLineToken(Lexer* lexer);
+Token* CreateNewLineToken();
 
 Token* CreateEOFToken(Lexer* lexer);
 

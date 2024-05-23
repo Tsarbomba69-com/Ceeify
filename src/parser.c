@@ -1,5 +1,9 @@
 #include "parser.h"
 
+// TODO: Try writting a second Parse function, implemented using Bottom-up algorithm
+// TODO: Implement semantic analysis
+// 
+
 const char* BIN_OPERATORS[] = {
 	"+", "-", "*", "/", "%", ">", "<", "==", "&", "|", "^", "~", "&&", "||",
 	"//", "==", "!=", "**", ">=", "<=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>"
@@ -50,7 +54,7 @@ void Parse(Tokens* tokens)
 				}
 			}
 
-			if (prev->type == NEWLINE && strcmp(next->lexeme, "=") == 0) {
+			if (strcmp(next->lexeme, "=") == 0) {
 				Node* ass = CreateNode(ASSIGNMENT);
 				Assign* assign = ass->assign_stmt;
 				Name* var = (CreateNode(VARIABLE))->variable;
@@ -145,6 +149,9 @@ void Parse(Tokens* tokens)
 				}
 			}
 		} break;
+		case DEDENT: // TODO: There should be a last context to keep track deep nest. Context stack perhaps
+			context = &program;
+			break;
 		default:
 			break;
 		}

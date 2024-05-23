@@ -26,17 +26,50 @@ Tokens Tokenize(Lexer* lexer)
 {
 	size_t len = strlen(lexer->source);
 	ArrayList tokens = CreateArrayList(100);
+	size_t line = 1;
+	size_t column = 1;
+	size_t indentationLevel = 0;
 	while (lexer->position < lexer->sourceLength)
 	{
 		char character = lexer->source[lexer->position];
-		if (character == ' ' || character == '\t')
+		size_t spaces = 0;
+		while (character == ' ' || character == '\t')
 		{
-			lexer->position++;
-			continue;
+			if (character == ' ') spaces++;
+			else spaces += 4;
+			column++;
+			character = lexer->source[++lexer->position];
 		}
 
-		if (character == '#')
+		int newIndentationLevel = spaces / 4;
+		Token* newline = ArrayListGet(&tokens, tokens.size - 1);
+		if (newIndentationLevel > indentationLevel)
+		{
+			// Add an INDENT token
+			Token* indent = CreateToken(INDENT);
+			indent->line = line;
+			indent->col = column;
+			ArrayListPush(&tokens, indent);
+			indentationLevel = newIndentationLevel;
+		}
+		else if (newIndentationLevel < indentationLevel && line + 1)
+		{
+			// Add a DEDENT token for each level of indentation decrease
+			while (newIndentationLevel < indentationLevel && newline->type == NEWLINE)
+			{
+				Token* dedent = CreateToken(DEDENT);
+				dedent->line = line;
+				dedent->col = column;
+				ArrayListPush(&tokens, dedent);
+				indentationLevel--;
+			}
+		}
+
+		if (character == '#') {
 			while ('\n' != lexer->source[++lexer->position]) continue;
+			line++;
+			column = 1;
+		}
 
 		Token* token;
 		const char* matchedOperator = NULL;
@@ -62,6 +95,9 @@ Tokens Tokenize(Lexer* lexer)
 		{
 			// Build the operator lexeme
 			token = CreateOperatorToken(lexer, matchedOperator);
+			token->col = column + strlen(token->lexeme);
+			column = token->col;
+			token->line = line;
 			ArrayListPush(&tokens, token);
 			continue;
 		}
@@ -69,6 +105,8 @@ Tokens Tokenize(Lexer* lexer)
 		if (matchedDelimiter != NULL)
 		{
 			token = CreateDelimiterToken(lexer, (const char*)character);
+			token->col = column;
+			token->line = line;
 			ArrayListPush(&tokens, token);
 			continue;
 		}
@@ -76,6 +114,9 @@ Tokens Tokenize(Lexer* lexer)
 		if (isdigit(character))
 		{
 			token = CreateNumberToken(lexer, character);
+			token->col = column + strlen(token->lexeme);
+			column = token->col;
+			token->line = line;
 			ArrayListPush(&tokens, token);
 			continue;
 		}
@@ -83,6 +124,9 @@ Tokens Tokenize(Lexer* lexer)
 		if (character == '\'' || character == '\"')
 		{
 			token = CreateStringToken(lexer, character);
+			token->col = column + strlen(token->lexeme);
+			column = token->col;
+			token->line = line;
 			ArrayListPush(&tokens, token);
 			continue;
 		}
@@ -90,19 +134,28 @@ Tokens Tokenize(Lexer* lexer)
 		if (isalpha(character) || character == '_')
 		{
 			token = CreateKeywordToken(lexer, character);
+			token->col = column + strlen(token->lexeme);
+			column = token->col;
+			token->line = line;
 			ArrayListPush(&tokens, token);
 			continue;
 		}
 
 		if (character == '\n')
 		{
-			token = CreateNewLineToken(lexer);
+			token = CreateNewLineToken();
+			token->col = column;
+			token->line = line;
 			ArrayListPush(&tokens, token);
+			line++;
+			column = 1;
 		}
 
 		lexer->position++;
 	}
 	Token* eof = CreateEOFToken(lexer);
+	eof->col = column;
+	eof->line = line;
 	ArrayListPush(&tokens, eof);
 	return tokens;
 }
@@ -110,7 +163,7 @@ Tokens Tokenize(Lexer* lexer)
 void PrintToken(Token* token)
 {
 	const char* type = TokenTypeToString(token->type);
-	printf("    { \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m },\n", token->lexeme, type);
+	printf("    { \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, , \033[0;36mline\033[0m: \033[0;31m%zu\033[0m, , \033[0;36mcolumn\033[0m: \033[0;31m%zu\033[0m },\n", token->lexeme, type, token->line, token->col);
 }
 
 Token* CreateStringToken(Lexer* lexer, char character)
@@ -156,7 +209,7 @@ Token* CreateDelimiterToken(Lexer* lexer, const char* character)
 	return token;
 }
 
-Token* CreateNewLineToken(Lexer* lexer)
+Token* CreateNewLineToken()
 {
 	Token* token = (Token*)malloc(sizeof(Token));
 	if (token == NULL)
@@ -181,6 +234,20 @@ Token* CreateEOFToken(Lexer* lexer)
 
 	token->type = ENDMARKER;
 	token->lexeme = _strdup("EOF");
+	return token;
+}
+
+Token* CreateToken(TokenType type)
+{
+	Token* token = malloc(sizeof(Token));
+	if (token == NULL)
+	{
+		fprintf(stderr, "ERROR: Failed to allocate memory for EOF token\n");
+		return NULL;
+	}
+
+	token->type = type;
+	token->lexeme = _strdup(TokenTypeToString(type));
 	return token;
 }
 
@@ -333,6 +400,8 @@ const char* TokenTypeToString(TokenType type)
 	case FLOAT: return "FLOAT";
 	case NEWLINE: return "NEWLINE";
 	case ENDMARKER: return "ENDMARKER";
+	case INDENT: return "INDENT";
+	case DEDENT: return "DEDENT";
 	default: return "UNKNOWN";
 	}
 }
