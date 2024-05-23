@@ -54,8 +54,8 @@ typedef struct {
 
 typedef struct {
 	struct Node* test;
-	struct Program* body;
-	struct Node* orelse;
+	Program body;
+	Program orelse;  // TODO: Turn those into ref
 } IfStmt;
 
 typedef struct {

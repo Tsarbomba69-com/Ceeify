@@ -8,10 +8,11 @@ const char* BIN_OPERATORS[] = {
 void Parse(Tokens* tokens)
 {
 	Program program = CreateArrayList(100);
+	Program* context = &program;
 	for (size_t i = 0; i < tokens->size; i++)
 	{
 		Token* token = ArrayListGet(tokens, i);
-		Node* node = ArrayListGet(&program, program.size - 1);
+		Node* node = ArrayListGet(context, context->size - 1);
 		Token* prev = ArrayListGet(tokens, i - 1);
 		Token* next = ArrayListGet(tokens, i + 1);
 
@@ -21,12 +22,13 @@ void Parse(Tokens* tokens)
 			if (strcmp(token->lexeme, "import") == 0)
 			{
 				Node* importStmt = CreateNode(IMPORT);
-				ArrayListPush(&program, importStmt);
+				ArrayListPush(context, importStmt);
 			}
 
 			if (strcmp(token->lexeme, "if") == 0) {
 				Node* if_node = CreateNode(IF);
-				ArrayListPush(&program, if_node);
+				ArrayListPush(context, if_node);
+				context = &if_node->if_stmt->body;
 			}
 		} break;
 		case OPERATOR: {
@@ -44,10 +46,6 @@ void Parse(Tokens* tokens)
 					expression = InfixToPostfix(&expression);
 					if (node->if_stmt->test == NULL)
 						node->if_stmt->test = ShantingYard(&expression);
-					else if (node->if_stmt->body == NULL)
-						node->if_stmt->body = ShantingYard(&expression);
-					else
-						node->if_stmt->orelse = ShantingYard(&expression);
 					break;
 				}
 			}
@@ -60,12 +58,7 @@ void Parse(Tokens* tokens)
 				var->ctx = STORE;
 				assign->target = var;
 				assign->value = NULL;
-				if (node != NULL && node->type == IF) {
-					if (node->if_stmt->body == NULL) node->if_stmt->body = ass;
-					else node->if_stmt->orelse = ass;
-					break;
-				}
-				ArrayListPush(&program, ass);
+				ArrayListPush(context, ass);
 				break;
 			}
 
@@ -98,7 +91,19 @@ void Parse(Tokens* tokens)
 			}
 		} break;
 		case INTEGER: {
-			if (node == NULL) break;
+			if (node == NULL) {
+				node = ArrayListGet(&program, program.size - 1);
+				if (node->type == IF) {
+					if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+						Tokens expression = CollectExpression(tokens, i);
+						i += expression.size - 1;
+						expression = InfixToPostfix(&expression);
+						if (node->if_stmt->test == NULL)
+							node->if_stmt->test = ShantingYard(&expression);
+					}
+				}
+				break;
+			}
 
 			if (node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
 				Assign* assign = node->assign_stmt;
@@ -108,21 +113,6 @@ void Parse(Tokens* tokens)
 					i += expression.size - 1;
 					expression = InfixToPostfix(&expression);
 					assign->value = ShantingYard(&expression);
-					break;
-				}
-			}
-
-			if (node->type == IF) {
-				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
-					Tokens expression = CollectExpression(tokens, i);
-					i += expression.size - 1;
-					expression = InfixToPostfix(&expression);
-					if (node->if_stmt->test == NULL)
-						node->if_stmt->test = ShantingYard(&expression);
-					else if (node->if_stmt->body == NULL)
-						node->if_stmt->body = ShantingYard(&expression);
-					else
-						node->if_stmt->orelse = ShantingYard(&expression);
 					break;
 				}
 			}
@@ -194,22 +184,9 @@ IfStmt* CreateIfStmt()
 		return NULL;
 	}
 
-	if_expr->body = malloc(sizeof(if_expr->body));
-	if (if_expr->body == NULL)
-	{
-		fprintf(stderr, "ERROR: Could not allocate memory for body statements for if statement\n");
-		return NULL;
-	}
-
-	if_expr->orelse = malloc(sizeof(if_expr->orelse));
-	if (if_expr->orelse == NULL)
-	{
-		fprintf(stderr, "ERROR: Could not allocate memory for orelse statements for if statement\n");
-		return NULL;
-	}
 	if_expr->test = NULL;
-	if_expr->body = NULL;
-	if_expr->orelse = NULL;
+	if_expr->body = CreateArrayList(10);
+	if_expr->orelse = CreateArrayList(10);
 	return if_expr;
 }
 
@@ -441,10 +418,11 @@ Node* CreateBinOp(Token* token, Node* left, Node* right)
 
 void PrintNode(Node* node)
 {
+	const SCALE_FACTOR = 2;
 	if (node == NULL) return;
 	TraverseTree(node, node->depth);
 	char* type = NodeTypeToString(node->type);
-	char* spaces = Repeat(" ", node->depth * 2);
+	char* spaces = Repeat(" ", node->depth * SCALE_FACTOR);
 	switch (node->type)
 	{
 	case IMPORT:
@@ -457,7 +435,7 @@ void PrintNode(Node* node)
 		printf("\n%s\033[0;36moperand\033[0m: ", spaces);
 		PrintNode(node->unOp->operand);
 		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m \n%s}",
-			spaces, type, Slice(spaces, 0, 2 * (node->depth - (node->depth > 1))));
+			spaces, type, Slice(spaces, 0, SCALE_FACTOR * (node->depth - (node->depth > 1))));
 		break;
 	case BINARY_OPERATION:
 		printf("{ \n%s\033[0;36moperator\033[0m: ", spaces);
@@ -467,16 +445,17 @@ void PrintNode(Node* node)
 		printf(",\n%s\033[0;36mright\033[0m: ", spaces);
 		PrintNode(node->bin_op->right);
 		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
-			spaces, type, node->depth, Slice(spaces, 0, 4 * (node->depth - (node->depth > 1))));
+			spaces, type, node->depth, Slice(spaces, 0, 2 * SCALE_FACTOR * (node->depth - (node->depth > 1))));
 		break;
-	case ASSIGNMENT:
-		printf("{ \n%s\033[0;36mtarget\033[0m: ", spaces);
+	case ASSIGNMENT: {
+		char* br_spaces = Slice(spaces, 0, SCALE_FACTOR * (node->depth - (node->depth > 1)));
+		printf("%s{ \n%s\033[0;36mtarget\033[0m: ", node->depth == 1 ? "" : br_spaces, spaces);
 		PrintVar(node->assign_stmt->target, node->depth);
 		printf(", \n%s\033[0;36mexpression\033[0m: ", spaces);
 		PrintNode(node->assign_stmt->value, node->depth);
-		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n}", spaces, type, node->depth);
+		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m\n %s}", spaces, type, node->depth, node->depth == 1 ? "" : br_spaces);
 		printf(",\n");
-		break;
+	} break;
 	case VARIABLE:
 		PrintVar(node->variable, node->depth);
 		break;
@@ -489,12 +468,13 @@ void PrintNode(Node* node)
 	case IF:
 		printf("{ \n%s\033[0;36mtest\033[0m: ", spaces);
 		PrintNode(node->if_stmt->test);
-		printf("\n%s\033[0;36mbody\033[0m: ", spaces);
-		PrintNode(node->if_stmt->body);
-		printf(",\n%s\033[0;36mright\033[0m: ", spaces);
-		PrintNode(node->if_stmt->orelse);
+		printf(", \n%s\033[0;36mbody\033[0m: [\n", spaces);
+		ArrayListForEach(&node->if_stmt->body, PrintNode);
+		printf("%s]\n", spaces);
+		printf(",\n%s\033[0;36melse\033[0m: ", spaces);
+		ArrayListForEach(&node->if_stmt->orelse, PrintNode);
 		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
-			spaces, type, node->depth, Slice(spaces, 0, 4 * (node->depth - (node->depth > 1))));
+			spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
 		break;
 	default: {
 		fprintf(stderr, "WARNING: Not implemented for type: \"%s\"\n", type);
@@ -535,8 +515,16 @@ void TraverseTree(Node* node, size_t depth)
 		break;
 	case IF:
 		TraverseTree(node->if_stmt->test, depth + 1);
-		TraverseTree(node->if_stmt->body, depth + 1);
-		TraverseTree(node->if_stmt->orelse, depth + 1);
+		for (size_t i = 0; i < node->if_stmt->body.size; i++)
+		{
+			Node* el = ArrayListGet(&node->if_stmt->body, i);
+			TraverseTree(el, node->depth + 1);
+		}
+		for (size_t i = 0; i < node->if_stmt->orelse.size; i++)
+		{
+			Node* el = ArrayListGet(&node->if_stmt->orelse, i);
+			TraverseTree(el, node->depth + 1);
+		}
 		break;
 	case LIST:
 		for (size_t i = 0; i < node->list->elts.size; i++)

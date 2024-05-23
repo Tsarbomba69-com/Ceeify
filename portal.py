@@ -10,4 +10,3 @@ d = ["a", "b", "c"]
 
 if 1 <= a < 10:
     pow = a^2  
-#     print("Error")
