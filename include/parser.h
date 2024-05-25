@@ -29,7 +29,7 @@ typedef enum {
 } Context;
 
 typedef struct {
-	ArrayList modules;
+	ArrayList* modules;
 } ImportStmt;
 
 typedef struct {
@@ -54,8 +54,8 @@ typedef struct {
 
 typedef struct {
 	struct Node* test;
-	Program body;
-	Program orelse;  // TODO: Turn those into ref
+	Program* body;
+	Program* orelse;
 } IfStmt;
 
 typedef struct {

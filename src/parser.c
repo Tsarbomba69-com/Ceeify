@@ -11,8 +11,8 @@ const char* BIN_OPERATORS[] = {
 
 void Parse(Tokens* tokens)
 {
-	Program program = CreateArrayList(100);
-	Program* context = &program;
+	Program* program = AllocateArrayList(100);
+	Program* context = program;
 	for (size_t i = 0; i < tokens->size; i++)
 	{
 		Token* token = ArrayListGet(tokens, i);
@@ -32,7 +32,7 @@ void Parse(Tokens* tokens)
 			if (strcmp(token->lexeme, "if") == 0) {
 				Node* if_node = CreateNode(IF);
 				ArrayListPush(context, if_node);
-				context = &if_node->if_stmt->body;
+				context = if_node->if_stmt->body;
 			}
 		} break;
 		case OPERATOR: {
@@ -44,7 +44,7 @@ void Parse(Tokens* tokens)
 		} break;
 		case IDENTIFIER: {
 			if (node != NULL && node->type == IF) {
-				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+				if (Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
 					Tokens expression = CollectExpression(tokens, i);
 					i += expression.size - 1;
 					expression = InfixToPostfix(&expression);
@@ -69,7 +69,7 @@ void Parse(Tokens* tokens)
 			if (node != NULL && node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
 				Assign* assign = node->assign_stmt;
 
-				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+				if (Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
 					Tokens expression = CollectExpression(tokens, i);
 					i += expression.size - 1;
 					expression = InfixToPostfix(&expression);
@@ -91,14 +91,14 @@ void Parse(Tokens* tokens)
 			if (node != NULL && next != NULL &&
 				node->type == IMPORT && (strcmp(next->lexeme, ",") == 0 || next->type == NEWLINE)) {
 				ImportStmt* importStmt = node->import_stm;
-				ArrayListPush(&importStmt->modules, Slice(token->lexeme, 0, strlen(token->lexeme)));
+				ArrayListPush(importStmt->modules, Slice(token->lexeme, 0, strlen(token->lexeme)));
 			}
 		} break;
 		case INTEGER: {
 			if (node == NULL) {
-				node = ArrayListGet(&program, program.size - 1);
+				node = ArrayListGet(program, program->size - 1);
 				if (node->type == IF) {
-					if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+					if (Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
 						Tokens expression = CollectExpression(tokens, i);
 						i += expression.size - 1;
 						expression = InfixToPostfix(&expression);
@@ -112,7 +112,7 @@ void Parse(Tokens* tokens)
 			if (node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
 				Assign* assign = node->assign_stmt;
 
-				if (Contains(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+				if (Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
 					Tokens expression = CollectExpression(tokens, i);
 					i += expression.size - 1;
 					expression = InfixToPostfix(&expression);
@@ -158,7 +158,7 @@ void Parse(Tokens* tokens)
 	}
 	puts("");
 	printf("Abstract Syntax Tree = [\n");
-	ArrayListForEach(&program, PrintNode);
+	ArrayListForEach(program, PrintNode);
 	printf("]\n");
 }
 
@@ -171,7 +171,7 @@ ImportStmt* CreateImportStmt()
 		return;
 	}
 
-	importStmt->modules = CreateArrayList(10);
+	importStmt->modules = AllocateArrayList(10);
 	return importStmt;
 }
 
@@ -192,8 +192,8 @@ IfStmt* CreateIfStmt()
 	}
 
 	if_expr->test = NULL;
-	if_expr->body = CreateArrayList(10);
-	if_expr->orelse = CreateArrayList(10);
+	if_expr->body = AllocateArrayList(10);
+	if_expr->orelse = AllocateArrayList(10);
 	return if_expr;
 }
 
@@ -476,10 +476,10 @@ void PrintNode(Node* node)
 		printf("{ \n%s\033[0;36mtest\033[0m: ", spaces);
 		PrintNode(node->if_stmt->test);
 		printf(", \n%s\033[0;36mbody\033[0m: [\n", spaces);
-		ArrayListForEach(&node->if_stmt->body, PrintNode);
+		ArrayListForEach(node->if_stmt->body, PrintNode);
 		printf("%s]\n", spaces);
 		printf(",\n%s\033[0;36melse\033[0m: ", spaces);
-		ArrayListForEach(&node->if_stmt->orelse, PrintNode);
+		ArrayListForEach(node->if_stmt->orelse, PrintNode);
 		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
 			spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
 		break;
@@ -522,14 +522,14 @@ void TraverseTree(Node* node, size_t depth)
 		break;
 	case IF:
 		TraverseTree(node->if_stmt->test, depth + 1);
-		for (size_t i = 0; i < node->if_stmt->body.size; i++)
+		for (size_t i = 0; i < node->if_stmt->body->size; i++)
 		{
-			Node* el = ArrayListGet(&node->if_stmt->body, i);
+			Node* el = ArrayListGet(node->if_stmt->body, i);
 			TraverseTree(el, node->depth + 1);
 		}
-		for (size_t i = 0; i < node->if_stmt->orelse.size; i++)
+		for (size_t i = 0; i < node->if_stmt->orelse->size; i++)
 		{
-			Node* el = ArrayListGet(&node->if_stmt->orelse, i);
+			Node* el = ArrayListGet(node->if_stmt->orelse, i);
 			TraverseTree(el, node->depth + 1);
 		}
 		break;
@@ -554,7 +554,7 @@ void PrintImportStmt(Node* stmt)
 {
 	const char* type = NodeTypeToString(IMPORT);
 	printf("{ \033[0;36mmodules\033[0m: [ ");
-	ArrayListForEach(&stmt->import_stm->modules, Print);
+	ArrayListForEach(stmt->import_stm->modules, Print);
 	printf("]");
 	printf(", \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m }", type, stmt->depth);
 }

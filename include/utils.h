@@ -7,6 +7,10 @@
 #include <string.h>
 #include <stdarg.h>
 
+#ifndef DEBUG
+#define DEBUG true
+#endif // !DEBUG
+
 #define ARRAYSIZE(a) (sizeof(a)/sizeof((a)[0]))
 
 typedef struct {
@@ -36,13 +40,17 @@ const char* TextFormat(const char* text, ...);
 inline bool StrEQ(char* str1, char* str2) {
 	return strcmp(str1, str2) == 0;
 }
+// Tests whether at least one element in the array passes the test implemented by the provided function
+bool Any(void* arr[], size_t, void*, CompareFn);
 
-bool Contains(void* arr[], size_t, void*, CompareFn);
+void AllocateElementes(ArrayList* list);
 
 ArrayList CreateArrayList(size_t capacity);
-
+// Creates an array list on the heap
+ArrayList* AllocateArrayList(size_t capacity);
+// Pushes an element to the end of the array list
 void ArrayListPush(ArrayList* list, void* value);
-
+// Get the last element and remove it
 void* ArrayListPop(ArrayList* list);
 
 inline void Print(char* str) {
@@ -54,7 +62,7 @@ inline void* ArrayListGet(ArrayList* arrayList, size_t index)
 {
 	return index < arrayList->size ? arrayList->elements[index] : NULL;
 }
-
+// Iterate the array list and apply the callback for each element
 void ArrayListForEach(ArrayList* list, Action callback);
 
 void ArrayListClear(ArrayList* list, Action destroy);

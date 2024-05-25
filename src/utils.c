@@ -80,9 +80,28 @@ char* Slice(const char* source, size_t start, size_t end)
 ArrayList CreateArrayList(size_t capacity)
 {
 	ArrayList list = { 0 };
-	list.elements = (void**)malloc(capacity * sizeof(void*));
-	list.size = 0;
 	list.capacity = capacity;
+	AllocateElementes(&list);
+	return list;
+}
+
+void AllocateElementes(ArrayList* list)
+{
+	list->elements = (void**)malloc(list->capacity * sizeof(void*));
+	if (list->elements == NULL) {
+		fprintf(stderr, "ERROR: Could not allocate memory for array list elements");
+	}
+	list->size = 0;
+}
+
+ArrayList* AllocateArrayList(size_t capacity) {
+	ArrayList* list = malloc(sizeof(ArrayList));
+	if (list == NULL) {
+		fprintf(stderr, "ERROR: Could not allocate memory for array list");
+		return NULL;
+	}
+	list->capacity = capacity;
+	AllocateElementes(list);
 	return list;
 }
 
@@ -130,7 +149,7 @@ char* Repeat(const char* str, size_t count) {
 	return result;
 }
 
-bool Contains(void* arr[], size_t size, void* el, CompareFn fn)
+bool Any(void* arr[], size_t size, void* el, CompareFn fn)
 {
 	for (size_t i = 0; i < size; i++) {
 		if (fn(arr[i], el)) {
@@ -221,6 +240,9 @@ void ArrayListForEach(ArrayList* list, Action callback)
 {
 	for (size_t i = 0; i < list->size; i++)
 	{
+#if DEBUG
+		printf("%zu ", i);
+#endif
 		void* element = list->elements[i];
 		if (element != NULL) callback(element);
 	}
