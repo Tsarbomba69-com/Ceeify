@@ -12,7 +12,10 @@ int main(void)
 	printf("Token list = [\n");
 	ArrayListForEach(&tokens, PrintToken);
 	printf("]\n");
+	PrintArena();
 	Parse(&tokens);
-	ArrayListClear(&tokens, DestroyToken);
+	PrintArena();
+	FreeContext();
+	PrintArena();
 	return EXIT_SUCCESS;
 }

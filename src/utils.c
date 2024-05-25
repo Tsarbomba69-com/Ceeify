@@ -1,6 +1,49 @@
 #include "utils.h"
+#define ARENA_IMPLEMENTATION
+#include "arena.h"
 
-// TODO: Introduce memory arena. Source: https://github.com/tsoding/arena
+static Arena default_arena = { 0 };
+
+void PrintArena() {
+	Region* current = default_arena.begin;
+	size_t total_elements = 0;
+
+	for (size_t i = 1; current != NULL; ++i) {
+		puts("");
+		printf("Region[\033[0;31m%zu\033[0m]:\n", i);
+		printf("  Count: \033[0;31m%zu\033[0m\n", current->count);
+		printf("  Capacity: \033[0;31m%zu\033[0m\n", current->capacity);
+		// printf("  Data: ");
+
+		//for (size_t i = 0; i < current->count; i++) {
+		//	printf("0x%" PRIxPTR " ", current->data[i]);
+		//}
+		//printf("\n");
+
+		total_elements += current->count;
+		current = current->next;
+	}
+
+	printf("Total elements in the Arena: \033[0;31m%zu\033[0m\n", total_elements);
+	printf("Total memory used: \033[0;31m%zu\033[0m bytes\n", total_elements * sizeof (uintptr_t));
+	puts("");
+}
+
+void* AllocateContext(size_t size)
+{
+	assert(&default_arena);
+	return arena_alloc(&default_arena, size);
+}
+
+void* ReallocateContext(void* oldptr, size_t oldptr_size, size_t size)
+{
+	assert(&default_arena);
+	return arena_realloc(&default_arena, oldptr, oldptr_size, size);
+}
+
+void FreeContext() {
+	arena_free(&default_arena);
+}
 
 char* LoadFileText(const char* fileName)
 {
@@ -28,7 +71,7 @@ char* LoadFileText(const char* fileName)
 		return NULL;
 	}
 
-	text = (char*)malloc((size + 1) * sizeof(char));
+	text = AllocateContext((size + 1) * sizeof(char));
 
 	if (text == NULL)
 	{
@@ -37,15 +80,9 @@ char* LoadFileText(const char* fileName)
 	}
 
 	size_t count = fread(text, sizeof(char), size, file);
-	char* tmp = NULL;
 	if (count < size)
-		tmp = (char*)realloc(text, count + 1);
-	if (tmp == NULL)
-	{
-		fprintf(stderr, "FATAL: [%s] Failed to reallocate memory for file reading\n", fileName);
-		return NULL;
-	}
-	text = tmp;
+		text = ReallocateContext(text, size, count + 1);
+
 	text[count] = '\0';
 	fclose(file);
 	return text;
@@ -65,7 +102,7 @@ char* Slice(const char* source, size_t start, size_t end)
 		return NULL;
 	}
 
-	char* result = (char*)malloc((length + 1) * sizeof(char));
+	char* result = AllocateContext((length + 1) * sizeof(char));
 	if (result == NULL)
 	{
 		fprintf(stderr, "FATAL: Failed to allocate memory for string slice\n");
@@ -87,7 +124,7 @@ ArrayList CreateArrayList(size_t capacity)
 
 void AllocateElementes(ArrayList* list)
 {
-	list->elements = (void**)malloc(list->capacity * sizeof(void*));
+	list->elements = AllocateContext(list->capacity * sizeof(void*));
 	if (list->elements == NULL) {
 		fprintf(stderr, "ERROR: Could not allocate memory for array list elements");
 	}
@@ -95,7 +132,7 @@ void AllocateElementes(ArrayList* list)
 }
 
 ArrayList* AllocateArrayList(size_t capacity) {
-	ArrayList* list = malloc(sizeof(ArrayList));
+	ArrayList* list = AllocateContext(sizeof(ArrayList));
 	if (list == NULL) {
 		fprintf(stderr, "ERROR: Could not allocate memory for array list");
 		return NULL;
@@ -109,7 +146,7 @@ void ArrayListPush(ArrayList* list, void* value)
 {
 	if (list->size == list->capacity) {
 		size_t cap = list->capacity * 2;
-		void** elements = (void**)realloc(list->elements, cap * sizeof(void*));
+		void** elements = ReallocateContext(list->elements, list->size, cap * sizeof(void*));
 		if (elements == NULL) {
 			fprintf(stderr, "ERROR: Failed to resize array list\n");
 			return;
@@ -133,7 +170,7 @@ void* ArrayListPop(ArrayList* list) {
 char* Repeat(const char* str, size_t count) {
 	size_t str_len = strlen(str);
 	size_t result_len = str_len * count;
-	char* result = (char*)malloc((result_len + 1) * sizeof(char));
+	char* result = AllocateContext((result_len + 1) * sizeof(char));
 
 	if (result == NULL)
 	{
@@ -175,7 +212,7 @@ char* Join(char* separator, char** items, size_t count)
 
 	totalLength += (count - 1) * separatorLength + 1; // Add space for separators and null terminator
 
-	char* result = (char*)malloc(totalLength);
+	char* result = AllocateContext(totalLength);
 	if (result == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for slice buffer\n");
@@ -247,7 +284,7 @@ void ArrayListForEach(ArrayList* list, Action callback)
 		if (element != NULL) callback(element);
 	}
 }
-
+// WARNING: Deprecated. All array list allocations are stored in the arena
 void ArrayListClear(ArrayList* list, Action destroy)
 {
 	for (size_t i = 0; i < list->size; i++)

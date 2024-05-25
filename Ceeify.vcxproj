@@ -134,6 +134,7 @@
     <ClCompile Include="src\utils.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\arena.h" />
     <ClInclude Include="include\lexer.h" />
     <ClInclude Include="include\parser.h" />
     <ClInclude Include="resource.h" />

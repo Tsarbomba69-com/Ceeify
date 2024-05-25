@@ -172,7 +172,7 @@ Token* CreateStringToken(Lexer* lexer, char character)
 	lexer->position++;
 	while (lexer->source[lexer->position] != character) lexer->position++;
 	char* lexeme = Slice(lexer->source, start, lexer->position);
-	Token* token = (Token*)malloc(sizeof(Token));
+	Token* token = AllocateContext(sizeof(Token));
 	if (token == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for token\n");
@@ -187,14 +187,14 @@ Token* CreateStringToken(Lexer* lexer, char character)
 
 Token* CreateDelimiterToken(Lexer* lexer, const char* character)
 {
-	Token* token = (Token*)malloc(sizeof(Token));
+	Token* token = AllocateContext(sizeof(Token));
 	if (token == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for token\n");
 		return NULL;
 	}
 
-	char* lexeme = (char*)malloc(sizeof(char) * 2);
+	char* lexeme = AllocateContext(sizeof(char) * 2);
 	if (lexeme == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
@@ -211,7 +211,7 @@ Token* CreateDelimiterToken(Lexer* lexer, const char* character)
 
 Token* CreateNewLineToken()
 {
-	Token* token = (Token*)malloc(sizeof(Token));
+	Token* token = AllocateContext(sizeof(Token));
 	if (token == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for NEWLINE token\n");
@@ -225,7 +225,7 @@ Token* CreateNewLineToken()
 
 Token* CreateEOFToken(Lexer* lexer)
 {
-	Token* token = (Token*)malloc(sizeof(Token));
+	Token* token = AllocateContext(sizeof(Token));
 	if (token == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for EOF token\n");
@@ -239,7 +239,7 @@ Token* CreateEOFToken(Lexer* lexer)
 
 Token* CreateToken(TokenType type)
 {
-	Token* token = malloc(sizeof(Token));
+	Token* token = AllocateContext(sizeof(Token));
 	if (token == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for EOF token\n");
@@ -267,7 +267,7 @@ Token* CreateOperatorToken(Lexer* lexer, const char* matchedOperator)
 		}
 	}
 
-	char* lexeme = (char*)malloc(maxLexemeLength * sizeof(char) + 1);
+	char* lexeme = AllocateContext(maxLexemeLength * sizeof(char) + 1);
 	if (lexeme == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
@@ -278,7 +278,7 @@ Token* CreateOperatorToken(Lexer* lexer, const char* matchedOperator)
 	lexeme[maxLexemeLength] = '\0';
 	lexer->position += maxLexemeLength;
 
-	Token* token = (Token*)malloc(sizeof(Token));
+	Token* token = AllocateContext(sizeof(Token));
 	if (token == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for token\n");
@@ -292,7 +292,7 @@ Token* CreateOperatorToken(Lexer* lexer, const char* matchedOperator)
 
 Token* CreateKeywordToken(Lexer* lexer, char character)
 {
-	char* lexeme = (char*)malloc(LEX_CAP * sizeof(char));
+	char* lexeme = AllocateContext(LEX_CAP * sizeof(char));
 	if (lexeme == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
@@ -315,7 +315,7 @@ Token* CreateKeywordToken(Lexer* lexer, char character)
 	}
 	lexeme[lexeme_length] = '\0';
 
-	Token* token = (Token*)malloc(sizeof(Token));
+	Token* token = AllocateContext(sizeof(Token));
 	if (token == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for token\n");
@@ -338,7 +338,7 @@ Token* CreateKeywordToken(Lexer* lexer, char character)
 
 Token* CreateNumberToken(Lexer* lexer, char character)
 {
-	char* lexeme = (char*)malloc(LEX_CAP * sizeof(char));
+	char* lexeme = AllocateContext(LEX_CAP * sizeof(char));
 	if (lexeme == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
@@ -369,7 +369,7 @@ Token* CreateNumberToken(Lexer* lexer, char character)
 		}
 	}
 	lexeme[lexeme_length] = '\0';
-	Token* token = (Token*)malloc(sizeof(Token));
+	Token* token = AllocateContext(sizeof(Token));
 	if (token == NULL)
 	{
 		fprintf(stderr, "ERROR: Failed to allocate memory for token\n");

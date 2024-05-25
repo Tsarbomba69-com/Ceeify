@@ -23,6 +23,14 @@ typedef void (*Action)(void*);
 
 typedef bool (*CompareFn)(const void*, const void*);
 
+void* AllocateContext(size_t size);
+
+void* ReallocateContext(void* oldptr, size_t oldptr_size, size_t size);
+
+void PrintArena();
+
+void FreeContext();
+
 // Load text data from file (read), returns a '\0' terminated string
 char* LoadFileText(const char* fileName);
 

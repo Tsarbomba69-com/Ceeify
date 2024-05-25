@@ -164,7 +164,7 @@ void Parse(Tokens* tokens)
 
 ImportStmt* CreateImportStmt()
 {
-	ImportStmt* importStmt = malloc(sizeof(importStmt));
+	ImportStmt* importStmt = AllocateContext(sizeof(ImportStmt));
 	if (importStmt == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for import statement\n");
@@ -177,14 +177,14 @@ ImportStmt* CreateImportStmt()
 
 IfStmt* CreateIfStmt()
 {
-	IfStmt* if_expr = malloc(sizeof(if_expr));
+	IfStmt* if_expr = AllocateContext(sizeof(IfStmt));
 	if (if_expr == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for import if statement\n");
 		return NULL;
 	}
 
-	if_expr->test = malloc(sizeof(if_expr->test));
+	if_expr->test = AllocateContext(sizeof(Node));
 	if (if_expr->test == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for test expression for if statement\n");
@@ -237,7 +237,7 @@ Node* CreateListNode(Tokens* elements)
 
 Literal* CreateLiteral(char* value)
 {
-	Literal* literal = malloc(sizeof(literal));
+	Literal* literal = AllocateContext(sizeof(Literal));
 	if (literal == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for import statement\n");
@@ -250,7 +250,7 @@ Literal* CreateLiteral(char* value)
 
 Assign* CreateAssignStmt()
 {
-	Assign* assignStmt = malloc(sizeof(assignStmt));
+	Assign* assignStmt = AllocateContext(sizeof(Assign));
 	if (assignStmt == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for assignment statement\n");
@@ -263,7 +263,7 @@ Assign* CreateAssignStmt()
 
 Name* CreateNameExpr()
 {
-	Name* variable = malloc(sizeof(variable));
+	Name* variable = AllocateContext(sizeof(Name));
 	if (variable == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for variable expression\n");
@@ -276,7 +276,7 @@ Name* CreateNameExpr()
 
 UnaryOperation* CreateUnaryOp(char* op)
 {
-	UnaryOperation* operation = malloc(sizeof(operation));
+	UnaryOperation* operation = AllocateContext(sizeof(UnaryOperation));
 	if (operation == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for unary operation expression\n");
@@ -289,7 +289,7 @@ UnaryOperation* CreateUnaryOp(char* op)
 
 Node* CreateNode(NodeType type)
 {
-	Node* node = malloc(sizeof(node));
+	Node* node = AllocateContext(sizeof(Node));
 	if (node == NULL)
 	{
 		fprintf(stderr, "ERROR: Could not allocate memory for AST node\n");
@@ -314,7 +314,7 @@ Node* CreateNode(NodeType type)
 	case BINARY_OPERATION:
 		return node;
 	case LIST:
-		node->list = malloc(sizeof(node->list));
+		node->list = AllocateContext(sizeof(List));
 		return node;
 	case IF:
 		node->if_stmt = CreateIfStmt();
@@ -412,7 +412,7 @@ Node* ShantingYard(Tokens* tokens)
 Node* CreateBinOp(Token* token, Node* left, Node* right)
 {
 	Node* node = CreateNode(BINARY_OPERATION);
-	node->bin_op = malloc(sizeof(node->bin_op));
+	node->bin_op = AllocateContext(sizeof(BinaryOperation));
 	if (node->bin_op == NULL) {
 		fprintf(stderr, "ERROR: Could not allocate memory for binary operation\n");
 		return NULL;
