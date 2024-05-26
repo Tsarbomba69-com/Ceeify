@@ -11,8 +11,8 @@ void PrintArena() {
 	for (size_t i = 1; current != NULL; ++i) {
 		puts("");
 		printf("Region[\033[0;31m%zu\033[0m]:\n", i);
-		printf("  Count: \033[0;31m%zu\033[0m\n", current->count);
-		printf("  Capacity: \033[0;31m%zu\033[0m\n", current->capacity);
+		printf("  Size: \033[0;31m%zu\033[0m bytes\n", current->count);
+		printf("  Capacity: \033[0;31m%zu\033[0m bytes\n", current->capacity);
 		// printf("  Data: ");
 
 		//for (size_t i = 0; i < current->count; i++) {
@@ -24,8 +24,7 @@ void PrintArena() {
 		current = current->next;
 	}
 
-	printf("Total elements in the Arena: \033[0;31m%zu\033[0m\n", total_elements);
-	printf("Total memory used: \033[0;31m%zu\033[0m bytes\n", total_elements * sizeof (uintptr_t));
+	printf("Total memory used: \033[0;31m%zu\033[0m bytes\n", total_elements);
 	puts("");
 }
 
