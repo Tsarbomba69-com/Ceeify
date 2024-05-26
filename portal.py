@@ -10,3 +10,7 @@ d = ["a", "b", "c"]
 
 if 1 <= a < 10:
     pow = a^2
+elif a > b * 2:
+    pow = a ** 2
+else:
+    pow = pow * pow

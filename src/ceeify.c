@@ -13,6 +13,7 @@ int main(void)
 	ArrayListForEach(&tokens, PrintToken);
 	printf("]\n");
 	PrintArena();
+	// Node* root = ParseBlock(&tokens);
 	Parse(&tokens);
 	PrintArena();
 	FreeContext();

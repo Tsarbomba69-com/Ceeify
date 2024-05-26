@@ -145,7 +145,7 @@ void ArrayListPush(ArrayList* list, void* value)
 {
 	if (list->size == list->capacity) {
 		size_t cap = list->capacity * 2;
-		void** elements = ReallocateContext(list->elements, list->size, cap * sizeof(void*));
+		void** elements = ReallocateContext(list->elements, list->size * sizeof(void*), cap * sizeof(void*));
 		if (elements == NULL) {
 			fprintf(stderr, "ERROR: Failed to resize array list\n");
 			return;

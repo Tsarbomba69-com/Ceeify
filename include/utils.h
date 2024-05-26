@@ -8,7 +8,7 @@
 #include <stdarg.h>
 
 #ifndef DEBUG
-#define DEBUG true
+#define DEBUG false
 #endif // !DEBUG
 
 #define ARRAYSIZE(a) (sizeof(a)/sizeof((a)[0]))

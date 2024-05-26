@@ -71,6 +71,7 @@ typedef struct {
 typedef struct Node {
 	NodeType type;
 	size_t depth;
+	struct Node* parent;
 	union {
 		Literal* literal;
 		ImportStmt* import_stm;
@@ -84,6 +85,10 @@ typedef struct Node {
 } Node;
 
 void Parse(Tokens* tokens);
+
+Node* ParseBlock(Tokens* tokens);
+
+Node* ParseExpression(Tokens* tokens);
 
 ImportStmt* CreateImportStmt();
 
@@ -124,6 +129,8 @@ const char* NodeTypeToString(NodeType type);
 const char* CtxToString(Name* var);
 
 void TraverseTree(Node* node, size_t depth);
+
+bool BlacklistTokens(TokenType type, TokenType blacklist[], size_t size);
 
 #endif // !PARSER_H
 

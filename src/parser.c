@@ -2,24 +2,30 @@
 
 // TODO: Try writting a second Parse function, implemented using Bottom-up algorithm
 // TODO: Implement semantic analysis
-// 
+
+
+// Current token index
+static size_t i = 0;
 
 const char* BIN_OPERATORS[] = {
 	"+", "-", "*", "/", "%", ">", "<", "==", "&", "|", "^", "~", "&&", "||",
 	"//", "==", "!=", "**", ">=", "<=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>"
 };
 
+// WARNING: Soon to be deprecated
 void Parse(Tokens* tokens)
 {
 	Program* program = AllocateArrayList(100);
 	Program* context = program;
+	ArrayList stack = CreateArrayList(10);
+	ArrayListPush(&stack, context);
 	for (size_t i = 0; i < tokens->size; i++)
 	{
 		Token* token = ArrayListGet(tokens, i);
 		Node* node = ArrayListGet(context, context->size - 1);
 		Token* prev = ArrayListGet(tokens, i - 1);
 		Token* next = ArrayListGet(tokens, i + 1);
-
+		Program* frame = ArrayListGet(&stack, stack.size - 1);
 		switch (token->type)
 		{
 		case KEYWORD: {
@@ -27,12 +33,15 @@ void Parse(Tokens* tokens)
 			{
 				Node* importStmt = CreateNode(IMPORT);
 				ArrayListPush(context, importStmt);
+				break;
 			}
 
 			if (strcmp(token->lexeme, "if") == 0) {
 				Node* if_node = CreateNode(IF);
 				ArrayListPush(context, if_node);
 				context = if_node->if_stmt->body;
+				ArrayListPush(&stack, context);
+				break;
 			}
 		} break;
 		case OPERATOR: {
@@ -150,7 +159,7 @@ void Parse(Tokens* tokens)
 			}
 		} break;
 		case DEDENT: // TODO: There should be a last context to keep track deep nest. Context stack perhaps
-			context = &program;
+			context = ArrayListPop(&stack);
 			break;
 		default:
 			break;
@@ -160,6 +169,44 @@ void Parse(Tokens* tokens)
 	printf("Abstract Syntax Tree = [\n");
 	ArrayListForEach(program, PrintNode);
 	printf("]\n");
+}
+
+// WARNING: Advances tokens index
+Node* ParseBlock(Tokens* tokens) {
+	Node* node = NULL;
+	for (i; i < tokens->size; ++i) {
+		Token* token = ArrayListGet(tokens, i);
+		Token* next = ArrayListGet(tokens, i + 1);
+		if (token->type == IDENTIFIER) {
+			if (strcmp(next->lexeme, "=") == 0) {
+				++i;
+				Node* ass = CreateNode(ASSIGNMENT);
+				Assign* assign = ass->assign_stmt;
+				Name* var = (CreateNode(VARIABLE))->variable;
+				var->id = token->lexeme;
+				var->ctx = STORE;
+				assign->target = var;
+				assign->value = ParseExpression(tokens);
+				PrintNode(assign->value);
+			}
+		}
+
+		if (strcmp(token->lexeme, "if") == 0) {
+			node = CreateNode(IF);
+			node->if_stmt->test = ParseExpression(tokens);
+			node->if_stmt->body = ParseBlock(tokens);
+		}
+	}
+
+	return node;
+}
+
+// WARNING: Advances tokens index
+Node* ParseExpression(Tokens* tokens) {
+	Tokens expression = CollectExpression(tokens, i + 1);
+	i += expression.size - 1;
+	expression = InfixToPostfix(&expression);
+	return ShantingYard(&expression);
 }
 
 ImportStmt* CreateImportStmt()
@@ -201,11 +248,22 @@ Tokens CollectExpression(Tokens* tokens, size_t from)
 {
 	Token* token = ArrayListGet(tokens, from);
 	Tokens expression = CreateArrayList(20);
-	for (size_t j = from; (token->type != NEWLINE && token->type != ENDMARKER && strcmp(token->lexeme, ":") != 0); ++j) {
+	TokenType blacklist[] = { INDENT, DEDENT, NEWLINE, ENDMARKER };
+	size_t size = ARRAYSIZE(blacklist);
+	for (size_t j = from; (!BlacklistTokens(token->type, blacklist, ARRAYSIZE(blacklist)) && strcmp(token->lexeme, ":") != 0); ++j) {
 		ArrayListPush(&expression, token);
 		token = ArrayListGet(tokens, j);
 	}
 	return expression;
+}
+
+bool BlacklistTokens(TokenType type, TokenType blacklist[], size_t size) {
+	for (size_t i = 0; i < size; i++) {
+		if (blacklist[i] == type) {
+			return true;
+		}
+	}
+	return false;
 }
 
 Node* CreateListNode(Tokens* elements)
@@ -395,6 +453,8 @@ Node* ShantingYard(Tokens* tokens)
 			literal->literal = CreateLiteral(token->lexeme);
 			ArrayListPush(&stack, literal);
 		} break;
+		case INDENT:
+		case DEDENT:
 		case DELIMITER:
 			break;
 		default: {
@@ -478,8 +538,9 @@ void PrintNode(Node* node)
 		printf(", \n%s\033[0;36mbody\033[0m: [\n", spaces);
 		ArrayListForEach(node->if_stmt->body, PrintNode);
 		printf("%s]\n", spaces);
-		printf(",\n%s\033[0;36melse\033[0m: ", spaces);
+		printf(",\n%s\033[0;36melse\033[0m: [\n", spaces);
 		ArrayListForEach(node->if_stmt->orelse, PrintNode);
+		printf("%s]\n", spaces);
 		printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
 			spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
 		break;
@@ -600,7 +661,7 @@ size_t Precedence(const char* op) {
 	else if (strcmp(op, "<") == 0 || strcmp(op, ">") == 0 ||
 		strcmp(op, "<=") == 0 || strcmp(op, ">=") == 0 ||
 		strcmp(op, "==") == 0 || strcmp(op, "!=") == 0) {
-		return 4;
+		return 0;
 	}
 	else return -1;
 

@@ -42,7 +42,6 @@ Tokens Tokenize(Lexer* lexer)
 		}
 
 		int newIndentationLevel = spaces / 4;
-		Token* newline = ArrayListGet(&tokens, tokens.size - 1);
 		if (newIndentationLevel > indentationLevel)
 		{
 			// Add an INDENT token
@@ -55,7 +54,7 @@ Tokens Tokenize(Lexer* lexer)
 		else if (newIndentationLevel < indentationLevel && line + 1)
 		{
 			// Add a DEDENT token for each level of indentation decrease
-			while (newIndentationLevel < indentationLevel && newline->type == NEWLINE)
+			while (newIndentationLevel < indentationLevel && character == '\n')
 			{
 				Token* dedent = CreateToken(DEDENT);
 				dedent->line = line;
@@ -69,6 +68,7 @@ Tokens Tokenize(Lexer* lexer)
 			while ('\n' != lexer->source[++lexer->position]) continue;
 			line++;
 			column = 1;
+			continue;
 		}
 
 		Token* token;
@@ -163,7 +163,7 @@ Tokens Tokenize(Lexer* lexer)
 void PrintToken(Token* token)
 {
 	const char* type = TokenTypeToString(token->type);
-	printf("    { \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, , \033[0;36mline\033[0m: \033[0;31m%zu\033[0m, , \033[0;36mcolumn\033[0m: \033[0;31m%zu\033[0m },\n", token->lexeme, type, token->line, token->col);
+	printf("    { \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, , \033[0;36mline\033[0m: \033[0;31m%zu\033[0m, \033[0;36mcolumn\033[0m: \033[0;31m%zu\033[0m },\n", token->lexeme, type, token->line, token->col);
 }
 
 Token* CreateStringToken(Lexer* lexer, char character)
