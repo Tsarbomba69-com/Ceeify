@@ -1,6 +1,9 @@
 #include "lexer.h"
 #include "parser.h"
 
+// Write script to generate typed arraylist
+// Abstract shared types (Token, Node) away fot the script to work
+
 int main(void)
 {
 	char* source = LoadFileText("./portal.py");
@@ -13,8 +16,8 @@ int main(void)
 	ArrayListForEach(&tokens, PrintToken);
 	printf("]\n");
 	PrintArena();
-	// Node* root = ParseBlock(&tokens);
-	Parse(&tokens);
+	Node* root = ParseBlock(&tokens);
+	// Parse(&tokens);
 	PrintArena();
 	FreeContext();
 	PrintArena();

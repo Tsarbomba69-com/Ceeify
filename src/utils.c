@@ -141,6 +141,16 @@ ArrayList* AllocateArrayList(size_t capacity) {
 	return list;
 }
 
+void* ArrayListPop(ArrayList* list) {
+	if (list->size == 0) {
+		return NULL; // ArrayList is empty, return NULL
+	}
+
+	void* element = list->elements[list->size - 1]; // Get the last element
+	list->size--; // Decrement the size
+	return element; // Return the last element
+}
+
 void ArrayListPush(ArrayList* list, void* value)
 {
 	if (list->size == list->capacity) {
@@ -154,16 +164,6 @@ void ArrayListPush(ArrayList* list, void* value)
 		list->capacity = cap;
 	}
 	list->elements[list->size++] = value;
-}
-
-void* ArrayListPop(ArrayList* list) {
-	if (list->size == 0) {
-		return NULL; // ArrayList is empty, return NULL
-	}
-
-	void* element = list->elements[list->size - 1]; // Get the last element
-	list->size--; // Decrement the size
-	return element; // Return the last element
 }
 
 char* Repeat(const char* str, size_t count) {

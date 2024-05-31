@@ -439,6 +439,7 @@ Node* ShantingYard(Tokens* tokens)
 
 	for (size_t i = 0; i < tokens->size; i++)
 	{
+		// Parse unary operation
 		Token* token = ArrayListGet(tokens, i);
 		switch (token->type) {
 		case IDENTIFIER: {
