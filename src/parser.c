@@ -175,8 +175,8 @@ void Parse(Tokens* tokens)
 Node* ParseBlock(Tokens* tokens) {
 	Node* node = NULL;
 	for (i; i < tokens->size; ++i) {
-		Token* token = ArrayListGet(tokens, i);
-		Token* next = ArrayListGet(tokens, i + 1);
+		Token* token = Token_Get(tokens, i);
+		Token* next = Token_Get(tokens, i + 1);
 		if (token->type == IDENTIFIER) {
 			if (strcmp(next->lexeme, "=") == 0) {
 				++i;
@@ -435,38 +435,39 @@ Tokens InfixToPostfix(Tokens* tokens)
 
 Node* ShantingYard(Tokens* tokens)
 {
-	ArrayList stack = CreateArrayList(10);
+	Node_LinkedList stack = Node_CreateLinkedList();
 
 	for (size_t i = 0; i < tokens->size; i++)
 	{
-		// Parse unary operation
-		Token* token = ArrayListGet(tokens, i);
+		// TODO: Parse unary operation
+		// TODO: Parse array literals
+		Token* token = Token_Get(tokens, i);
 		switch (token->type) {
 		case IDENTIFIER: {
 			Node* var = CreateNode(VARIABLE);
 			var->variable->ctx = LOAD;
 			var->variable->id = token->lexeme;
-			ArrayListPush(&stack, var);
+			Node_AddFirst(&stack, var);
 		} break;
 		case INTEGER:
 		case FLOAT: {
 			Node* literal = CreateNode(LITERAL);
 			literal->literal = CreateLiteral(token->lexeme);
-			ArrayListPush(&stack, literal);
+			Node_AddFirst(&stack, literal);
 		} break;
 		case INDENT:
 		case DEDENT:
 		case DELIMITER:
 			break;
 		default: {
-			Node* right = ArrayListPop(&stack);
-			Node* left = ArrayListPop(&stack);
+			Node* right = Node_Pop(&stack);
+			Node* left = Node_Pop(&stack);
 			Node* bin = CreateBinOp(token, left, right);
-			ArrayListPush(&stack, bin);
+			Node_AddFirst(&stack, bin);
 		} break;
 		}
 	}
-	Node* root = ArrayListPop(&stack);
+	Node* root = Node_Pop(&stack);
 	return root;
 }
 

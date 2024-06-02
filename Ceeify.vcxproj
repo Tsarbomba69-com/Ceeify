@@ -128,7 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="parser2.c" />
+    <ClCompile Include="src\Node_linkedlist.c" />
     <ClCompile Include="src\ceeify.c" />
     <ClCompile Include="src\lexer.c" />
     <ClCompile Include="src\parser.c" />
@@ -138,12 +138,11 @@
   <ItemGroup>
     <ClInclude Include="include\arena.h" />
     <ClInclude Include="include\lexer.h" />
+    <ClInclude Include="include\Node_linkedlist.h" />
     <ClInclude Include="include\parser.h" />
     <ClInclude Include="include\Token_arraylist.h" />
-    <ClInclude Include="parser2.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="include\utils.h" />
-    <ClInclude Include="token.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Ceeify.rc" />

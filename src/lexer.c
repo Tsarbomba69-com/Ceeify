@@ -22,10 +22,10 @@ Lexer CreateLexer(char* source)
 	return (Lexer) { source, 0, len };
 }
 
-Tokens Tokenize(Lexer* lexer)
+Token_ArrayList Tokenize(Lexer* lexer)
 {
 	size_t len = strlen(lexer->source);
-	Tokens tokens = Token_CreateArrayList(100);
+	Token_ArrayList tokens = Token_CreateArrayList(100);
 	size_t line = 1;
 	size_t column = 1;
 	size_t indentationLevel = 0;
@@ -48,7 +48,7 @@ Tokens Tokenize(Lexer* lexer)
 			Token* indent = CreateToken(INDENT);
 			indent->line = line;
 			indent->col = column;
-			Token_ArrayListPush(&tokens, indent);
+			Token_Push(&tokens, indent);
 			indentationLevel = newIndentationLevel;
 		}
 		else if (newIndentationLevel < indentationLevel && line + 1)
@@ -59,7 +59,7 @@ Tokens Tokenize(Lexer* lexer)
 				Token* dedent = CreateToken(DEDENT);
 				dedent->line = line;
 				dedent->col = column;
-				Token_ArrayListPush(&tokens, dedent);
+				Token_Push(&tokens, dedent);
 				indentationLevel--;
 			}
 		}
@@ -98,7 +98,7 @@ Tokens Tokenize(Lexer* lexer)
 			token->col = column + strlen(token->lexeme);
 			column = token->col;
 			token->line = line;
-			Token_ArrayListPush(&tokens, token);
+			Token_Push(&tokens, token);
 			continue;
 		}
 
@@ -107,7 +107,7 @@ Tokens Tokenize(Lexer* lexer)
 			token = CreateDelimiterToken(lexer, (const char*)character);
 			token->col = column;
 			token->line = line;
-			Token_ArrayListPush(&tokens, token);
+			Token_Push(&tokens, token);
 			continue;
 		}
 
@@ -117,7 +117,7 @@ Tokens Tokenize(Lexer* lexer)
 			token->col = column + strlen(token->lexeme);
 			column = token->col;
 			token->line = line;
-			Token_ArrayListPush(&tokens, token);
+			Token_Push(&tokens, token);
 			continue;
 		}
 
@@ -127,7 +127,7 @@ Tokens Tokenize(Lexer* lexer)
 			token->col = column + strlen(token->lexeme);
 			column = token->col;
 			token->line = line;
-			Token_ArrayListPush(&tokens, token);
+			Token_Push(&tokens, token);
 			continue;
 		}
 
@@ -137,7 +137,7 @@ Tokens Tokenize(Lexer* lexer)
 			token->col = column + strlen(token->lexeme);
 			column = token->col;
 			token->line = line;
-			Token_ArrayListPush(&tokens, token);
+			Token_Push(&tokens, token);
 			continue;
 		}
 
@@ -146,7 +146,7 @@ Tokens Tokenize(Lexer* lexer)
 			token = CreateNewLineToken();
 			token->col = column;
 			token->line = line;
-			Token_ArrayListPush(&tokens, token);
+			Token_Push(&tokens, token);
 			line++;
 			column = 1;
 		}
@@ -156,7 +156,7 @@ Tokens Tokenize(Lexer* lexer)
 	Token* eof = CreateEOFToken(lexer);
 	eof->col = column;
 	eof->line = line;
-	Token_ArrayListPush(&tokens, eof);
+	Token_Push(&tokens, eof);
 	return tokens;
 }
 

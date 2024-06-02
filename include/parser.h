@@ -3,8 +3,11 @@
 #include <ctype.h>
 #include <assert.h>
 #include "lexer.h"
+#include "Node_linkedlist.h"
 #define PARSER_H
 #define MODULE_NAME_CAP 10
+
+typedef Token_ArrayList Tokens;
 
 typedef ArrayList Program;
 

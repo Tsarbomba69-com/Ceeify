@@ -44,14 +44,14 @@ Token_ArrayList* Token_AllocateArrayList(size_t capacity) {
 
 void Token_AllocateElementes(Token_ArrayList* list)
 {
-	list->elements = Token_AllocateContext(list->capacity * sizeof(Token));
+	list->elements = Token_AllocateContext(list->capacity * sizeof(Token*));
 	if (list->elements == NULL) {
 		fprintf(stderr, "ERROR: Could not allocate memory for \"Token*\" array list elements");
 	}
 	list->size = 0;
 }
 
-Token* Token_ArrayListPop(Token_ArrayList* list) {
+Token* Token_Pop(Token_ArrayList* list) {
 	if (list->size == 0) {
 		return NULL; // ArrayList is empty, return NULL
 	}
@@ -61,7 +61,7 @@ Token* Token_ArrayListPop(Token_ArrayList* list) {
 	return element; // Return the last element
 }
 
-void Token_ArrayListPush(Token_ArrayList* list, Token* value)
+void Token_Push(Token_ArrayList* list, Token* value)
 {
 	if (list->size == list->capacity) {
 		size_t cap = list->capacity * 2;
@@ -76,10 +76,10 @@ void Token_ArrayListPush(Token_ArrayList* list, Token* value)
 	list->elements[list->size++] = value;
 }
 
-bool Token_ArrayListAny(Token_ArrayList* list, Token* el, Token_CompareFn predicate)
+bool Token_Any(Token_ArrayList* list, Token* el, Token_CompareFn predicate)
 {
 	for (size_t i = 0; i < list->size; i++) {
-	    Token* curr = Token_ArrayListGet(list, i);
+		Token* curr = Token_Get(list, i);
 		if (predicate(curr, el)) {
 			return true;
 		}
@@ -87,7 +87,7 @@ bool Token_ArrayListAny(Token_ArrayList* list, Token* el, Token_CompareFn predic
 	return false;
 }
 
-void Token_ArrayListForEach(Token_ArrayList* list, Token_Action callback)
+void Token_ForEach(Token_ArrayList* list, Token_Action callback)
 {
 	for (size_t i = 0; i < list->size; i++)
 	{

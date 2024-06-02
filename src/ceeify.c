@@ -17,6 +17,9 @@ int main(void)
 	printf("]\n");
 	PrintArena();
 	Node* root = ParseBlock(&tokens);
+	Node_LinkedList program = Node_CreateLinkedList();
+	Node_AddFirst(&program, root);
+	Node_ForEach(&program, PrintNode);
 	// Parse(&tokens);
 	PrintArena();
 	FreeContext();
