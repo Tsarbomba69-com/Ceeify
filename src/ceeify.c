@@ -16,11 +16,11 @@ int main(void)
 	ArrayListForEach(&tokens, PrintToken);
 	printf("]\n");
 	PrintArena();
-	Node* root = ParseBlock(&tokens);
+	/*Node* root = ParseBlock(&tokens);
 	Node_LinkedList program = Node_CreateLinkedList();
 	Node_AddFirst(&program, root);
-	Node_ForEach(&program, PrintNode);
-	// Parse(&tokens);
+	Node_ForEach(&program, PrintNode);*/
+	Parse(&tokens);
 	PrintArena();
 	FreeContext();
 	PrintArena();

@@ -1,27 +1,4 @@
 #include "Token_arraylist.h"
-#include "arena.h"
-
-static Arena token_arena = { 0 };
-
-// WARNING: You can implement your own memory management API. Using libc API as default---------
-
-Token** Token_AllocateContext(size_t size)
-{
-	assert(&token_arena);
-	return arena_alloc(&token_arena, size);
-}
-
-void Token_FreeContext(Token** obj_ptr) {
-	arena_free(&token_arena);
-}
-
-Token** Token_ReallocateContext(Token** oldptr, size_t oldptr_size, size_t size)
-{
-	assert(&token_arena);
-	return arena_realloc(&token_arena, oldptr, oldptr_size, size);
-}
-
-// -----------------------------------------------------------------------------------------------
 
 Token_ArrayList Token_CreateArrayList(size_t capacity)
 {
@@ -32,7 +9,7 @@ Token_ArrayList Token_CreateArrayList(size_t capacity)
 }
 
 Token_ArrayList* Token_AllocateArrayList(size_t capacity) {
-	Token_ArrayList* list = Token_AllocateContext(sizeof(Token_ArrayList));
+	Token_ArrayList* list = AllocateContext(sizeof(Token_ArrayList));
 	if (list == NULL) {
 		fprintf(stderr, "ERROR: Could not allocate memory for \"Token*\" array list");
 		return NULL;
@@ -44,7 +21,7 @@ Token_ArrayList* Token_AllocateArrayList(size_t capacity) {
 
 void Token_AllocateElementes(Token_ArrayList* list)
 {
-	list->elements = Token_AllocateContext(list->capacity * sizeof(Token*));
+	list->elements = AllocateContext(list->capacity * sizeof(Token*));
 	if (list->elements == NULL) {
 		fprintf(stderr, "ERROR: Could not allocate memory for \"Token*\" array list elements");
 	}
@@ -65,7 +42,7 @@ void Token_Push(Token_ArrayList* list, Token* value)
 {
 	if (list->size == list->capacity) {
 		size_t cap = list->capacity * 2;
-		Token** elements = Token_ReallocateContext(list->elements, list->size * sizeof(Token*), cap * sizeof(Token*));
+		Token** elements = ReallocateContext(list->elements, list->size * sizeof(Token*), cap * sizeof(Token*));
 		if (elements == NULL) {
 			fprintf(stderr, "ERROR: Failed to resize \"Token*\" array list\n");
 			return;
