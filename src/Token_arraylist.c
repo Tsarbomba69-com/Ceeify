@@ -76,7 +76,7 @@ void Token_ArrayListPush(Token_ArrayList* list, Token* value)
 	list->elements[list->size++] = value;
 }
 
-bool Token_ArrayListAny(Token_ArrayList* list, Token* el, CompareFn predicate)
+bool Token_ArrayListAny(Token_ArrayList* list, Token* el, Token_CompareFn predicate)
 {
 	for (size_t i = 0; i < list->size; i++) {
 	    Token* curr = Token_ArrayListGet(list, i);
@@ -87,7 +87,7 @@ bool Token_ArrayListAny(Token_ArrayList* list, Token* el, CompareFn predicate)
 	return false;
 }
 
-void Token_ArrayListForEach(Token_ArrayList* list, Action callback)
+void Token_ArrayListForEach(Token_ArrayList* list, Token_Action callback)
 {
 	for (size_t i = 0; i < list->size; i++)
 	{

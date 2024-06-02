@@ -18,9 +18,9 @@ typedef struct {
 	size_t capacity;
 } Token_ArrayList;
 
-typedef void (*Action)(Token*);
+typedef void (*Token_Action)(Token*);
 
-typedef bool (*CompareFn)(const Token*, const Token*);
+typedef bool (*Token_CompareFn)(const Token*, const Token*);
 
 
 Token_ArrayList Token_CreateArrayList(size_t capacity);
@@ -29,7 +29,7 @@ Token_ArrayList* Token_AllocateArrayList(size_t capacity);
 // 
 void Token_AllocateElementes(Token_ArrayList* list);
 // 
-bool Token_ArrayListAny(Token_ArrayList*, Token*, CompareFn);
+bool Token_ArrayListAny(Token_ArrayList*, Token*, Token_CompareFn);
 // Pushes an element to the end of the array list
 void Token_ArrayListPush(Token_ArrayList* list, Token* value);
 // Get the last element and remove it
@@ -40,5 +40,5 @@ inline Token* Token_ArrayListGet(Token_ArrayList* arrayList, size_t index)
 	return index < arrayList->size ? arrayList->elements[index] : NULL;
 }
 // Iterate the array list and apply the callback for each element
-void Token_ArrayListForEach(Token_ArrayList* list, Action callback);
+void Token_ArrayListForEach(Token_ArrayList* list, Token_Action callback);
 #endif // !Token_ARRAYLIST_H
