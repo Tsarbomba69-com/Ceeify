@@ -147,7 +147,7 @@ void Parse(Tokens* tokens)
 		} break;
 		case DELIMITER: {
 			if (strcmp(token->lexeme, "[") == 0) {
-				Tokens elements = CreateArrayList(20);
+				Tokens elements = Token_CreateArrayList(20);
 				for (size_t j = i; strcmp(token->lexeme, "]") != 0; ++j) {
 					ArrayListPush(&elements, token);
 					token = ArrayListGet(tokens, j);
@@ -247,7 +247,7 @@ IfStmt* CreateIfStmt()
 Tokens CollectExpression(Tokens* tokens, size_t from)
 {
 	Token* token = ArrayListGet(tokens, from);
-	Tokens expression = CreateArrayList(20);
+	Tokens expression = Token_CreateArrayList(20);
 	TokenType blacklist[] = { INDENT, DEDENT, NEWLINE, ENDMARKER };
 	size_t size = ARRAYSIZE(blacklist);
 	for (size_t j = from; (!BlacklistTokens(token->type, blacklist, ARRAYSIZE(blacklist)) && strcmp(token->lexeme, ":") != 0); ++j) {
@@ -385,8 +385,8 @@ Node* CreateNode(NodeType type)
 
 Tokens InfixToPostfix(Tokens* tokens)
 {
-	Tokens stack = CreateArrayList(10);
-	Tokens postfix = CreateArrayList(10);
+	Tokens stack = Token_CreateArrayList(10);
+	Tokens postfix = Token_CreateArrayList(10);
 
 	for (size_t i = 0; i < tokens->size; i++)
 	{

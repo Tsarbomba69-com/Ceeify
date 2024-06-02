@@ -3,29 +3,9 @@
 #define LEXER_H
 
 #include "utils.h"
+#include "token.h"
+#include "Token_arraylist.h"
 #include <ctype.h>
-
-typedef enum {
-	IDENTIFIER,
-	INTEGER,
-	FLOAT,
-	STRING,
-	OPERATOR,
-	KEYWORD,
-	DELIMITER,
-	NEWLINE,
-	INDENT,
-	DEDENT,
-	ENDMARKER
-} TokenType;
-
-typedef struct
-{
-	TokenType type;
-	char* lexeme;
-	size_t line;
-	size_t col;
-} Token;
 
 typedef struct Lexer
 {
@@ -34,11 +14,11 @@ typedef struct Lexer
 	size_t sourceLength;
 } Lexer;
 
-typedef ArrayList Tokens;
+typedef Token_ArrayList Tokens;
 
 Lexer CreateLexer(char* source);
 
-ArrayList Tokenize(Lexer* lexer);
+Token_ArrayList Tokenize(Lexer* lexer);
 
 void PrintToken(Token* token);
 

@@ -17,7 +17,7 @@ int main(void)
 	printf("]\n");
 	PrintArena();
 	Node* root = ParseBlock(&tokens);
-	// Parse(&tokens);
+	Parse(&tokens);
 	PrintArena();
 	FreeContext();
 	PrintArena();

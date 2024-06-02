@@ -104,7 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;C:\Users\Hendrick Dias\source\repos\Ceeify\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -128,17 +128,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="parser2.c" />
     <ClCompile Include="src\ceeify.c" />
     <ClCompile Include="src\lexer.c" />
     <ClCompile Include="src\parser.c" />
+    <ClCompile Include="src\Token_arraylist.c" />
     <ClCompile Include="src\utils.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\arena.h" />
     <ClInclude Include="include\lexer.h" />
     <ClInclude Include="include\parser.h" />
+    <ClInclude Include="include\Token_arraylist.h" />
+    <ClInclude Include="parser2.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="include\utils.h" />
+    <ClInclude Include="token.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Ceeify.rc" />
