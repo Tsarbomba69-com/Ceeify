@@ -89,7 +89,7 @@ typedef struct Node {
 
 void Parse(Tokens* tokens);
 
-Node* ParseBlock(Tokens* tokens);
+Node* ParseStatement(Tokens* tokens);
 
 Node* ParseExpression(Tokens* tokens);
 

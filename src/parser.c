@@ -12,6 +12,8 @@ const char* BIN_OPERATORS[] = {
 	"//", "==", "!=", "**", ">=", "<=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>"
 };
 
+const char* UNARY_OPERATORS[] = { "+", "-", "~", "not" };
+
 // WARNING: Soon to be deprecated
 void Parse(Tokens* tokens)
 {
@@ -171,8 +173,12 @@ void Parse(Tokens* tokens)
 	printf("]\n");
 }
 
+Node_LinkedList ParseStatements(Tokens* tokens) {
+
+}
+
 // WARNING: Advances tokens index
-Node* ParseBlock(Tokens* tokens) {
+Node* ParseStatement(Tokens* tokens) {
 	Node* node = NULL;
 	for (i; i < tokens->size; ++i) {
 		Token* token = Token_Get(tokens, i);
@@ -180,21 +186,22 @@ Node* ParseBlock(Tokens* tokens) {
 		if (token->type == IDENTIFIER) {
 			if (strcmp(next->lexeme, "=") == 0) {
 				++i;
-				Node* ass = CreateNode(ASSIGNMENT);
-				Assign* assign = ass->assign_stmt;
+				node = CreateNode(ASSIGNMENT);
+				Assign* assign = node->assign_stmt;
 				Name* var = (CreateNode(VARIABLE))->variable;
 				var->id = token->lexeme;
 				var->ctx = STORE;
 				assign->target = var;
 				assign->value = ParseExpression(tokens);
-				PrintNode(assign->value);
+				return node;
 			}
 		}
 
 		if (strcmp(token->lexeme, "if") == 0) {
 			node = CreateNode(IF);
 			node->if_stmt->test = ParseExpression(tokens);
-			node->if_stmt->body = ParseBlock(tokens);
+			node->if_stmt->body = ParseStatement(tokens);
+			return node;
 		}
 	}
 
@@ -455,15 +462,28 @@ Node* ShantingYard(Tokens* tokens)
 			literal->literal = CreateLiteral(token->lexeme);
 			Node_AddFirst(&stack, literal);
 		} break;
+		case OPERATOR: {
+			Node* right = Node_Pop(&stack);
+			Node* left = Node_Pop(&stack);
+
+			if (right != NULL && left != NULL) {
+				Node* bin = CreateBinOp(token, left, right);
+				Node_AddFirst(&stack, bin);
+				continue;
+			}
+
+			if (Any(UNARY_OPERATORS, ARRAYSIZE(UNARY_OPERATORS), token->lexeme, StrEQ) && right != NULL) {
+				Node* node = CreateNode(UNARY_OPERATION);
+				node->unOp = CreateUnaryOp(token->lexeme);
+				node->unOp->operand = right;
+				Node_AddFirst(&stack, node);
+			}
+		} break;
 		case INDENT:
 		case DEDENT:
 		case DELIMITER:
 			break;
 		default: {
-			Node* right = Node_Pop(&stack);
-			Node* left = Node_Pop(&stack);
-			Node* bin = CreateBinOp(token, left, right);
-			Node_AddFirst(&stack, bin);
 		} break;
 		}
 	}

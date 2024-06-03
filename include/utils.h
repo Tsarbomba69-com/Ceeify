@@ -13,7 +13,7 @@
 
 #define ARRAYSIZE(a) (sizeof(a)/sizeof((a)[0]))
 
-typedef struct {
+typedef struct ArrayList {
 	void** elements;
 	size_t size;
 	size_t capacity;
