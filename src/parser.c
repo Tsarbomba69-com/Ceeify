@@ -227,6 +227,7 @@ Node *ParseStatement(Tokens *tokens) {
 Token_ArrayList CollectUntil(Tokens const *tokens, TokenType type) {
     Token_ArrayList result = Token_CreateArrayList(10);
     Token *token = Token_Get(tokens, ++token_idx);
+    token_idx++;
     for (; token_idx < tokens->size && token->type != type; ++token_idx) {
         if (strcmp(token->lexeme, ",") != 0) Token_Push(&result, token);
         token = Token_Get(tokens, token_idx);
