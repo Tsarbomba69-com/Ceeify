@@ -6,6 +6,8 @@
 
 typedef struct Node Node;
 
+typedef struct Node_Node Node_Node;
+
 typedef void (*Node_Action)(Node*);
 
 typedef bool (*Node_CompareFn)(const Node*, const Node*);
@@ -14,13 +16,14 @@ typedef bool (*Node_CompareFn)(const Node*, const Node*);
 #define Node_LINKEDLIST_H
 
 // node structure
-typedef struct {
+typedef struct Node_Node {
     Node* data;
-    struct Node_Node* next;
+    Node_Node* next;
 } Node_Node;
 
 typedef struct {
     Node_Node* head;
+    Node_Node* tail;
     size_t size;
 } Node_LinkedList;
 

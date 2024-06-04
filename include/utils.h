@@ -34,8 +34,6 @@ void FreeContext();
 // Load text data from file (read), returns a '\0' terminated string
 char* LoadFileText(const char* fileName);
 
-void UnloadFileText(char* text);
-
 // Take a string slice of the source string. WARNING: The caller is responsible for cleaning the memory
 char* Slice(const char* source, size_t start, size_t end);
 
@@ -45,7 +43,7 @@ char* Repeat(const char* str, size_t count);
 
 const char* TextFormat(const char* text, ...);
 
-inline bool StrEQ(char* str1, char* str2) {
+static inline bool StrEQ(char const* str1, char const* str2) {
 	return strcmp(str1, str2) == 0;
 }
 // Tests whether at least one element in the array passes the test implemented by the provided function
@@ -61,12 +59,12 @@ void ArrayListPush(ArrayList* list, void* value);
 // Get the last element and remove it
 void* ArrayListPop(ArrayList* list);
 
-inline void Print(char* str) {
+static inline void Print(char* str) {
 	printf("\033[0;33m\"%s\"\033[0m, ", str);
 }
 
 // Get the element stored at the index. Returns NULL if index is out-of-bounds
-inline void* ArrayListGet(ArrayList* arrayList, size_t index)
+static inline void* ArrayListGet(ArrayList const* arrayList, size_t index)
 {
 	return index < arrayList->size ? arrayList->elements[index] : NULL;
 }

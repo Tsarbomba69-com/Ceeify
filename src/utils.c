@@ -15,8 +15,8 @@ void PrintArena() {
 		printf("  Capacity: \033[0;31m%zu\033[0m bytes\n", current->capacity);
 		// printf("  Data: ");
 
-		//for (size_t i = 0; i < current->count; i++) {
-		//	printf("0x%" PRIxPTR " ", current->data[i]);
+		//for (size_t token_idx = 0; token_idx < current->count; token_idx++) {
+		//	printf("0x%" PRIxPTR " ", current->data[token_idx]);
 		//}
 		//printf("\n");
 
@@ -277,7 +277,7 @@ void ArrayListForEach(ArrayList* list, Action callback)
 	for (size_t i = 0; i < list->size; i++)
 	{
 #if DEBUG
-		printf("%zu ", i);
+		printf("%zu ", token_idx);
 #endif
 		void* element = list->elements[i];
 		if (element != NULL) callback(element);

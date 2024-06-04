@@ -1,9 +1,11 @@
 #pragma once
 #ifndef PARSER_H
+
 #include <ctype.h>
 #include <assert.h>
 #include "lexer.h"
 #include "Node_linkedlist.h"
+
 #define PARSER_H
 #define MODULE_NAME_CAP 10
 
@@ -14,126 +16,129 @@ typedef ArrayList Program;
 typedef ArrayList Nodes;
 
 typedef enum {
-	PROGRAM,
-	ASSIGNMENT,
-	IMPORT,
-	BINARY_OPERATION,
-	UNARY_OPERATION,
-	LITERAL,
-	VARIABLE,
-	IF,
-	LIST
+    PROGRAM,
+    ASSIGNMENT,
+    IMPORT,
+    BINARY_OPERATION,
+    UNARY_OPERATION,
+    LITERAL,
+    VARIABLE,
+    IF,
+    LIST
 } NodeType;
 
 typedef enum {
-	STORE,
-	DEL,
-	LOAD
+    STORE,
+    DEL,
+    LOAD
 } Context;
 
 typedef struct {
-	ArrayList* modules;
+    Token_ArrayList modules;
 } ImportStmt;
 
 typedef struct {
-	char* value;
+    char *value;
 } Literal;
 
 typedef struct {
-	char* operator;
-	struct Node* left;
-	struct Node* right;
+    char *operator;
+    struct Node *left;
+    struct Node *right;
 } BinaryOperation;
 
 typedef struct {
-	char* operator;
-	struct Node* operand;
+    char *operator;
+    struct Node *operand;
 } UnaryOperation;
 
 typedef struct {
-	char* id;
-	Context ctx;
+    char *id;
+    Context ctx;
 } Name;
 
 typedef struct {
-	struct Node* test;
-	Program* body;
-	Program* orelse;
+    struct Node *test;
+    Node_LinkedList body;
+    Node_LinkedList orelse;
 } IfStmt;
 
 typedef struct {
-	Name* target;
-	struct Node* value;
+    Name *target;
+    struct Node *value;
 } Assign;
 
 typedef struct {
-	Nodes elts;
-	Context ctx;
+    Nodes elts;
+    Context ctx;
 } List;
 
 typedef struct Node {
-	NodeType type;
-	size_t depth;
-	struct Node* parent;
-	union {
-		Literal* literal;
-		ImportStmt* import_stm;
-		IfStmt* if_stmt;
-		BinaryOperation* bin_op;
-		UnaryOperation* unOp;
-		Assign* assign_stmt;
-		Name* variable;
-		List* list;
-	};
+    NodeType type;
+    size_t depth;
+    union {
+        Literal *literal;
+        ImportStmt *import_stm;
+        IfStmt *if_stmt;
+        BinaryOperation *bin_op;
+        UnaryOperation *unOp;
+        Assign *assign_stmt;
+        Name *variable;
+        List *list;
+    };
 } Node;
 
-void Parse(Tokens* tokens);
+void Parse(Tokens *tokens);
 
-Node* ParseStatement(Tokens* tokens);
+Node_LinkedList ParseStatements(Tokens *tokens);
 
-Node* ParseExpression(Tokens* tokens);
+Token_ArrayList CollectUntil(Tokens const *tokens, TokenType type);
 
-ImportStmt* CreateImportStmt();
+Node *ParseStatement(Tokens *tokens);
 
-Assign* CreateAssignStmt();
+Node *ParseExpression(Tokens *tokens);
 
-Name* CreateNameExpr();
+ImportStmt *CreateImportStmt();
 
-UnaryOperation* CreateUnaryOp(char* op);
+Assign *CreateAssignStmt();
 
-Node* ShantingYard(Tokens* tokens);
+Name *CreateNameExpr();
 
-void PrintList(Node* node, char* spaces);
+UnaryOperation *CreateUnaryOp(char *op);
 
-Literal* CreateLiteral(char* value);
+Node *ShantingYard(Tokens *tokens);
 
-IfStmt* CreateIfStmt();
+void PrintList(Node const *node, char *spaces);
 
-Node* CreateNode(NodeType type);
+Literal *CreateLiteral(char *value);
 
-Tokens InfixToPostfix(Tokens* tokens);
+IfStmt *CreateIfStmt();
 
-Node* CreateBinOp(Token* token, Node* left, Node* right);
+Node *CreateNode(NodeType type);
 
-Node* CreateListNode(Tokens* elements);
+Tokens InfixToPostfix(Tokens *tokens);
 
-void PrintNode(Node* node);
+Node *CreateBinOp(Token *token, Node *left, Node *right);
 
-void PrintVar(Name*, size_t);
+Node *CreateListNode(Tokens *elements);
 
-void PrintImportStmt(Node*);
+void PrintNode(Node *node);
 
-size_t Precedence(const char*);
+void PrintVar(Name *, size_t);
 
-Tokens CollectExpression(Tokens* tokens, size_t from);
+void PrintImportStmt(Node *);
 
-const char* NodeTypeToString(NodeType type);
+size_t Precedence(const char *);
 
-const char* CtxToString(Name* var);
+Tokens CollectExpression(Tokens const *tokens, size_t from);
 
-void TraverseTree(Node* node, size_t depth);
+const char *NodeTypeToString(NodeType type);
 
-bool BlacklistTokens(TokenType type, TokenType blacklist[], size_t size);
+const char *CtxToString(Name const *var);
+
+void TraverseTree(Node *node, size_t depth);
+
+bool BlacklistTokens(TokenType type, const TokenType blacklist[], size_t size);
 
 #endif // !PARSER_H
 

@@ -8,7 +8,7 @@
 #ifndef Token_ARRAYLIST_H
 #define Token_ARRAYLIST_H
 
-#ifndef ARRAYSIZE(a)
+#ifndef ARRAYSIZE
 #define ARRAYSIZE(a) (sizeof(a)/sizeof((a)[0]))
 #endif  // !ARRAYSIZE(a)
 
@@ -46,7 +46,7 @@ void Token_Push(Token_ArrayList* list, Token* value);
 // Get the last element and remove it
 Token* Token_Pop(Token_ArrayList* list);
 // Get the element stored at the index. Returns NULL if index is out-of-bounds
-inline Token* Token_Get(Token_ArrayList* arrayList, size_t index)
+static inline Token* Token_Get(Token_ArrayList const* arrayList, size_t index)
 {
 	return index < arrayList->size ? arrayList->elements[index] : NULL;
 }
