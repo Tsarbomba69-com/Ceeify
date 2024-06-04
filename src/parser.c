@@ -76,7 +76,7 @@ void Parse(Tokens *tokens) {
                 if (node != NULL && node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
                     Assign *assign = node->assign_stmt;
 
-                    if (Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, StrEQ)) {
+                    if (Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, (CompareFn) StrEQ)) {
                         Tokens expression = CollectExpression(tokens, i);
                         i += expression.size - 1;
                         expression = InfixToPostfix(&expression);
@@ -154,7 +154,7 @@ void Parse(Tokens *tokens) {
                         i = j - 1;
                     }
                     if (node != NULL && node->type == ASSIGNMENT) {
-                        node->assign_stmt->value = CreateListNode(&elements);
+                        // node->assign_stmt->value = CreateListNode(&elements);
                     }
                 }
             }
@@ -180,7 +180,7 @@ Node_LinkedList ParseStatements(Tokens *tokens) {
     Node_LinkedList stms = Node_CreateLinkedList();
     for (; token_idx < tokens->size; ++token_idx) {
         Node *node = ParseStatement(tokens);
-        Node_AddFirst(&stms, node);
+        if (node != NULL) Node_AddLast(&stms, node);
     }
     return stms;
 }
@@ -293,36 +293,36 @@ bool BlacklistTokens(TokenType type, const TokenType blacklist[], size_t size) {
     return false;
 }
 
-Node *CreateListNode(Tokens *elements) {
-    Node *node = CreateNode(LIST);
-    node->list->elts = CreateArrayList(20);
-    for (size_t i = 0; i < elements->size; i++) {
-        Token *token = ArrayListGet(elements, i);
-        Node *el = NULL;
-        switch (token->type) {
-            case INTEGER:
-            case STRING:
-            case FLOAT: {
-                el = CreateNode(LITERAL);
-                el->literal = CreateLiteral(token->lexeme);
-            }
-                break;
-            case DELIMITER:
-                break;
-            default:
-                fprintf(stderr, "WARNING: Not implemented!");
-                break;
-        }
-        if (el != NULL) ArrayListPush(&node->list->elts, el);
-    }
-    return node;
-}
+//Node *CreateListNode(Tokens *elements) {
+//    Node *node = CreateNode(LIST);
+//    node->list->elts = CreateArrayList(20);
+//    for (size_t i = 0; i < elements->size; i++) {
+//        Token *token = ArrayListGet(elements, i);
+//        Node *el = NULL;
+//        switch (token->type) {
+//            case INTEGER:
+//            case STRING:
+//            case FLOAT: {
+//                el = CreateNode(LITERAL);
+//                el->literal = CreateLiteral(token->lexeme);
+//            }
+//                break;
+//            case DELIMITER:
+//                break;
+//            default:
+//                fprintf(stderr, "WARNING: Not implemented!");
+//                break;
+//        }
+//        if (el != NULL) ArrayListPush(&node->list->elts, el);
+//    }
+//    return node;
+//}
 
 Literal *CreateLiteral(char *value) {
     Literal *literal = AllocateContext(sizeof(Literal));
     if (literal == NULL) {
         fprintf(stderr, "ERROR: Could not allocate memory for import statement\n");
-        return;
+        return NULL;
     }
 
     literal->value = value;
@@ -333,7 +333,7 @@ Assign *CreateAssignStmt() {
     Assign *assignStmt = AllocateContext(sizeof(Assign));
     if (assignStmt == NULL) {
         fprintf(stderr, "ERROR: Could not allocate memory for assignment statement\n");
-        return;
+        return NULL;
     }
 
     assignStmt->target = NULL;
@@ -344,7 +344,7 @@ Name *CreateNameExpr() {
     Name *variable = AllocateContext(sizeof(Name));
     if (variable == NULL) {
         fprintf(stderr, "ERROR: Could not allocate memory for variable expression\n");
-        return;
+        return NULL;
     }
 
     variable->id = NULL;
@@ -355,7 +355,7 @@ UnaryOperation *CreateUnaryOp(char *op) {
     UnaryOperation *operation = AllocateContext(sizeof(UnaryOperation));
     if (operation == NULL) {
         fprintf(stderr, "ERROR: Could not allocate memory for unary operation expression\n");
-        return;
+        return NULL;
     }
 
     operation->operator = op;
@@ -387,6 +387,7 @@ Node *CreateNode(NodeType type) {
             return node;
         case LIST:
             node->list = AllocateContext(sizeof(List));
+            node->list->elts = Node_CreateLinkedList();
             return node;
         case IF:
             node->if_stmt = CreateIfStmt();
@@ -397,7 +398,7 @@ Node *CreateNode(NodeType type) {
     }
 }
 
-Tokens InfixToPostfix(Tokens *tokens) {
+Tokens InfixToPostfix(Tokens const *tokens) {
     Tokens stack = Token_CreateArrayList(10);
     Tokens postfix = Token_CreateArrayList(10);
 
@@ -429,7 +430,7 @@ Tokens InfixToPostfix(Tokens *tokens) {
     }
 
     while (stack.size > 0) {
-        ArrayListPush(&postfix, ArrayListPop(&stack));
+        Token_Push(&postfix, Token_Pop(&stack));
     }
     return postfix;
 }
@@ -438,8 +439,6 @@ Node *ShantingYard(Tokens *tokens) {
     Node_LinkedList stack = Node_CreateLinkedList();
 
     for (size_t i = 0; i < tokens->size; i++) {
-        // TODO: Parse unary operation
-        // TODO: Parse array literals
         Token *token = Token_Get(tokens, i);
         switch (token->type) {
             case IDENTIFIER: {
@@ -449,6 +448,7 @@ Node *ShantingYard(Tokens *tokens) {
                 Node_AddFirst(&stack, var);
             }
                 break;
+            case STRING:
             case INTEGER:
             case FLOAT: {
                 Node *literal = CreateNode(LITERAL);
@@ -473,6 +473,16 @@ Node *ShantingYard(Tokens *tokens) {
                     node->unOp->operand = right;
                     Node_AddFirst(&stack, node);
                 }
+            }
+                break;
+            case RSQB: {
+                Node *value = NULL;
+                Node *node = CreateNode(LIST);
+                node->list->ctx = LOAD;
+                while ((value = Node_Pop(&stack)) && value->type != LSQB) {
+                    Node_AddFirst(&node->list->elts, value);
+                }
+                Node_AddFirst(&stack, node);
             }
                 break;
             case INDENT:
@@ -505,7 +515,7 @@ void PrintNode(Node *node) {
     int const SCALE_FACTOR = 2;
     if (node == NULL) return;
     TraverseTree(node, node->depth);
-    char *type = NodeTypeToString(node->type);
+    const char *type = NodeTypeToString(node->type);
     char *spaces = Repeat(" ", node->depth * SCALE_FACTOR);
     switch (node->type) {
         case IMPORT:
@@ -574,10 +584,11 @@ void PrintList(Node const *node, char *spaces) {
     const char *type = NodeTypeToString(node->type);
     printf("{ \n%s\033[0;36melements\033[0m: [ \n", spaces);
     printf("    %s", spaces);
-    for (size_t i = 0; i < node->list->elts.size; i++) {
-        Node *el = ArrayListGet(&node->list->elts, i);
-        PrintNode(el);
+    Node_Node *current = node->list->elts.head;
+    while (current != NULL) {
+        PrintNode(current->data);
         printf(", ");
+        current = current->next;
     }
     printf("\n%s]", spaces);
     printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m \n%s}",
@@ -613,13 +624,13 @@ void TraverseTree(Node *node, size_t depth) {
             }
             break;
         case LIST:
-            for (size_t i = 0; i < node->list->elts.size; i++) {
-                Node *el = ArrayListGet(&node->list->elts, i);
-                TraverseTree(el, node->depth);
+            current = node->list->elts.head;
+            while (current != NULL) {
+                TraverseTree(current->data, node->depth + 1);
+                current = current->next;
             }
             break;
-        default: {
-        }
+        default:
             break;
     }
 }
@@ -631,7 +642,7 @@ void PrintVar(Name *variable, size_t depth) {
 
 void PrintImportStmt(Node *stmt) {
     const char *type = NodeTypeToString(IMPORT);
-    printf("{ \033[0;36mmodules\033[0m: [ ");
+    printf("{ \033[0;36mmodules\033[0m: [ \n");
     Token_ForEach(&stmt->import_stm->modules, PrintToken);
     printf("]");
     printf(", \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m }",

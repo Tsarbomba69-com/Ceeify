@@ -65,11 +65,11 @@ typedef struct {
 
 typedef struct {
     Name *target;
-    struct Node *value;
+    Node *value;
 } Assign;
 
 typedef struct {
-    Nodes elts;
+    Node_LinkedList elts;
     Context ctx;
 } List;
 
@@ -116,7 +116,7 @@ IfStmt *CreateIfStmt();
 
 Node *CreateNode(NodeType type);
 
-Tokens InfixToPostfix(Tokens *tokens);
+Tokens InfixToPostfix(Tokens const *tokens);
 
 Node *CreateBinOp(Token *token, Node *left, Node *right);
 

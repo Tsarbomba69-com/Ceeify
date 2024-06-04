@@ -8,60 +8,58 @@
 
 typedef struct Token_ArrayList Token_ArrayList;
 
-typedef enum {
-	IDENTIFIER,
-	INTEGER,
-	FLOAT,
-	STRING,
-	OPERATOR,
-	KEYWORD,
-	DELIMITER,
-	NEWLINE,
-	INDENT,
-	DEDENT,
-	ENDMARKER
+typedef enum TokenType {
+    IDENTIFIER,
+    INTEGER,
+    FLOAT,
+    STRING,
+    OPERATOR,
+    KEYWORD,
+    DELIMITER,
+    NEWLINE,
+    INDENT,
+    DEDENT,
+    LSQB,
+    RSQB,
+    ENDMARKER
 } TokenType;
 
-typedef struct Token
-{
-	TokenType type;
-	char* lexeme;
-	size_t line;
-	size_t col;
+typedef struct Token {
+    TokenType type;
+    char *lexeme;
+    size_t line;
+    size_t col;
 } Token;
 
-typedef struct Lexer
-{
-	char* source;
-	size_t position;
-	size_t sourceLength;
+typedef struct Lexer {
+    char *source;
+    size_t position;
+    size_t sourceLength;
 } Lexer;
 
-Lexer CreateLexer(char* source);
+Lexer CreateLexer(char *source);
 
-Token_ArrayList Tokenize(Lexer* lexer);
+Token_ArrayList Tokenize(Lexer *lexer);
 
-void PrintToken(Token* token);
+void PrintToken(Token *token);
 
-const char* TokenTypeToString(TokenType type);
+const char *TokenTypeToString(TokenType type);
 
-Token* CreateToken(TokenType type);
+Token *CreateToken(TokenType type);
 
-Token* CreateDelimiterToken(Lexer* lexer, const char* matchedDelimiter);
+Token *CreateTokenFromChar(Lexer *lexer, char character, TokenType type);
 
-Token* CreateStringToken(Lexer* lexer, char character);
+Token *CreateStringToken(Lexer *lexer, char character);
 
-Token* CreateOperatorToken(Lexer* lexer, const char* matchedOperator);
+Token *CreateOperatorToken(Lexer *lexer, const char *matchedOperator);
 
-Token* CreateKeywordToken(Lexer* lexer, char character);
+Token *CreateKeywordToken(Lexer *lexer, char character);
 
-Token* CreateNumberToken(Lexer* lexer, char character);
+Token *CreateNumberToken(Lexer *lexer, char character);
 
-Token* CreateNewLineToken();
+Token *CreateNewLineToken();
 
-Token* CreateEOFToken(Lexer* lexer);
-
-void DestroyToken(Token* token);
+Token *CreateEOFToken();
 
 #endif // !LEXER_H
 
