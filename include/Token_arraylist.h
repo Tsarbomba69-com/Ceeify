@@ -34,7 +34,7 @@ Token** Token_ReallocateContext(Token** oldptr, size_t oldptr_size, size_t size)
 // ------------------------------------------------------------
 
 // Find any element within the array list that satisfy the predicate
-bool Token_Any(Token_ArrayList*, Token*, Token_CompareFn);
+bool Token_Any(Token_ArrayList const*, Token const*, Token_CompareFn);
 // Stack allocated array list constructor
 Token_ArrayList Token_CreateArrayList(size_t capacity);
 // Heap allocated array list constructor
@@ -51,5 +51,5 @@ static inline Token* Token_Get(Token_ArrayList const* arrayList, size_t index)
 	return index < arrayList->size ? arrayList->elements[index] : NULL;
 }
 // Iterate the array list and apply the callback for each element
-void Token_ForEach(Token_ArrayList* list, Token_Action callback);
+void Token_ForEach(Token_ArrayList const* list, Token_Action callback);
 #endif // !Token_ARRAYLIST_H

@@ -147,7 +147,7 @@ Token_ArrayList Tokenize(Lexer *lexer) {
 
         lexer->position++;
     }
-    Token *eof = CreateEOFToken(lexer);
+    Token *eof = CreateEOFToken();
     eof->col = column;
     eof->line = line;
     Token_Push(&tokens, eof);

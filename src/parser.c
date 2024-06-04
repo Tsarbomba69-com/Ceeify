@@ -1,191 +1,22 @@
 #include "parser.h"
 
-// TODO: Try writting a second Parse function, implemented using Bottom-up algorithm
 // TODO: Implement semantic analysis
 
 
 // Current token index
 static size_t token_idx = 0;
 
-const char *BIN_OPERATORS[] = {
-        "+", "-", "*", "/", "%", ">", "<", "==", "&", "|", "^", "~", "&&", "||",
-        "//", "==", "!=", "**", ">=", "<=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>"
-};
-
 const char *UNARY_OPERATORS[] = {"+", "-", "~", "not"};
 
-// WARNING: Soon to be deprecated
-void Parse(Tokens *tokens) {
-    Program *program = AllocateArrayList(100);
-    Program *context = program;
-    ArrayList stack = CreateArrayList(10);
-    ArrayListPush(&stack, context);
-    for (size_t i = 0; i < tokens->size; i++) {
-        Token *token = ArrayListGet(tokens, i);
-        Node *node = ArrayListGet(context, context->size - 1);
-        Token *prev = ArrayListGet(tokens, i - 1);
-        Token *next = ArrayListGet(tokens, i + 1);
-        Program *frame = ArrayListGet(&stack, stack.size - 1);
-        switch (token->type) {
-            case KEYWORD: {
-                if (strcmp(token->lexeme, "import") == 0) {
-                    Node *importStmt = CreateNode(IMPORT);
-                    ArrayListPush(context, importStmt);
-                    break;
-                }
-
-                if (strcmp(token->lexeme, "if") == 0) {
-                    Node *if_node = CreateNode(IF);
-                    ArrayListPush(context, if_node);
-                    context = &if_node->if_stmt->body;
-                    ArrayListPush(&stack, context);
-                    break;
-                }
-            }
-                break;
-            case OPERATOR: {
-                if (node != NULL && node->type == ASSIGNMENT && strcmp(next->lexeme, "-") == 0) {
-                    Node *operand = CreateNode(UNARY_OPERATION);
-                    operand->unOp = CreateUnaryOp(next->lexeme);
-                    node->assign_stmt->value = operand;
-                }
-            }
-                break;
-            case IDENTIFIER: {
-                if (node != NULL && node->type == IF &&
-                    Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, (CompareFn) StrEQ)) {
-                    Tokens expression = CollectExpression(tokens, i);
-                    i += expression.size - 1;
-                    expression = InfixToPostfix(&expression);
-                    if (node->if_stmt->test == NULL) node->if_stmt->test = ShantingYard(&expression);
-                    break;
-                }
-
-                if (strcmp(next->lexeme, "=") == 0) {
-                    Node *ass = CreateNode(ASSIGNMENT);
-                    Assign *assign = ass->assign_stmt;
-                    Name *var = (CreateNode(VARIABLE))->variable;
-                    var->id = token->lexeme;
-                    var->ctx = STORE;
-                    assign->target = var;
-                    assign->value = NULL;
-                    ArrayListPush(context, ass);
-                    break;
-                }
-
-                if (node != NULL && node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
-                    Assign *assign = node->assign_stmt;
-
-                    if (Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, (CompareFn) StrEQ)) {
-                        Tokens expression = CollectExpression(tokens, i);
-                        i += expression.size - 1;
-                        expression = InfixToPostfix(&expression);
-                        assign->value = ShantingYard(&expression);
-                        break;
-                    }
-
-                    Node *var = CreateNode(VARIABLE);
-                    var->variable->ctx = LOAD;
-                    var->variable->id = token->lexeme;
-
-                    if (assign->value != NULL && assign->value->type == UNARY_OPERATION)
-                        assign->value->unOp->operand = var;
-                    else
-                        assign->value = var;
-                    break;
-                }
-
-                if (node != NULL && next != NULL &&
-                    node->type == IMPORT && (strcmp(next->lexeme, ",") == 0 || next->type == NEWLINE)) {
-                    ImportStmt *importStmt = node->import_stm;
-                    // ArrayListPush(importStmt->modules, Slice(token->lexeme, 0, strlen(token->lexeme)));
-                }
-            }
-                break;
-            case INTEGER: {
-                if (node == NULL) {
-                    node = ArrayListGet(program, program->size - 1);
-                    if (node->type == IF &&
-                        Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, (CompareFn) StrEQ)) {
-                        Tokens expression = CollectExpression(tokens, i);
-                        i += expression.size - 1;
-                        expression = InfixToPostfix(&expression);
-                        if (node->if_stmt->test == NULL)
-                            node->if_stmt->test = ShantingYard(&expression);
-                    }
-                    break;
-                }
-
-                if (node->type == ASSIGNMENT && node->assign_stmt->target->ctx == STORE) {
-                    Assign *assign = node->assign_stmt;
-
-                    if (Any(BIN_OPERATORS, ARRAYSIZE(BIN_OPERATORS), next->lexeme, (CompareFn) StrEQ)) {
-                        Tokens expression = CollectExpression(tokens, i);
-                        i += expression.size - 1;
-                        expression = InfixToPostfix(&expression);
-                        assign->value = ShantingYard(&expression);
-                        break;
-                    }
-                }
-
-                if (node != NULL && node->type == ASSIGNMENT) {
-                    Node *assignV = node->assign_stmt->value;
-                    Node *literal = CreateNode(LITERAL);
-                    literal->literal = CreateLiteral(token->lexeme);
-                    if (assignV != NULL && assignV->type == UNARY_OPERATION) assignV->unOp->operand = literal;
-                    else node->assign_stmt->value = literal;
-                }
-            }
-                break;
-            case STRING: {
-                if (node != NULL && node->type == ASSIGNMENT) {
-                    Node *literal = CreateNode(LITERAL);
-                    literal->literal = CreateLiteral(token->lexeme);
-                    node->assign_stmt->value = literal;
-                }
-            }
-                break;
-            case DELIMITER: {
-                if (strcmp(token->lexeme, "[") == 0) {
-                    Tokens elements = Token_CreateArrayList(20);
-                    for (size_t j = i; strcmp(token->lexeme, "]") != 0; ++j) {
-                        Token_Push(&elements, token);
-                        token = Token_Get(tokens, j);
-                        i = j - 1;
-                    }
-                    if (node != NULL && node->type == ASSIGNMENT) {
-                        // node->assign_stmt->value = CreateListNode(&elements);
-                    }
-                }
-            }
-                break;
-            case DEDENT: // TODO: There should be a last context to keep track deep nest. Context stack perhaps
-                context = ArrayListPop(&stack);
-                break;
-            case FLOAT:
-            case NEWLINE:
-            case INDENT:
-            case ENDMARKER:
-            default:
-                break;
-        }
-    }
-    puts("");
-    printf("Abstract Syntax Tree = [\n");
-    ArrayListForEach(program, (Action) PrintNode);
-    printf("]\n");
-}
-
 Node_LinkedList ParseStatements(Tokens *tokens) {
-    Node_LinkedList stms = Node_CreateLinkedList();
+    Node_LinkedList stmts = Node_CreateLinkedList();
     for (; token_idx < tokens->size; ++token_idx) {
         Node *node = ParseStatement(tokens);
-        if (node != NULL) Node_AddLast(&stms, node);
+        if (node != NULL) Node_AddLast(&stmts, node);
     }
-    return stms;
+    return stmts;
 }
 
-// WARNING: Advances tokens index
 Node *ParseStatement(Tokens *tokens) {
     Node *node = NULL;
     Token const *token = Token_Get(tokens, token_idx);
@@ -226,7 +57,8 @@ Node *ParseStatement(Tokens *tokens) {
 
 Token_ArrayList CollectUntil(Tokens const *tokens, TokenType type) {
     Token_ArrayList result = Token_CreateArrayList(10);
-    Token *token = Token_Get(tokens, ++token_idx);
+    ++token_idx;
+    Token *token = Token_Get(tokens, token_idx);
     token_idx++;
     for (; token_idx < tokens->size && token->type != type; ++token_idx) {
         if (strcmp(token->lexeme, ",") != 0) Token_Push(&result, token);
@@ -236,12 +68,11 @@ Token_ArrayList CollectUntil(Tokens const *tokens, TokenType type) {
     return result;
 }
 
-// WARNING: Advances tokens index
-Node *ParseExpression(Tokens *tokens) {
+Node *ParseExpression(Tokens const *tokens) {
     Tokens expression = CollectExpression(tokens, token_idx + 1);
     token_idx += expression.size - 1;
     expression = InfixToPostfix(&expression);
-    return ShantingYard(&expression);
+    return ShuntingYard(&expression);
 }
 
 ImportStmt *CreateImportStmt() {
@@ -293,31 +124,6 @@ bool BlacklistTokens(TokenType type, const TokenType blacklist[], size_t size) {
     }
     return false;
 }
-
-//Node *CreateListNode(Tokens *elements) {
-//    Node *node = CreateNode(LIST);
-//    node->list->elts = CreateArrayList(20);
-//    for (size_t i = 0; i < elements->size; i++) {
-//        Token *token = ArrayListGet(elements, i);
-//        Node *el = NULL;
-//        switch (token->type) {
-//            case INTEGER:
-//            case STRING:
-//            case FLOAT: {
-//                el = CreateNode(LITERAL);
-//                el->literal = CreateLiteral(token->lexeme);
-//            }
-//                break;
-//            case DELIMITER:
-//                break;
-//            default:
-//                fprintf(stderr, "WARNING: Not implemented!");
-//                break;
-//        }
-//        if (el != NULL) ArrayListPush(&node->list->elts, el);
-//    }
-//    return node;
-//}
 
 Literal *CreateLiteral(char *value) {
     Literal *literal = AllocateContext(sizeof(Literal));
@@ -415,16 +221,14 @@ Tokens InfixToPostfix(Tokens const *tokens) {
                 Token_Push(&postfix, Token_Pop(&stack));
             }
             if (stack.size > 0 && strcmp(last->lexeme, "(") == 0) {
-                ArrayListPop(&stack); // Pop the open bracket
+                Token_Pop(&stack); // Pop the open bracket
             }
         } else {
             Token *last = Token_Get(&stack, stack.size - 1);
             while (stack.size > 0 && Precedence(last->lexeme) >= Precedence(token->lexeme) &&
                    strcmp(last->lexeme, "(") != 0) {
                 Token_Push(&postfix, Token_Pop(&stack));
-                if (stack.size > 0) {
-                    last = Token_Get(&stack, stack.size - 1);
-                }
+                last = stack.size > 0 ? Token_Get(&stack, stack.size - 1) : last;
             }
             Token_Push(&stack, token);
         }
@@ -436,7 +240,7 @@ Tokens InfixToPostfix(Tokens const *tokens) {
     return postfix;
 }
 
-Node *ShantingYard(Tokens *tokens) {
+Node *ShuntingYard(Tokens const *tokens) {
     Node_LinkedList stack = Node_CreateLinkedList();
 
     for (size_t i = 0; i < tokens->size; i++) {
@@ -479,7 +283,6 @@ Node *ShantingYard(Tokens *tokens) {
             case RSQB: {
                 Node *value = NULL;
                 Node *node = CreateNode(LIST);
-                node->list->ctx = LOAD;
                 while ((value = Node_Pop(&stack)) && value->type != LSQB) {
                     Node_AddFirst(&node->list->elts, value);
                 }
@@ -490,8 +293,7 @@ Node *ShantingYard(Tokens *tokens) {
             case DEDENT:
             case DELIMITER:
                 break;
-            default: {
-            }
+            default:
                 break;
         }
     }
@@ -641,7 +443,7 @@ void PrintVar(Name *variable, size_t depth) {
            variable->id, NodeTypeToString(VARIABLE), CtxToString(variable), depth);
 }
 
-void PrintImportStmt(Node *stmt) {
+void PrintImportStmt(Node const *stmt) {
     const char *type = NodeTypeToString(IMPORT);
     printf("{ \033[0;36mmodules\033[0m: [ \n");
     Token_ForEach(&stmt->import_stm->modules, PrintToken);

@@ -21,7 +21,6 @@ int main(int argc, char *argv[]) {
     PrintArena();
     Node_LinkedList program = ParseStatements(&tokens);
     Node_ForEach(&program, PrintNode);
-    // Parse(&tokens);
     PrintArena();
     FreeContext();
     PrintArena();

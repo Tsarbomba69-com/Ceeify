@@ -1,21 +1,16 @@
 #pragma once
-#ifndef PARSER_H
 
 #include <ctype.h>
 #include <assert.h>
 #include "lexer.h"
 #include "Node_linkedlist.h"
 
+#ifndef PARSER_H
 #define PARSER_H
-#define MODULE_NAME_CAP 10
 
 typedef Token_ArrayList Tokens;
 
-typedef ArrayList Program;
-
-typedef ArrayList Nodes;
-
-typedef enum {
+typedef enum NodeType {
     PROGRAM,
     ASSIGNMENT,
     IMPORT,
@@ -27,50 +22,49 @@ typedef enum {
     LIST
 } NodeType;
 
-typedef enum {
+typedef enum Context {
     STORE,
     DEL,
     LOAD
 } Context;
 
-typedef struct {
+typedef struct ImportStmt {
     Token_ArrayList modules;
 } ImportStmt;
 
-typedef struct {
+typedef struct Literal {
     char *value;
 } Literal;
 
-typedef struct {
+typedef struct BinaryOperation {
     char *operator;
-    struct Node *left;
-    struct Node *right;
+    Node *left;
+    Node *right;
 } BinaryOperation;
 
-typedef struct {
+typedef struct UnaryOperation {
     char *operator;
-    struct Node *operand;
+    Node *operand;
 } UnaryOperation;
 
-typedef struct {
+typedef struct Name {
     char *id;
     Context ctx;
 } Name;
 
-typedef struct {
+typedef struct IfStmt {
     struct Node *test;
     Node_LinkedList body;
     Node_LinkedList orelse;
 } IfStmt;
 
-typedef struct {
+typedef struct Assign {
     Name *target;
     Node *value;
 } Assign;
 
-typedef struct {
+typedef struct List {
     Node_LinkedList elts;
-    Context ctx;
 } List;
 
 typedef struct Node {
@@ -88,15 +82,16 @@ typedef struct Node {
     };
 } Node;
 
-void Parse(Tokens *tokens);
-
+// Receives a list of tokens parses into a list of statements and advances the global token index
 Node_LinkedList ParseStatements(Tokens *tokens);
+
+// Receives a list of tokens parses into a statement node and advances the global token index
+Node *ParseStatement(Tokens *tokens);
 
 Token_ArrayList CollectUntil(Tokens const *tokens, TokenType type);
 
-Node *ParseStatement(Tokens *tokens);
-
-Node *ParseExpression(Tokens *tokens);
+// Receives a list of tokens parses into an expression node and advances the global token index
+Node *ParseExpression(Tokens const *tokens);
 
 ImportStmt *CreateImportStmt();
 
@@ -106,7 +101,7 @@ Name *CreateNameExpr();
 
 UnaryOperation *CreateUnaryOp(char *op);
 
-Node *ShantingYard(Tokens *tokens);
+Node *ShuntingYard(Tokens const *tokens);
 
 void PrintList(Node const *node, char *spaces);
 
@@ -120,22 +115,24 @@ Tokens InfixToPostfix(Tokens const *tokens);
 
 Node *CreateBinOp(Token *token, Node *left, Node *right);
 
-Node *CreateListNode(Tokens *elements);
-
+// Recursively traverse AST and print each node
 void PrintNode(Node *node);
 
 void PrintVar(Name *, size_t);
 
-void PrintImportStmt(Node *);
+void PrintImportStmt(Node const *);
 
 size_t Precedence(const char *);
 
 Tokens CollectExpression(Tokens const *tokens, size_t from);
 
+// Converts a node type to string. Mostly for printing purposes
 const char *NodeTypeToString(NodeType type);
 
+// Converts a variable context to string. Mostly for printing purposes
 const char *CtxToString(Name const *var);
 
+// Recursively traverse AST and assign depth to each node
 void TraverseTree(Node *node, size_t depth);
 
 bool BlacklistTokens(TokenType type, const TokenType blacklist[], size_t size);
