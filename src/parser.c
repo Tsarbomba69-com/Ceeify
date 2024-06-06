@@ -12,7 +12,10 @@ Node_LinkedList ParseStatements(Tokens *tokens) {
     Node_LinkedList stmts = Node_CreateLinkedList();
     for (; token_idx < tokens->size; ++token_idx) {
         Node *node = ParseStatement(tokens);
-        if (node != NULL) Node_AddLast(&stmts, node);
+        if (node != NULL) {
+            TraverseTree(node, node->depth);
+            Node_AddLast(&stmts, node);
+        }
     }
     return stmts;
 }
@@ -317,7 +320,6 @@ Node *CreateBinOp(Token *token, Node *left, Node *right) {
 void PrintNode(Node *node) {
     int const SCALE_FACTOR = 2;
     if (node == NULL) return;
-    TraverseTree(node, node->depth);
     const char *type = NodeTypeToString(node->type);
     char *spaces = Repeat(" ", node->depth * SCALE_FACTOR);
     switch (node->type) {

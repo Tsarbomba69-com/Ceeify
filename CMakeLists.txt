@@ -25,7 +25,7 @@ add_executable(Ceeify
         src/Token_arraylist.c
         src/utils.c
         resource.h
-        test/test_example.c
+        test/main_test.c
         ${UNITY_DIR}/src/unity.c
 )
 
