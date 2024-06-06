@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.27)
 project(Ceeify C)
 
+# Set the path to the Unity directory
+set(UNITY_DIR "C:/unity" CACHE PATH "Path to the Unity directory")
+
+# Add the Unity include directory
+include_directories(${UNITY_DIR}/src)
 set(CMAKE_C_STANDARD 11)
 
 include_directories(.)
@@ -19,4 +24,9 @@ add_executable(Ceeify
         src/parser.c
         src/Token_arraylist.c
         src/utils.c
-        resource.h)
+        resource.h
+        test/test_example.c
+        ${UNITY_DIR}/src/unity.c
+)
+
+target_link_libraries(Ceeify ${UNITY_DIR}/cmake-build-debug/libunity.a)
