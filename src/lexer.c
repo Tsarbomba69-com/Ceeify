@@ -156,7 +156,7 @@ Token_ArrayList Tokenize(Lexer *lexer) {
 
 void PrintToken(Token *token) {
     const char *type = TokenTypeToString(token->type);
-    printf("    { \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, , \033[0;36mline\033[0m: \033[0;31m%zu\033[0m, \033[0;36mcolumn\033[0m: \033[0;31m%zu\033[0m },\n",
+    printf("    { \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mline\033[0m: \033[0;31m%zu\033[0m, \033[0;36mcolumn\033[0m: \033[0;31m%zu\033[0m },\n",
            token->lexeme, type, token->line, token->col);
 }
 

@@ -369,10 +369,10 @@ void PrintNode(Node *node) {
             PrintNode(node->if_stmt->test);
             printf(", \n%s\033[0;36mbody\033[0m: [\n", spaces);
             Node_ForEach(&node->if_stmt->body, PrintNode);
-            printf("%s]\n", spaces);
+            printf("%s]", spaces);
             printf(",\n%s\033[0;36melse\033[0m: [\n", spaces);
             Node_ForEach(&node->if_stmt->orelse, PrintNode);
-            printf("%s]\n", spaces);
+            printf("%s]", spaces);
             printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
                    spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
             break;
