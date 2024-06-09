@@ -23,8 +23,8 @@ void test_list_size(void) {
     lexer = CreateLexer(source);
     tokens = Tokenize(&lexer);
     Node_LinkedList program = ParseStatements(&tokens);
-    List *num_list = Node_Pop(&program)->assign_stmt->value->list;
-    List *str_list = Node_Pop(&program)->assign_stmt->value->list;
+    List const *num_list = Node_Pop(&program)->assign_stmt->value->list;
+    List const *str_list = Node_Pop(&program)->assign_stmt->value->list;
     TEST_ASSERT_EQUAL(4, num_list->elts.size);
     TEST_ASSERT_EQUAL(3, str_list->elts.size);
 }

@@ -274,7 +274,7 @@ Node *ShuntingYard(Tokens const *tokens) {
                     continue;
                 }
 
-                if (Any(UNARY_OPERATORS, ARRAYSIZE(UNARY_OPERATORS), token->lexeme, (CompareFn) StrEQ) &&
+                if (Any((void **) UNARY_OPERATORS, ARRAYSIZE(UNARY_OPERATORS), token->lexeme, (CompareFn) StrEQ) &&
                     right != NULL) {
                     Node *node = CreateNode(UNARY_OPERATION);
                     node->unOp = CreateUnaryOp(token->lexeme);

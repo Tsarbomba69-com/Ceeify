@@ -190,7 +190,7 @@ Token *CreateTokenFromChar(Lexer *lexer, char character, TokenType type) {
         return NULL;
     }
 
-    memcpy(lexeme, &character, 2);
+    lexeme[0] = character;
     lexeme[1] = '\0';
     token->lexeme = lexeme;
     token->type = type;
@@ -378,9 +378,4 @@ const char *TokenTypeToString(TokenType type) {
         default:
             return "UNKNOWN";
     }
-}
-
-void DestroyToken(Token *token) {
-    free(token->lexeme);
-    free(token);
 }
