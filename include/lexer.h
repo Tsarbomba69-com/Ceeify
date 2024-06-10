@@ -34,12 +34,14 @@ typedef struct Token {
 typedef struct Lexer {
     char *source;
     size_t position;
+    size_t token_idx;
     size_t sourceLength;
+    Token_ArrayList tokens;
 } Lexer;
 
 Lexer CreateLexer(char *source);
 
-Token_ArrayList Tokenize(Lexer *lexer);
+Lexer Tokenize(char *source);
 
 void PrintToken(Token *token);
 

@@ -83,15 +83,17 @@ typedef struct Node {
 } Node;
 
 // Receives a list of tokens parses into a list of statements and advances the global token index
-Node_LinkedList ParseStatements(Tokens *tokens);
+Node_LinkedList ParseStatements(Lexer *lexer);
 
 // Receives a list of tokens parses into a statement node and advances the global token index
-Node *ParseStatement(Tokens *tokens);
+Node *ParseStatement(Lexer *lexer);
 
-Token_ArrayList CollectUntil(Tokens const *tokens, TokenType type);
+Node *ParseIfStatement(Lexer *lexer);
+
+Token_ArrayList CollectUntil(Lexer *lexer, TokenType type);
 
 // Receives a list of tokens parses into an expression node and advances the global token index
-Node *ParseExpression(Tokens const *tokens);
+Node *ParseExpression(Lexer *lexer);
 
 ImportStmt *CreateImportStmt();
 

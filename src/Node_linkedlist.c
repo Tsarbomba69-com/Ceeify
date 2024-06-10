@@ -38,6 +38,7 @@ void Node_AddFirst(Node_LinkedList *list, Node *data) {
 
 void Node_AddLast(Node_LinkedList *list, Node *data) {
     Node_Node *newNode = Node_CreateNode(data);
+    list->size++;
 
     if (list->head == NULL) {
         list->head = newNode;
@@ -50,7 +51,6 @@ void Node_AddLast(Node_LinkedList *list, Node *data) {
     }
 
     temp->next = newNode;
-    list->size++;
 }
 
 void Node_ForEach(Node_LinkedList *list, Node_Action callback) {

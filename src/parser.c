@@ -2,53 +2,50 @@
 
 // TODO: Implement semantic analysis
 
-
-// Current token index
-static size_t token_idx = 0;
-
 const char *UNARY_OPERATORS[] = {"+", "-", "~", "not"};
 
-Node_LinkedList ParseStatements(Tokens *tokens) {
+Node_LinkedList ParseStatements(Lexer *lexer) {
     Node_LinkedList stmts = Node_CreateLinkedList();
-    for (; token_idx < tokens->size; ++token_idx) {
-        Node *node = ParseStatement(tokens);
-        if (node != NULL) {
-            TraverseTree(node, node->depth);
-            Node_AddLast(&stmts, node);
+    Token const *token = Token_Get(&lexer->tokens, lexer->token_idx);
+    for (; lexer->token_idx < lexer->tokens.size && token->type != DEDENT; ++lexer->token_idx) {
+        Node *node = ParseStatement(lexer);
+        token = Token_Get(&lexer->tokens, lexer->token_idx);
+        if (node == NULL) {
+            continue;
         }
+        TraverseTree(node, node->depth);
+        Node_AddLast(&stmts, node);
     }
     return stmts;
 }
 
-Node *ParseStatement(Tokens *tokens) {
+Node *ParseStatement(Lexer *lexer) {
     Node *node = NULL;
-    Token const *token = Token_Get(tokens, token_idx);
-    Token const *next = Token_Get(tokens, token_idx + 1);
+    Token const *token = Token_Get(&lexer->tokens, lexer->token_idx);
+    Token const *next = Token_Get(&lexer->tokens, lexer->token_idx + 1);
 
     switch (token->type) {
         case IDENTIFIER: {
             if (strcmp(next->lexeme, "=") == 0) {
-                ++token_idx;
+                ++lexer->token_idx;
                 node = CreateNode(ASSIGNMENT);
                 Assign *assign = node->assign_stmt;
                 Name *var = (CreateNode(VARIABLE))->variable;
                 var->id = token->lexeme;
                 var->ctx = STORE;
                 assign->target = var;
-                assign->value = ParseExpression(tokens);
+                assign->value = ParseExpression(lexer);
             }
         }
             break;
         case KEYWORD: {
             if (strcmp(token->lexeme, "if") == 0) {
-                node = CreateNode(IF);
-                node->if_stmt->test = ParseExpression(tokens);
-                node->if_stmt->body = ParseStatements(tokens);
+                node = ParseIfStatement(lexer);
             }
 
             if (strcmp(token->lexeme, "import") == 0) {
                 node = CreateNode(IMPORT);
-                node->import_stm->modules = CollectUntil(tokens, NEWLINE);
+                node->import_stm->modules = CollectUntil(lexer, NEWLINE);
             }
         }
             break;
@@ -58,22 +55,56 @@ Node *ParseStatement(Tokens *tokens) {
     return node;
 }
 
-Token_ArrayList CollectUntil(Tokens const *tokens, TokenType type) {
+Node *ParseIfStatement(Lexer *lexer) {
+    Node *node = CreateNode(IF);
+    IfStmt *ifStmt = node->if_stmt;
+
+    Token const *token = Token_Get(&lexer->tokens, lexer->token_idx);
+    if (strcmp(token->lexeme, "if") != 0) {
+        // TODO: Error handling
+        return NULL;
+    }
+
+    ifStmt->test = ParseExpression(lexer);
+    ++lexer->token_idx;
+    ifStmt->body = ParseStatements(lexer);
+    Node *last = node;
+    // Parse the 'elif' and 'else' blocks
+    for (; lexer->token_idx < lexer->tokens.size; ++lexer->token_idx) {
+        token = Token_Get(&lexer->tokens, lexer->token_idx);
+        if (strcmp(token->lexeme, "elif") == 0) {
+            Node *elifNode = CreateNode(IF);
+            IfStmt *elifStmt = elifNode->if_stmt;
+            elifStmt->test = ParseExpression(lexer);
+            lexer->token_idx++;
+            elifStmt->body = ParseStatements(lexer);
+            Node_AddLast(&ifStmt->orelse, elifNode);
+            last = elifNode;
+        } else if (strcmp(token->lexeme, "else") == 0) {
+            last->if_stmt->orelse = ParseStatements(lexer);
+            break;
+        }
+    }
+
+    return node;
+}
+
+Token_ArrayList CollectUntil(Lexer *lexer, TokenType type) {
     Token_ArrayList result = Token_CreateArrayList(10);
-    ++token_idx;
-    Token *token = Token_Get(tokens, token_idx);
-    token_idx++;
-    for (; token_idx < tokens->size && token->type != type; ++token_idx) {
+    ++lexer->token_idx;
+    Token *token = Token_Get(&lexer->tokens, lexer->token_idx);
+    lexer->token_idx++;
+    for (; lexer->token_idx < lexer->tokens.size && token->type != type; ++lexer->token_idx) {
         if (strcmp(token->lexeme, ",") != 0) Token_Push(&result, token);
-        token = Token_Get(tokens, token_idx);
+        token = Token_Get(&lexer->tokens, lexer->token_idx);
     }
 
     return result;
 }
 
-Node *ParseExpression(Tokens const *tokens) {
-    Tokens expression = CollectExpression(tokens, token_idx + 1);
-    token_idx += expression.size - 1;
+Node *ParseExpression(Lexer *lexer) {
+    Tokens expression = CollectExpression(&lexer->tokens, lexer->token_idx + 1);
+    lexer->token_idx += expression.size - 1;
     expression = InfixToPostfix(&expression);
     return ShuntingYard(&expression);
 }

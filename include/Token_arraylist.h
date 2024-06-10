@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdbool.h>
-#include "lexer.h"
 
 #ifndef Token_ARRAYLIST_H
 #define Token_ARRAYLIST_H

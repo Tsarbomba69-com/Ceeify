@@ -1,4 +1,5 @@
 #include "Token_arraylist.h"
+#include "utils.h"
 
 Token_ArrayList Token_CreateArrayList(size_t capacity) {
     Token_ArrayList list = {0};

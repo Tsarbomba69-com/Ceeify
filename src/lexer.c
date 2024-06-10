@@ -18,22 +18,22 @@ const char DELIMITERS[] = {'(', ')', '{', '}', ',', ';', '.', ':', '`'};
 
 Lexer CreateLexer(char *source) {
     size_t len = strlen(source);
-    return (Lexer) {source, 0, len};
+    return (Lexer) {source, 0, .token_idx = 0, len, .tokens = Token_CreateArrayList(100)};
 }
 
-Token_ArrayList Tokenize(Lexer *lexer) {
-    Token_ArrayList tokens = Token_CreateArrayList(100);
+Lexer Tokenize(char *source) {
+    Lexer lexer = CreateLexer(source);
     size_t line = 1;
     size_t column = 1;
     size_t indentationLevel = 0;
-    while (lexer->position < lexer->sourceLength) {
-        char character = lexer->source[lexer->position];
+    while (lexer.position < lexer.sourceLength) {
+        char character = lexer.source[lexer.position];
         size_t spaces = 0;
         while (character == ' ' || character == '\t') {
             if (character == ' ') spaces++;
             else spaces += 4;
             column++;
-            character = lexer->source[++lexer->position];
+            character = lexer.source[++lexer.position];
         }
 
         size_t newIndentationLevel = spaces / 4;
@@ -42,7 +42,7 @@ Token_ArrayList Tokenize(Lexer *lexer) {
             Token *indent = CreateToken(INDENT);
             indent->line = line;
             indent->col = column;
-            Token_Push(&tokens, indent);
+            Token_Push(&lexer.tokens, indent);
             indentationLevel = newIndentationLevel;
         } else if (newIndentationLevel < indentationLevel && line + 1) {
             // Add a DEDENT token for each level of indentation decrease
@@ -50,13 +50,13 @@ Token_ArrayList Tokenize(Lexer *lexer) {
                 Token *dedent = CreateToken(DEDENT);
                 dedent->line = line;
                 dedent->col = column;
-                Token_Push(&tokens, dedent);
+                Token_Push(&lexer.tokens, dedent);
                 indentationLevel--;
             }
         }
 
         if (character == '#') {
-            while ('\n' != lexer->source[++lexer->position]) continue;
+            while ('\n' != lexer.source[++lexer.position]) continue;
             line++;
             column = 1;
             continue;
@@ -73,10 +73,10 @@ Token_ArrayList Tokenize(Lexer *lexer) {
 
         for (size_t i = 0; i < ARRAYSIZE(DELIMITERS); i++) {
             if (character == DELIMITERS[i]) {
-                token = CreateTokenFromChar(lexer, character, DELIMITER);
+                token = CreateTokenFromChar(&lexer, character, DELIMITER);
                 token->col = column;
                 token->line = line;
-                Token_Push(&tokens, token);
+                Token_Push(&lexer.tokens, token);
                 break;
             }
         }
@@ -85,54 +85,54 @@ Token_ArrayList Tokenize(Lexer *lexer) {
 
         if (matchedOperator != NULL) {
             // Build the operator lexeme
-            token = CreateOperatorToken(lexer, matchedOperator);
+            token = CreateOperatorToken(&lexer, matchedOperator);
             token->col = column + strlen(token->lexeme);
             column = token->col;
             token->line = line;
-            Token_Push(&tokens, token);
+            Token_Push(&lexer.tokens, token);
             continue;
         }
 
         if (isdigit(character)) {
-            token = CreateNumberToken(lexer, character);
+            token = CreateNumberToken(&lexer, character);
             token->col = column + strlen(token->lexeme);
             column = token->col;
             token->line = line;
-            Token_Push(&tokens, token);
+            Token_Push(&lexer.tokens, token);
             continue;
         }
 
         if (character == '\'' || character == '\"') {
-            token = CreateStringToken(lexer, character);
+            token = CreateStringToken(&lexer, character);
             token->col = column + strlen(token->lexeme);
             column = token->col;
             token->line = line;
-            Token_Push(&tokens, token);
+            Token_Push(&lexer.tokens, token);
             continue;
         }
 
         if (isalpha(character) || character == '_') {
-            token = CreateKeywordToken(lexer, character);
+            token = CreateKeywordToken(&lexer, character);
             token->col = column + strlen(token->lexeme);
             column = token->col;
             token->line = line;
-            Token_Push(&tokens, token);
+            Token_Push(&lexer.tokens, token);
             continue;
         }
 
         if (character == '[') {
-            token = CreateTokenFromChar(lexer, character, LSQB);
+            token = CreateTokenFromChar(&lexer, character, LSQB);
             token->col = column;
             token->line = line;
-            Token_Push(&tokens, token);
+            Token_Push(&lexer.tokens, token);
             continue;
         }
 
         if (character == ']') {
-            token = CreateTokenFromChar(lexer, character, RSQB);
+            token = CreateTokenFromChar(&lexer, character, RSQB);
             token->col = column;
             token->line = line;
-            Token_Push(&tokens, token);
+            Token_Push(&lexer.tokens, token);
             continue;
         }
 
@@ -140,18 +140,18 @@ Token_ArrayList Tokenize(Lexer *lexer) {
             token = CreateNewLineToken();
             token->col = column;
             token->line = line;
-            Token_Push(&tokens, token);
+            Token_Push(&lexer.tokens, token);
             line++;
             column = 1;
         }
 
-        lexer->position++;
+        lexer.position++;
     }
     Token *eof = CreateEOFToken();
     eof->col = column;
     eof->line = line;
-    Token_Push(&tokens, eof);
-    return tokens;
+    Token_Push(&lexer.tokens, eof);
+    return lexer;
 }
 
 void PrintToken(Token *token) {
