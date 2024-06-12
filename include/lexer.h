@@ -17,8 +17,6 @@ typedef enum TokenType {
     KEYWORD,
     DELIMITER,
     NEWLINE,
-    INDENT,
-    DEDENT,
     LSQB,
     RSQB,
     ENDMARKER
@@ -29,6 +27,7 @@ typedef struct Token {
     char *lexeme;
     size_t line;
     size_t col;
+    size_t ident;
 } Token;
 
 typedef struct Lexer {

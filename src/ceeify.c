@@ -1,7 +1,7 @@
 #include "lexer.h"
 #include "parser.h"
 
-int main(int argc, char *argv[]) {
+int main2(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Usage: %s <file-path>\n", argv[0]);
         return EXIT_FAILURE;

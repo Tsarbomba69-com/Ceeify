@@ -9,8 +9,11 @@ c = [1, 2, 3, 4]
 d = ["a", "b", "c"]
 
 if 1 <= a < 10:
-    pow = a^2
+    pow = a ^ 2
 elif a > b * 2:
     pow = a ** 2
 else:
     pow = pow * pow
+
+while sum <= 20:
+    sum = sum + 1

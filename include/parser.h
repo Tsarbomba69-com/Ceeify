@@ -19,7 +19,9 @@ typedef enum NodeType {
     LITERAL,
     VARIABLE,
     IF,
-    LIST
+    LIST,
+    WHILE,
+    END_BLOCK
 } NodeType;
 
 typedef enum Context {
@@ -53,7 +55,7 @@ typedef struct Name {
 } Name;
 
 typedef struct IfStmt {
-    struct Node *test;
+    Node *test;
     Node_LinkedList body;
     Node_LinkedList orelse;
 } IfStmt;
@@ -67,13 +69,20 @@ typedef struct List {
     Node_LinkedList elts;
 } List;
 
+typedef struct WhileStmt {
+    Node *test;
+    Node_LinkedList body;
+    Node_LinkedList orelse;
+} WhileStmt;
+
 typedef struct Node {
     NodeType type;
     size_t depth;
     union {
         Literal *literal;
-        ImportStmt *import_stm;
+        ImportStmt *import_stmt;
         IfStmt *if_stmt;
+        WhileStmt *while_stmt;
         BinaryOperation *bin_op;
         UnaryOperation *unOp;
         Assign *assign_stmt;
@@ -90,6 +99,8 @@ Node *ParseStatement(Lexer *lexer);
 
 Node *ParseIfStatement(Lexer *lexer);
 
+Node *ParseWhileStatement(Lexer *lexer);
+
 Token_ArrayList CollectUntil(Lexer *lexer, TokenType type);
 
 // Receives a list of tokens parses into an expression node and advances the global token index
@@ -100,6 +111,8 @@ ImportStmt *CreateImportStmt();
 Assign *CreateAssignStmt();
 
 Name *CreateNameExpr();
+
+WhileStmt *CreateWhileStmt();
 
 UnaryOperation *CreateUnaryOp(char *op);
 

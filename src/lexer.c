@@ -25,35 +25,21 @@ Lexer Tokenize(char *source) {
     Lexer lexer = CreateLexer(source);
     size_t line = 1;
     size_t column = 1;
-    size_t indentationLevel = 0;
+    size_t ident = 0;
     while (lexer.position < lexer.sourceLength) {
         char character = lexer.source[lexer.position];
+        char prev = lexer.position > 0 ? lexer.source[lexer.position - 1] : ' ';
         size_t spaces = 0;
         while (character == ' ' || character == '\t') {
             if (character == ' ') spaces++;
             else spaces += 4;
             column++;
+            spaces += column;
             character = lexer.source[++lexer.position];
         }
 
-        size_t newIndentationLevel = spaces / 4;
-        if (newIndentationLevel > indentationLevel) {
-            // Add an INDENT token
-            Token *indent = CreateToken(INDENT);
-            indent->line = line;
-            indent->col = column;
-            Token_Push(&lexer.tokens, indent);
-            indentationLevel = newIndentationLevel;
-        } else if (newIndentationLevel < indentationLevel && line + 1) {
-            // Add a DEDENT token for each level of indentation decrease
-            while (newIndentationLevel < indentationLevel && character == '\n') {
-                Token *dedent = CreateToken(DEDENT);
-                dedent->line = line;
-                dedent->col = column;
-                Token_Push(&lexer.tokens, dedent);
-                indentationLevel--;
-            }
-        }
+        size_t newIdent = spaces / 4;
+        ident = prev == '\n' && newIdent != ident ? newIdent : ident;
 
         if (character == '#') {
             while ('\n' != lexer.source[++lexer.position]) continue;
@@ -76,6 +62,7 @@ Lexer Tokenize(char *source) {
                 token = CreateTokenFromChar(&lexer, character, DELIMITER);
                 token->col = column;
                 token->line = line;
+                token->ident = ident;
                 Token_Push(&lexer.tokens, token);
                 break;
             }
@@ -89,6 +76,7 @@ Lexer Tokenize(char *source) {
             token->col = column + strlen(token->lexeme);
             column = token->col;
             token->line = line;
+            token->ident = ident;
             Token_Push(&lexer.tokens, token);
             continue;
         }
@@ -98,6 +86,7 @@ Lexer Tokenize(char *source) {
             token->col = column + strlen(token->lexeme);
             column = token->col;
             token->line = line;
+            token->ident = ident;
             Token_Push(&lexer.tokens, token);
             continue;
         }
@@ -107,6 +96,7 @@ Lexer Tokenize(char *source) {
             token->col = column + strlen(token->lexeme);
             column = token->col;
             token->line = line;
+            token->ident = ident;
             Token_Push(&lexer.tokens, token);
             continue;
         }
@@ -116,6 +106,7 @@ Lexer Tokenize(char *source) {
             token->col = column + strlen(token->lexeme);
             column = token->col;
             token->line = line;
+            token->ident = ident;
             Token_Push(&lexer.tokens, token);
             continue;
         }
@@ -124,6 +115,7 @@ Lexer Tokenize(char *source) {
             token = CreateTokenFromChar(&lexer, character, LSQB);
             token->col = column;
             token->line = line;
+            token->ident = ident;
             Token_Push(&lexer.tokens, token);
             continue;
         }
@@ -132,6 +124,7 @@ Lexer Tokenize(char *source) {
             token = CreateTokenFromChar(&lexer, character, RSQB);
             token->col = column;
             token->line = line;
+            token->ident = ident;
             Token_Push(&lexer.tokens, token);
             continue;
         }
@@ -140,9 +133,10 @@ Lexer Tokenize(char *source) {
             token = CreateNewLineToken();
             token->col = column;
             token->line = line;
+            token->ident = ident;
             Token_Push(&lexer.tokens, token);
             line++;
-            column = 1;
+            column = 0;
         }
 
         lexer.position++;
@@ -150,14 +144,15 @@ Lexer Tokenize(char *source) {
     Token *eof = CreateEOFToken();
     eof->col = column;
     eof->line = line;
+    eof->ident = 0;
     Token_Push(&lexer.tokens, eof);
     return lexer;
 }
 
 void PrintToken(Token *token) {
     const char *type = TokenTypeToString(token->type);
-    printf("    { \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mline\033[0m: \033[0;31m%zu\033[0m, \033[0;36mcolumn\033[0m: \033[0;31m%zu\033[0m },\n",
-           token->lexeme, type, token->line, token->col);
+    printf("    { \033[0;36mlexeme\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mline\033[0m: \033[0;31m%zu\033[0m, \033[0;36mcolumn\033[0m: \033[0;31m%zu\033[0m, \033[0;36mident\033[0m: \033[0;31m%zu\033[0m },\n",
+           token->lexeme, type, token->line, token->col, token->ident);
 }
 
 Token *CreateStringToken(Lexer *lexer, char character) {
@@ -367,10 +362,6 @@ const char *TokenTypeToString(TokenType type) {
             return "NEWLINE";
         case ENDMARKER:
             return "ENDMARKER";
-        case INDENT:
-            return "INDENT";
-        case DEDENT:
-            return "DEDENT";
         case LSQB:
             return "LSQB";
         case RSQB:

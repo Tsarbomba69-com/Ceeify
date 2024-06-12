@@ -6,13 +6,12 @@ const char *UNARY_OPERATORS[] = {"+", "-", "~", "not"};
 
 Node_LinkedList ParseStatements(Lexer *lexer) {
     Node_LinkedList stmts = Node_CreateLinkedList();
-    Token const *token = Token_Get(&lexer->tokens, lexer->token_idx);
-    for (; lexer->token_idx < lexer->tokens.size && token->type != DEDENT; ++lexer->token_idx) {
+    for (; lexer->token_idx < lexer->tokens.size; ++lexer->token_idx) {
         Node *node = ParseStatement(lexer);
-        token = Token_Get(&lexer->tokens, lexer->token_idx);
         if (node == NULL) {
             continue;
         }
+        if (node->type == END_BLOCK) break;
         TraverseTree(node, node->depth);
         Node_AddLast(&stmts, node);
     }
@@ -45,13 +44,29 @@ Node *ParseStatement(Lexer *lexer) {
 
             if (strcmp(token->lexeme, "import") == 0) {
                 node = CreateNode(IMPORT);
-                node->import_stm->modules = CollectUntil(lexer, NEWLINE);
+                node->import_stmt->modules = CollectUntil(lexer, NEWLINE);
+            }
+
+            if (strcmp(token->lexeme, "while") == 0) {
+                node = ParseWhileStatement(lexer);
             }
         }
+            break;
+        case NEWLINE:
+            if (next->ident != token->ident) return CreateNode(END_BLOCK);
             break;
         default:
             break;
     }
+    return node;
+}
+
+Node *ParseWhileStatement(Lexer *lexer) {
+    Node *node = CreateNode(WHILE);
+    node->while_stmt->test = ParseExpression(lexer);
+    lexer->token_idx += 3;
+    node->while_stmt->body = ParseStatements(lexer);
+    // TODO: Parse else clause
     return node;
 }
 
@@ -66,21 +81,22 @@ Node *ParseIfStatement(Lexer *lexer) {
     }
 
     ifStmt->test = ParseExpression(lexer);
-    ++lexer->token_idx;
+    lexer->token_idx += 3;
     ifStmt->body = ParseStatements(lexer);
     Node *last = node;
     // Parse the 'elif' and 'else' blocks
-    for (; lexer->token_idx < lexer->tokens.size; ++lexer->token_idx) {
+    for (; lexer->token_idx < lexer->tokens.size; lexer->token_idx++) {
         token = Token_Get(&lexer->tokens, lexer->token_idx);
         if (strcmp(token->lexeme, "elif") == 0) {
             Node *elifNode = CreateNode(IF);
             IfStmt *elifStmt = elifNode->if_stmt;
             elifStmt->test = ParseExpression(lexer);
-            lexer->token_idx++;
+            lexer->token_idx += 3;
             elifStmt->body = ParseStatements(lexer);
             Node_AddLast(&ifStmt->orelse, elifNode);
             last = elifNode;
         } else if (strcmp(token->lexeme, "else") == 0) {
+            lexer->token_idx += 3;
             last->if_stmt->orelse = ParseStatements(lexer);
             break;
         }
@@ -104,7 +120,7 @@ Token_ArrayList CollectUntil(Lexer *lexer, TokenType type) {
 
 Node *ParseExpression(Lexer *lexer) {
     Tokens expression = CollectExpression(&lexer->tokens, lexer->token_idx + 1);
-    lexer->token_idx += expression.size - 1;
+    lexer->token_idx += expression.size;
     expression = InfixToPostfix(&expression);
     return ShuntingYard(&expression);
 }
@@ -141,11 +157,13 @@ IfStmt *CreateIfStmt() {
 Tokens CollectExpression(Tokens const *tokens, size_t from) {
     Token *token = Token_Get(tokens, from);
     Tokens expression = Token_CreateArrayList(20);
-    TokenType blacklist[] = {INDENT, DEDENT, NEWLINE, ENDMARKER};
-    for (size_t j = from; (!BlacklistTokens(token->type, blacklist, ARRAYSIZE(blacklist)) &&
-                           strcmp(token->lexeme, ":") != 0); ++j) {
+    TokenType blacklist[] = {NEWLINE, ENDMARKER};
+    size_t scope = token->ident;
+    for (size_t j = from + 1; (!BlacklistTokens(token->type, blacklist, ARRAYSIZE(blacklist)) &&
+                               strcmp(token->lexeme, ":") != 0); ++j) {
         Token_Push(&expression, token);
         token = Token_Get(tokens, j);
+        if (token->ident != scope) break;
     }
     return expression;
 }
@@ -214,7 +232,7 @@ Node *CreateNode(NodeType type) {
     node->depth = 1;
     switch (type) {
         case IMPORT:
-            node->import_stm = CreateImportStmt();
+            node->import_stmt = CreateImportStmt();
             return node;
         case ASSIGNMENT:
             node->assign_stmt = CreateAssignStmt();
@@ -233,10 +251,34 @@ Node *CreateNode(NodeType type) {
         case IF:
             node->if_stmt = CreateIfStmt();
             return node;
+        case WHILE:
+            node->while_stmt = CreateWhileStmt();
+            return node;
+        case END_BLOCK:
+            return node; // This node represents end of statement list. It will not actually be consumed by succeeding components
         default:
             fprintf(stderr, "WARNING: Unrecognized node type %s\n", NodeTypeToString(type));
             return node;
     }
+}
+
+WhileStmt *CreateWhileStmt() {
+    WhileStmt *while_stmt = AllocateContext(sizeof(WhileStmt));
+    if (while_stmt == NULL) {
+        fprintf(stderr, "ERROR: Could not allocate memory for import if statement\n");
+        return NULL;
+    }
+
+    while_stmt->test = AllocateContext(sizeof(Node));
+    if (while_stmt->test == NULL) {
+        fprintf(stderr, "ERROR: Could not allocate memory for test expression for if statement\n");
+        return NULL;
+    }
+
+    while_stmt->test = NULL;
+    while_stmt->body = Node_CreateLinkedList();
+    while_stmt->orelse = Node_CreateLinkedList();
+    return while_stmt;
 }
 
 Tokens InfixToPostfix(Tokens const *tokens) {
@@ -323,10 +365,6 @@ Node *ShuntingYard(Tokens const *tokens) {
                 Node_AddFirst(&stack, node);
             }
                 break;
-            case INDENT:
-            case DEDENT:
-            case DELIMITER:
-                break;
             default:
                 break;
         }
@@ -408,6 +446,20 @@ void PrintNode(Node *node) {
             printf("%s]", spaces);
             printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
                    spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
+            puts("");
+            break;
+        case WHILE:
+            printf("{ \n%s\033[0;36mtest\033[0m: ", spaces);
+            PrintNode(node->while_stmt->test);
+            printf(", \n%s\033[0;36mbody\033[0m: [\n", spaces);
+            Node_ForEach(&node->while_stmt->body, PrintNode);
+            printf("%s]", spaces);
+            printf(",\n%s\033[0;36melse\033[0m: [\n", spaces);
+            Node_ForEach(&node->while_stmt->orelse, PrintNode);
+            printf("%s]", spaces);
+            printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
+                   spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
+            puts("");
             break;
         default: {
             fprintf(stderr, "WARNING: Not implemented for type: \"%s\"\n", type);
@@ -466,6 +518,14 @@ void TraverseTree(Node *node, size_t depth) {
                 current = current->next;
             }
             break;
+        case WHILE:
+            TraverseTree(node->while_stmt->test, depth + 1);
+            current = node->while_stmt->body.head;
+            while (current != NULL) {
+                TraverseTree(current->data, node->depth + 1);
+                current = current->next;
+            }
+            break;
         default:
             break;
     }
@@ -479,7 +539,7 @@ void PrintVar(Name *variable, size_t depth) {
 void PrintImportStmt(Node const *stmt) {
     const char *type = NodeTypeToString(IMPORT);
     printf("{ \033[0;36mmodules\033[0m: [ \n");
-    Token_ForEach(&stmt->import_stm->modules, PrintToken);
+    Token_ForEach(&stmt->import_stmt->modules, PrintToken);
     printf("]");
     printf(", \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m }",
            type, stmt->depth);
@@ -505,6 +565,8 @@ const char *NodeTypeToString(NodeType type) {
             return "LIST";
         case IF:
             return "IF";
+        case WHILE:
+            return "WHILE";
         default:
             return "UNKNOWN";
     }
