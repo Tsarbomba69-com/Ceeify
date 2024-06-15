@@ -21,6 +21,7 @@ typedef enum NodeType {
     IF,
     LIST,
     WHILE,
+    FOR,
     END_BLOCK
 } NodeType;
 
@@ -75,6 +76,17 @@ typedef struct WhileStmt {
     Node_LinkedList orelse;
 } WhileStmt;
 
+typedef struct ForStmt {
+    union {
+        Name *variable;
+        List *list;
+        // TODO: Implement Tuple, Attribute, Subscript
+    } target;
+    Node *iter;
+    Node_LinkedList body;
+    Node_LinkedList orelse;
+} ForStmt;
+
 typedef struct Node {
     NodeType type;
     size_t depth;
@@ -83,6 +95,7 @@ typedef struct Node {
         ImportStmt *import_stmt;
         IfStmt *if_stmt;
         WhileStmt *while_stmt;
+        ForStmt *for_stmt;
         BinaryOperation *bin_op;
         UnaryOperation *unOp;
         Assign *assign_stmt;
@@ -101,6 +114,8 @@ Node *ParseIfStatement(Lexer *lexer);
 
 Node *ParseWhileStatement(Lexer *lexer);
 
+Node *ParseForStatement(Lexer *lexer);
+
 Token_ArrayList CollectUntil(Lexer *lexer, TokenType type);
 
 // Receives a list of tokens parses into an expression node and advances the global token index
@@ -115,6 +130,8 @@ Name *CreateNameExpr();
 WhileStmt *CreateWhileStmt();
 
 UnaryOperation *CreateUnaryOp(char *op);
+
+ForStmt *CreateForStmt();
 
 Node *ShuntingYard(Tokens const *tokens);
 

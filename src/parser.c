@@ -50,6 +50,10 @@ Node *ParseStatement(Lexer *lexer) {
             if (strcmp(token->lexeme, "while") == 0) {
                 node = ParseWhileStatement(lexer);
             }
+
+            if (strcmp(token->lexeme, "for") == 0) {
+                node = ParseForStatement(lexer);
+            }
         }
             break;
         case NEWLINE:
@@ -58,6 +62,24 @@ Node *ParseStatement(Lexer *lexer) {
         default:
             break;
     }
+    return node;
+}
+
+Node *ParseForStatement(Lexer *lexer) {
+    Node *node = CreateNode(FOR);
+    Token const *token = Token_Get(&lexer->tokens, ++lexer->token_idx);
+    node->for_stmt->target.variable = CreateNameExpr();
+    node->for_stmt->target.variable->id = token->lexeme;
+    node->for_stmt->target.variable->ctx = STORE;
+    token = Token_Get(&lexer->tokens, ++lexer->token_idx);
+    if (token->type != KEYWORD && strcmp(token->lexeme, "in") != 0) {
+        fprintf(stderr, "Syntax Error: Keyword \"in\" expect but found \"%s\" instead. line: %zu, col: %zu",
+                token->lexeme, token->line, token->col);
+        return NULL;
+    }
+    node->for_stmt->iter = ParseExpression(lexer);
+    lexer->token_idx += 3;
+    node->for_stmt->body = ParseStatements(lexer);
     return node;
 }
 
@@ -254,12 +276,27 @@ Node *CreateNode(NodeType type) {
         case WHILE:
             node->while_stmt = CreateWhileStmt();
             return node;
+        case FOR:
+            node->for_stmt = CreateForStmt();
+            return node;
         case END_BLOCK:
             return node; // This node represents end of statement list. It will not actually be consumed by succeeding components
         default:
             fprintf(stderr, "WARNING: Unrecognized node type %s\n", NodeTypeToString(type));
             return node;
     }
+}
+
+ForStmt *CreateForStmt() {
+    ForStmt *for_stmt = AllocateContext(sizeof(ForStmt));
+    if (for_stmt == NULL) {
+        fprintf(stderr, "ERROR: Could not allocate memory for \"for\" statement\n");
+        return NULL;
+    }
+
+    for_stmt->body = Node_CreateLinkedList();
+    for_stmt->orelse = Node_CreateLinkedList();
+    return for_stmt;
 }
 
 WhileStmt *CreateWhileStmt() {
@@ -461,6 +498,19 @@ void PrintNode(Node *node) {
                    spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
             puts("");
             break;
+        case FOR:
+            printf("{ \n%s\033[0;36mtarget\033[0m: ", spaces);
+            PrintVar(node->for_stmt->target.variable, node->depth);
+            printf(", \n%s\033[0;36miter\033[0m: ", spaces);
+            PrintNode(node->for_stmt->iter);
+            printf(", \n%s\033[0;36mbody\033[0m: [\n", spaces);
+            Node_ForEach(&node->for_stmt->body, PrintNode);
+            Node_ForEach(&node->for_stmt->orelse, PrintNode);
+            printf("%s]", spaces);
+            printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
+                   spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
+            puts("");
+            break;
         default: {
             fprintf(stderr, "WARNING: Not implemented for type: \"%s\"\n", type);
         }
@@ -567,6 +617,8 @@ const char *NodeTypeToString(NodeType type) {
             return "IF";
         case WHILE:
             return "WHILE";
+        case FOR:
+            return "FOR";
         default:
             return "UNKNOWN";
     }

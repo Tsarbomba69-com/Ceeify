@@ -6,6 +6,7 @@ const char *SAMPLES[] = {
         "./test/samples/list.py",
         "./test/samples/if_statement.py",
         "./test/samples/while_statement.py",
+        "./test/samples/for_statement.py",
 };
 char *source = {0};
 Lexer lexer = {0};
@@ -71,7 +72,28 @@ void test_while_statement(void) {
 }
 
 void test_for_statement(void) {
-
+    source = LoadFileText(SAMPLES[4]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Node_LinkedList program = ParseStatements(&lexer);
+    Node const *node = Node_Pop(&program);
+    // Perform assertions on the for statement
+    TEST_ASSERT_EQUAL(FOR, node->type);
+    TEST_ASSERT_NOT_EQUAL(NULL, node->for_stmt->target.variable);
+    TEST_ASSERT_EQUAL(LIST, node->for_stmt->iter->type);
+    TEST_ASSERT_EQUAL(4, node->for_stmt->iter->list->elts.size);
+    // Check the body statement
+    Node const *stmt = Node_Pop(&node->for_stmt->body);
+    TEST_ASSERT_EQUAL(ASSIGNMENT, stmt->type);
+    TEST_ASSERT_EQUAL_STRING("total", stmt->assign_stmt->target->id);
+    TEST_ASSERT_EQUAL(STORE, stmt->assign_stmt->target->ctx);
+    TEST_ASSERT_EQUAL(BINARY_OPERATION, stmt->assign_stmt->value->type);
+    TEST_ASSERT_EQUAL_STRING("+", stmt->assign_stmt->value->bin_op->operator);
+    TEST_ASSERT_EQUAL_STRING("total", stmt->assign_stmt->value->bin_op->left->variable->id);
+    TEST_ASSERT_EQUAL(LOAD, stmt->assign_stmt->value->bin_op->left->variable->ctx);
+    TEST_ASSERT_EQUAL(VARIABLE, stmt->assign_stmt->value->bin_op->right->type);
+    TEST_ASSERT_EQUAL_STRING("n", stmt->assign_stmt->value->bin_op->right->variable->id);
+    TEST_ASSERT_EQUAL(LOAD, stmt->assign_stmt->value->bin_op->right->variable->ctx);
 }
 
 void setUp(void) {

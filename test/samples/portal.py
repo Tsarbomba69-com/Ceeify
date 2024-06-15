@@ -15,5 +15,5 @@ elif a > b * 2:
 else:
     pow = pow * pow
 
-while sum <= 20:
+for sum in [1, 2, 3]:
     sum = sum + 1
