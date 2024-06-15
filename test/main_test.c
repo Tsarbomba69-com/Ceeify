@@ -50,13 +50,28 @@ void test_while_statement(void) {
     // Perform assertions on the while statement
     TEST_ASSERT_EQUAL(WHILE, node->type);
     TEST_ASSERT_NOT_EQUAL(NULL, node->while_stmt->test);
-    TEST_ASSERT_GREATER_OR_EQUAL(0, node->while_stmt->body.size);
+    TEST_ASSERT_GREATER_OR_EQUAL(1, node->while_stmt->body.size);
     // Check the test expression
     TEST_ASSERT_EQUAL(BINARY_OPERATION, node->while_stmt->test->type);
     TEST_ASSERT_EQUAL_STRING("<=", node->while_stmt->test->bin_op->operator);
     TEST_ASSERT_EQUAL(VARIABLE, node->while_stmt->test->bin_op->left->type);
     TEST_ASSERT_EQUAL(LITERAL, node->while_stmt->test->bin_op->right->type);
     TEST_ASSERT_EQUAL(LOAD, node->while_stmt->test->bin_op->left->variable->ctx);
+    // Check the body statement
+    Node const *stmt = Node_Pop(&node->while_stmt->body);
+    TEST_ASSERT_EQUAL(ASSIGNMENT, stmt->type);
+    TEST_ASSERT_EQUAL_STRING("sum", stmt->assign_stmt->target->id);
+    TEST_ASSERT_EQUAL(STORE, stmt->assign_stmt->target->ctx);
+    TEST_ASSERT_EQUAL(BINARY_OPERATION, stmt->assign_stmt->value->type);
+    TEST_ASSERT_EQUAL_STRING("+", stmt->assign_stmt->value->bin_op->operator);
+    TEST_ASSERT_EQUAL_STRING("sum", stmt->assign_stmt->value->bin_op->left->variable->id);
+    TEST_ASSERT_EQUAL(LOAD, stmt->assign_stmt->value->bin_op->left->variable->ctx);
+    TEST_ASSERT_EQUAL(LITERAL, stmt->assign_stmt->value->bin_op->right->type);
+    TEST_ASSERT_EQUAL_STRING("1", stmt->assign_stmt->value->bin_op->right->literal->value);
+}
+
+void test_for_statement(void) {
+
 }
 
 void setUp(void) {
@@ -76,5 +91,6 @@ int main(void) {
     RUN_TEST(test_list_size);
     RUN_TEST(test_elif_statement_format);
     RUN_TEST(test_while_statement);
+    RUN_TEST(test_for_statement);
     return UNITY_END();
 }
