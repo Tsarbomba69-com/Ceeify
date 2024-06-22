@@ -7,6 +7,7 @@ const char *SAMPLES[] = {
         "./test/samples/if_statement.py",
         "./test/samples/while_statement.py",
         "./test/samples/for_statement.py",
+        "./test/samples/assign_statement.py"
 };
 char *source = {0};
 Lexer lexer = {0};
@@ -96,6 +97,32 @@ void test_for_statement(void) {
     TEST_ASSERT_EQUAL(LOAD, stmt->assign_stmt->value->bin_op->right->variable->ctx);
 }
 
+void test_assign_statement(void) {
+    source = LoadFileText(SAMPLES[5]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Node_LinkedList program = ParseStatements(&lexer);
+    // Check the assignment statement
+    Node const *stmt1 = Node_Pop(&program);
+    TEST_ASSERT_EQUAL(ASSIGNMENT, stmt1->type);
+    TEST_ASSERT_EQUAL_STRING("a", stmt1->assign_stmt->target->id);
+    TEST_ASSERT_EQUAL(STORE, stmt1->assign_stmt->target->ctx);
+    TEST_ASSERT_EQUAL(LITERAL, stmt1->assign_stmt->value->type);
+    TEST_ASSERT_EQUAL_STRING("1", stmt1->assign_stmt->value->literal->value);
+    // Semantics assertion
+    TEST_ASSERT_EQUAL(INT, stmt1->assign_stmt->value->literal->type);
+    Node const *stmt2 = Node_Pop(&program);
+    TEST_ASSERT_EQUAL(ASSIGNMENT, stmt2->type);
+    TEST_ASSERT_EQUAL_STRING("c", stmt2->assign_stmt->target->id);
+    TEST_ASSERT_EQUAL(STORE, stmt2->assign_stmt->target->ctx);
+    TEST_ASSERT_EQUAL(BINARY_OPERATION, stmt2->assign_stmt->value->type);
+    TEST_ASSERT_EQUAL_STRING("+", stmt2->assign_stmt->value->bin_op->operator);
+    TEST_ASSERT_EQUAL_STRING("a", stmt2->assign_stmt->value->bin_op->left->variable->id);
+    TEST_ASSERT_EQUAL(LOAD, stmt2->assign_stmt->value->bin_op->left->variable->ctx);
+    TEST_ASSERT_EQUAL(LITERAL, stmt2->assign_stmt->value->bin_op->right->type);
+    TEST_ASSERT_EQUAL_STRING("1", stmt2->assign_stmt->value->bin_op->right->literal->value);
+}
+
 void setUp(void) {
     source = LoadFileText(SAMPLES[0]);
     if (source == NULL) return;
@@ -109,6 +136,7 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_fullscanning);
+    RUN_TEST(test_assign_statement);
     RUN_TEST(test_statement_number);
     RUN_TEST(test_list_size);
     RUN_TEST(test_elif_statement_format);

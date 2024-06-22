@@ -167,7 +167,7 @@ Token *CreateStringToken(Lexer *lexer, char character) {
     }
 
     lexer->position++;
-    token->type = STRING;
+    token->type = TEXT;
     token->lexeme = lexeme;
     return token;
 }
@@ -308,7 +308,6 @@ Token *CreateNumberToken(Lexer *lexer, char character) {
         return NULL;
     }
     size_t lexeme_length = 0;
-    bool hasDecimal = false;
     lexeme[lexeme_length++] = character;
     lexer->position++;
 
@@ -320,7 +319,6 @@ Token *CreateNumberToken(Lexer *lexer, char character) {
         } else if (character == '.') {
             lexeme[lexeme_length++] = character;
             lexer->position++;
-            hasDecimal = true;
         } else {
             break;
         }
@@ -332,13 +330,8 @@ Token *CreateNumberToken(Lexer *lexer, char character) {
         return NULL;
     }
 
+    token->type = NUMERIC;
     token->lexeme = lexeme;
-
-    if (hasDecimal) {
-        token->type = FLOAT;
-        return token;
-    }
-    token->type = INTEGER;
     return token;
 }
 
@@ -348,16 +341,14 @@ const char *TokenTypeToString(TokenType type) {
             return "KEYWORD";
         case OPERATOR:
             return "OPERATOR";
-        case STRING:
-            return "STRING";
+        case TEXT:
+            return "TEXT";
         case IDENTIFIER:
             return "IDENTIFIER";
         case DELIMITER:
             return "DELIMITER";
-        case INTEGER:
-            return "INTEGER";
-        case FLOAT:
-            return "FLOAT";
+        case NUMERIC:
+            return "NUMERIC";
         case NEWLINE:
             return "NEWLINE";
         case ENDMARKER:

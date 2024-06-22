@@ -205,7 +205,9 @@ Literal *CreateLiteral(char *value) {
         fprintf(stderr, "ERROR: Could not allocate memory for import statement\n");
         return NULL;
     }
-
+    if (IsFloat(value) && strchr(value, '.') != NULL) literal->type = FLOAT;
+    else if (IsInteger(value)) literal->type = INT;
+    else literal->type = TEXT;
     literal->value = value;
     return literal;
 }
@@ -324,7 +326,7 @@ Tokens InfixToPostfix(Tokens const *tokens) {
 
     for (size_t i = 0; i < tokens->size; i++) {
         Token *token = Token_Get(tokens, i);
-        if (token->type == IDENTIFIER || token->type == INTEGER || token->type == FLOAT) {
+        if (token->type == IDENTIFIER || token->type == NUMERIC) {
             Token_Push(&postfix, token);
         } else if (strcmp(token->lexeme, "(") == 0) {
             Token_Push(&stack, token);
@@ -366,9 +368,8 @@ Node *ShuntingYard(Tokens const *tokens) {
                 Node_AddFirst(&stack, var);
             }
                 break;
-            case STRING:
-            case INTEGER:
-            case FLOAT: {
+            case TEXT:
+            case NUMERIC: {
                 Node *literal = CreateNode(LITERAL);
                 literal->literal = CreateLiteral(token->lexeme);
                 Node_AddFirst(&stack, literal);

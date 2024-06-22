@@ -10,9 +10,8 @@ typedef struct Token_ArrayList Token_ArrayList;
 
 typedef enum TokenType {
     IDENTIFIER,
-    INTEGER,
-    FLOAT,
-    STRING,
+    TEXT,
+    NUMERIC,
     OPERATOR,
     KEYWORD,
     DELIMITER,

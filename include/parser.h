@@ -25,6 +25,13 @@ typedef enum NodeType {
     END_BLOCK
 } NodeType;
 
+typedef enum DataType {
+    STR,
+    INT,
+    FLOAT,
+    COMPLEX,
+} DataType;
+
 typedef enum Context {
     STORE,
     DEL,
@@ -37,6 +44,7 @@ typedef struct ImportStmt {
 
 typedef struct Literal {
     char *value;
+    DataType type;
 } Literal;
 
 typedef struct BinaryOperation {

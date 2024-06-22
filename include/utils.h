@@ -51,27 +51,14 @@ bool Any(void* arr[], size_t, void*, CompareFn);
 
 void AllocateElementes(ArrayList* list);
 
-ArrayList CreateArrayList(size_t capacity);
-// Creates an array list on the heap
-ArrayList* AllocateArrayList(size_t capacity);
-// Pushes an element to the end of the array list
-void ArrayListPush(ArrayList* list, void* value);
-// Get the last element and remove it
-void* ArrayListPop(ArrayList* list);
-
 static inline void Print(char* str) {
 	printf("\033[0;33m\"%s\"\033[0m, ", str);
 }
 
-// Get the element stored at the index. Returns NULL if index is out-of-bounds
-static inline void* ArrayListGet(ArrayList const* arrayList, size_t index)
-{
-	return index < arrayList->size ? arrayList->elements[index] : NULL;
-}
-// Iterate the array list and apply the callback for each element
-void ArrayListForEach(ArrayList* list, Action callback);
+bool IsFloat(const char *str);
 
-void ArrayListClear(ArrayList* list, Action destroy);
+bool IsInteger(const char *str);
+
 #endif // !UTILS_H
 
 
