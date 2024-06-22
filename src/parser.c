@@ -34,6 +34,7 @@ Node *ParseStatement(Lexer *lexer) {
                 var->ctx = STORE;
                 assign->target = var;
                 assign->value = ParseExpression(lexer);
+
             }
         }
             break;
@@ -97,11 +98,6 @@ Node *ParseIfStatement(Lexer *lexer) {
     IfStmt *ifStmt = node->if_stmt;
 
     Token const *token = Token_Get(&lexer->tokens, lexer->token_idx);
-    if (strcmp(token->lexeme, "if") != 0) {
-        // TODO: Error handling
-        return NULL;
-    }
-
     ifStmt->test = ParseExpression(lexer);
     lexer->token_idx += 3;
     ifStmt->body = ParseStatements(lexer);
@@ -633,6 +629,21 @@ const char *CtxToString(Name const *var) {
             return "STORE";
         case DEL:
             return "DEL";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+const char *DataTypeToString(DataType type) {
+    switch (type) {
+        case FLOAT:
+            return "FLOAT";
+        case INT:
+            return "INT";
+        case STR:
+            return "STR";
+        case COMPLEX:
+            return "COMPLEX";
         default:
             return "UNKNOWN";
     }

@@ -172,6 +172,9 @@ const char *NodeTypeToString(NodeType type);
 // Converts a variable context to string. Mostly for printing purposes
 const char *CtxToString(Name const *var);
 
+// Converts a data type to string. Mostly for printing purposes
+const char *DataTypeToString(DataType type);
+
 // Recursively traverse AST and assign depth to each node
 void TraverseTree(Node *node, size_t depth);
 
