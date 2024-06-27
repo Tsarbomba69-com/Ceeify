@@ -28,13 +28,14 @@ Node *ParseStatement(Lexer *lexer) {
             if (strcmp(next->lexeme, "=") == 0) {
                 ++lexer->token_idx;
                 node = CreateNode(ASSIGNMENT);
-                Assign *assign = node->assign_stmt;
+                Assign *assign = node->assignStmt;
                 Name *var = (CreateNode(VARIABLE))->variable;
-                var->id = token->lexeme;
+                Node *val = ParseExpression(lexer);
+                var->type = InferType(val);
                 var->ctx = STORE;
+                var->id = token->lexeme;
                 assign->target = var;
-                assign->value = ParseExpression(lexer);
-
+                assign->value = val;
             }
         }
             break;
@@ -69,33 +70,33 @@ Node *ParseStatement(Lexer *lexer) {
 Node *ParseForStatement(Lexer *lexer) {
     Node *node = CreateNode(FOR);
     Token const *token = Token_Get(&lexer->tokens, ++lexer->token_idx);
-    node->for_stmt->target.variable = CreateNameExpr();
-    node->for_stmt->target.variable->id = token->lexeme;
-    node->for_stmt->target.variable->ctx = STORE;
+    node->forStmt->target.variable = CreateNameExpr();
+    node->forStmt->target.variable->id = token->lexeme;
+    node->forStmt->target.variable->ctx = STORE;
     token = Token_Get(&lexer->tokens, ++lexer->token_idx);
     if (token->type != KEYWORD && strcmp(token->lexeme, "in") != 0) {
         fprintf(stderr, "Syntax Error: Keyword \"in\" expect but found \"%s\" instead. line: %zu, col: %zu",
                 token->lexeme, token->line, token->col);
         return NULL;
     }
-    node->for_stmt->iter = ParseExpression(lexer);
+    node->forStmt->iter = ParseExpression(lexer);
     lexer->token_idx += 3;
-    node->for_stmt->body = ParseStatements(lexer);
+    node->forStmt->body = ParseStatements(lexer);
     return node;
 }
 
 Node *ParseWhileStatement(Lexer *lexer) {
     Node *node = CreateNode(WHILE);
-    node->while_stmt->test = ParseExpression(lexer);
+    node->whileStmt->test = ParseExpression(lexer);
     lexer->token_idx += 3;
-    node->while_stmt->body = ParseStatements(lexer);
+    node->whileStmt->body = ParseStatements(lexer);
     // TODO: Parse else clause
     return node;
 }
 
 Node *ParseIfStatement(Lexer *lexer) {
     Node *node = CreateNode(IF);
-    IfStmt *ifStmt = node->if_stmt;
+    IfStmt *ifStmt = node->ifStmt;
 
     Token const *token = Token_Get(&lexer->tokens, lexer->token_idx);
     ifStmt->test = ParseExpression(lexer);
@@ -107,7 +108,7 @@ Node *ParseIfStatement(Lexer *lexer) {
         token = Token_Get(&lexer->tokens, lexer->token_idx);
         if (strcmp(token->lexeme, "elif") == 0) {
             Node *elifNode = CreateNode(IF);
-            IfStmt *elifStmt = elifNode->if_stmt;
+            IfStmt *elifStmt = elifNode->ifStmt;
             elifStmt->test = ParseExpression(lexer);
             lexer->token_idx += 3;
             elifStmt->body = ParseStatements(lexer);
@@ -115,7 +116,7 @@ Node *ParseIfStatement(Lexer *lexer) {
             last = elifNode;
         } else if (strcmp(token->lexeme, "else") == 0) {
             lexer->token_idx += 3;
-            last->if_stmt->orelse = ParseStatements(lexer);
+            last->ifStmt->orelse = ParseStatements(lexer);
             break;
         }
     }
@@ -255,7 +256,7 @@ Node *CreateNode(NodeType type) {
             node->import_stmt = CreateImportStmt();
             return node;
         case ASSIGNMENT:
-            node->assign_stmt = CreateAssignStmt();
+            node->assignStmt = CreateAssignStmt();
             return node;
         case VARIABLE:
             node->variable = CreateNameExpr();
@@ -264,18 +265,18 @@ Node *CreateNode(NodeType type) {
         case LITERAL:
         case BINARY_OPERATION:
             return node;
-        case LIST:
+        case LIST_EXPR:
             node->list = AllocateContext(sizeof(List));
             node->list->elts = Node_CreateLinkedList();
             return node;
         case IF:
-            node->if_stmt = CreateIfStmt();
+            node->ifStmt = CreateIfStmt();
             return node;
         case WHILE:
-            node->while_stmt = CreateWhileStmt();
+            node->whileStmt = CreateWhileStmt();
             return node;
         case FOR:
-            node->for_stmt = CreateForStmt();
+            node->forStmt = CreateForStmt();
             return node;
         case END_BLOCK:
             return node; // This node represents end of statement list. It will not actually be consumed by succeeding components
@@ -377,6 +378,7 @@ Node *ShuntingYard(Tokens const *tokens) {
 
                 if (right != NULL && left != NULL) {
                     Node *bin = CreateBinOp(token, left, right);
+                    bin->binOp->type = InferType(bin);
                     Node_AddFirst(&stack, bin);
                     continue;
                 }
@@ -392,7 +394,7 @@ Node *ShuntingYard(Tokens const *tokens) {
                 break;
             case RSQB: {
                 Node *value = NULL;
-                Node *node = CreateNode(LIST);
+                Node *node = CreateNode(LIST_EXPR);
                 while ((value = Node_Pop(&stack)) && value->type != LSQB) {
                     Node_AddFirst(&node->list->elts, value);
                 }
@@ -409,14 +411,14 @@ Node *ShuntingYard(Tokens const *tokens) {
 
 Node *CreateBinOp(Token *token, Node *left, Node *right) {
     Node *node = CreateNode(BINARY_OPERATION);
-    node->bin_op = AllocateContext(sizeof(BinaryOperation));
-    if (node->bin_op == NULL) {
+    node->binOp = AllocateContext(sizeof(BinaryOperation));
+    if (node->binOp == NULL) {
         fprintf(stderr, "ERROR: Could not allocate memory for binary operation\n");
         return NULL;
     }
-    node->bin_op->left = left;
-    node->bin_op->right = right;
-    node->bin_op->operator = token->lexeme;
+    node->binOp->left = left;
+    node->binOp->right = right;
+    node->binOp->operator = token->lexeme;
     return node;
 }
 
@@ -440,20 +442,20 @@ void PrintNode(Node *node) {
             break;
         case BINARY_OPERATION:
             printf("{ \n%s\033[0;36moperator\033[0m: ", spaces);
-            Print(node->bin_op->operator);
+            Print(node->binOp->operator);
             printf("\n%s\033[0;36mleft\033[0m: ", spaces);
-            PrintNode(node->bin_op->left);
+            PrintNode(node->binOp->left);
             printf(",\n%s\033[0;36mright\033[0m: ", spaces);
-            PrintNode(node->bin_op->right);
+            PrintNode(node->binOp->right);
             printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
                    spaces, type, node->depth, Slice(spaces, 0, 2 * SCALE_FACTOR * (node->depth - (node->depth > 1))));
             break;
         case ASSIGNMENT: {
             char *br_spaces = Slice(spaces, 0, SCALE_FACTOR * (node->depth - (node->depth > 1)));
             printf("%s{ \n%s\033[0;36mtarget\033[0m: ", node->depth == 1 ? "" : br_spaces, spaces);
-            PrintVar(node->assign_stmt->target, node->depth);
+            PrintVar(node->assignStmt->target, node->depth);
             printf(", \n%s\033[0;36mexpression\033[0m: ", spaces);
-            PrintNode(node->assign_stmt->value);
+            PrintNode(node->assignStmt->value);
             printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m\n %s}",
                    spaces, type, node->depth, node->depth == 1 ? "" : br_spaces);
             printf(",\n");
@@ -466,17 +468,17 @@ void PrintNode(Node *node) {
             printf("{ \033[0;36mvalue\033[0m: \033[0;33m\"%s\"\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m }",
                    node->literal->value, NodeTypeToString(node->type), node->depth);
             break;
-        case LIST:
+        case LIST_EXPR:
             PrintList(node, spaces);
             break;
         case IF:
             printf("{ \n%s\033[0;36mtest\033[0m: ", spaces);
-            PrintNode(node->if_stmt->test);
+            PrintNode(node->ifStmt->test);
             printf(", \n%s\033[0;36mbody\033[0m: [\n", spaces);
-            Node_ForEach(&node->if_stmt->body, PrintNode);
+            Node_ForEach(&node->ifStmt->body, PrintNode);
             printf("%s]", spaces);
             printf(",\n%s\033[0;36melse\033[0m: [\n", spaces);
-            Node_ForEach(&node->if_stmt->orelse, PrintNode);
+            Node_ForEach(&node->ifStmt->orelse, PrintNode);
             printf("%s]", spaces);
             printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
                    spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
@@ -484,12 +486,12 @@ void PrintNode(Node *node) {
             break;
         case WHILE:
             printf("{ \n%s\033[0;36mtest\033[0m: ", spaces);
-            PrintNode(node->while_stmt->test);
+            PrintNode(node->whileStmt->test);
             printf(", \n%s\033[0;36mbody\033[0m: [\n", spaces);
-            Node_ForEach(&node->while_stmt->body, PrintNode);
+            Node_ForEach(&node->whileStmt->body, PrintNode);
             printf("%s]", spaces);
             printf(",\n%s\033[0;36melse\033[0m: [\n", spaces);
-            Node_ForEach(&node->while_stmt->orelse, PrintNode);
+            Node_ForEach(&node->whileStmt->orelse, PrintNode);
             printf("%s]", spaces);
             printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
                    spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
@@ -497,12 +499,12 @@ void PrintNode(Node *node) {
             break;
         case FOR:
             printf("{ \n%s\033[0;36mtarget\033[0m: ", spaces);
-            PrintVar(node->for_stmt->target.variable, node->depth);
+            PrintVar(node->forStmt->target.variable, node->depth);
             printf(", \n%s\033[0;36miter\033[0m: ", spaces);
-            PrintNode(node->for_stmt->iter);
+            PrintNode(node->forStmt->iter);
             printf(", \n%s\033[0;36mbody\033[0m: [\n", spaces);
-            Node_ForEach(&node->for_stmt->body, PrintNode);
-            Node_ForEach(&node->for_stmt->orelse, PrintNode);
+            Node_ForEach(&node->forStmt->body, PrintNode);
+            Node_ForEach(&node->forStmt->orelse, PrintNode);
             printf("%s]", spaces);
             printf(", \n%s\033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m \n%s}",
                    spaces, type, node->depth, Slice(spaces, 0, 1 * (node->depth - (node->depth > 1))));
@@ -539,26 +541,26 @@ void TraverseTree(Node *node, size_t depth) {
             TraverseTree(node->unOp->operand, depth);
             break;
         case BINARY_OPERATION:
-            TraverseTree(node->bin_op->left, depth + 1);
-            TraverseTree(node->bin_op->right, depth + 1);
+            TraverseTree(node->binOp->left, depth + 1);
+            TraverseTree(node->binOp->right, depth + 1);
             break;
         case ASSIGNMENT:
-            TraverseTree(node->assign_stmt->value, node->depth + 1);
+            TraverseTree(node->assignStmt->value, node->depth + 1);
             break;
         case IF:
-            TraverseTree(node->if_stmt->test, depth + 1);
-            Node_Node *current = node->if_stmt->body.head;
+            TraverseTree(node->ifStmt->test, depth + 1);
+            Node_Node *current = node->ifStmt->body.head;
             while (current != NULL) {
                 TraverseTree(current->data, node->depth + 1);
                 current = current->next;
             }
-            current = node->if_stmt->orelse.head;
+            current = node->ifStmt->orelse.head;
             while (current != NULL) {
                 TraverseTree(current->data, node->depth + 1);
                 current = current->next;
             }
             break;
-        case LIST:
+        case LIST_EXPR:
             current = node->list->elts.head;
             while (current != NULL) {
                 TraverseTree(current->data, node->depth + 1);
@@ -566,8 +568,8 @@ void TraverseTree(Node *node, size_t depth) {
             }
             break;
         case WHILE:
-            TraverseTree(node->while_stmt->test, depth + 1);
-            current = node->while_stmt->body.head;
+            TraverseTree(node->whileStmt->test, depth + 1);
+            current = node->whileStmt->body.head;
             while (current != NULL) {
                 TraverseTree(current->data, node->depth + 1);
                 current = current->next;
@@ -608,8 +610,8 @@ const char *NodeTypeToString(NodeType type) {
             return "UNARY OPERATION";
         case BINARY_OPERATION:
             return "BINARY OPERATION";
-        case LIST:
-            return "LIST";
+        case LIST_EXPR:
+            return "LIST_EXPR";
         case IF:
             return "IF";
         case WHILE:
@@ -662,4 +664,34 @@ size_t Precedence(const char *op) {
         return 0;
     } else return -1;
 
+}
+
+DataType InferType(Node const *node) {
+    switch (node->type) {
+        case ASSIGNMENT:
+            return InferType(node->assignStmt->value);
+        case LITERAL:
+            return node->literal->type;
+        case BINARY_OPERATION:
+            return TypePrecedence(InferType(node->binOp->left), InferType(node->binOp->right));
+        case UNARY_OPERATION:
+            return InferType(node->unOp->operand);
+        case VARIABLE:
+            return OBJECT; // TODO: Requires symbol table to check the previous infered typed
+        case LIST_EXPR:
+            return LIST;
+        default:
+            fprintf(stderr, "ERROR: Node not supported for data type \"%s\"", NodeTypeToString(node->type));
+            exit(EXIT_FAILURE);
+    }
+}
+
+DataType TypePrecedence(DataType left, DataType right) {
+    if (left == INT && (right == FLOAT || right == COMPLEX)) {
+        return right;
+    } else if (left == FLOAT && right == COMPLEX) {
+        return right;
+    }
+
+    return left;
 }

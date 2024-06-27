@@ -19,7 +19,7 @@ typedef enum NodeType {
     LITERAL,
     VARIABLE,
     IF,
-    LIST,
+    LIST_EXPR,
     WHILE,
     FOR,
     END_BLOCK
@@ -30,6 +30,8 @@ typedef enum DataType {
     INT,
     FLOAT,
     COMPLEX,
+    OBJECT,
+    LIST
 } DataType;
 
 typedef enum Context {
@@ -49,17 +51,20 @@ typedef struct Literal {
 
 typedef struct BinaryOperation {
     char *operator;
+    DataType type;
     Node *left;
     Node *right;
 } BinaryOperation;
 
 typedef struct UnaryOperation {
     char *operator;
+    DataType type;
     Node *operand;
 } UnaryOperation;
 
 typedef struct Name {
     char *id;
+    DataType type;
     Context ctx;
 } Name;
 
@@ -101,12 +106,12 @@ typedef struct Node {
     union {
         Literal *literal;
         ImportStmt *import_stmt;
-        IfStmt *if_stmt;
-        WhileStmt *while_stmt;
-        ForStmt *for_stmt;
-        BinaryOperation *bin_op;
+        IfStmt *ifStmt;
+        WhileStmt *whileStmt;
+        ForStmt *forStmt;
+        BinaryOperation *binOp;
         UnaryOperation *unOp;
-        Assign *assign_stmt;
+        Assign *assignStmt;
         Name *variable;
         List *list;
     };
@@ -154,6 +159,10 @@ Node *CreateNode(NodeType type);
 Tokens InfixToPostfix(Tokens const *tokens);
 
 Node *CreateBinOp(Token *token, Node *left, Node *right);
+
+DataType InferType(Node const *node);
+
+DataType TypePrecedence(DataType left, DataType right);
 
 // Recursively traverse AST and print each node
 void PrintNode(Node *node);
