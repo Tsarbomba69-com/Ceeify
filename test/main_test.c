@@ -148,6 +148,19 @@ void test_bin_op_type_precedence() {
     TEST_ASSERT_EQUAL(INT, binOp->binOp->right->literal->type);
 }
 
+void test_assignment_serialization(void) {
+    // Arrange
+    source = LoadFileText(SAMPLES[5]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
+    Node* node = Node_Pop(&program);
+    // Act
+    cJSON *root = SerializeNode(node);
+    char* json = cJSON_Print(root);
+}
+
 void setUp(void) {
     source = LoadFileText(SAMPLES[0]);
     if (source == NULL) return;
@@ -171,5 +184,6 @@ int main(void) {
     RUN_TEST(test_create_hashtable);
     RUN_TEST(test_insert_pair);
     RUN_TEST(test_insert_retrieve);
+    RUN_TEST(test_assignment_serialization);
     return UNITY_END();
 }

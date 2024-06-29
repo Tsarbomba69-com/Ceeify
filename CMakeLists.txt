@@ -3,9 +3,11 @@ project(Ceeify C)
 
 # Set the path to the Unity directory
 set(UNITY_DIR "C:/unity" CACHE PATH "Path to the Unity directory")
+set(CJSON_DIR "C:/cJSON" CACHE PATH "Path to the cJSON directory")
 
 # Add the Unity include directory
 include_directories(${UNITY_DIR}/src)
+include_directories(${CJSON_DIR})
 set(CMAKE_C_STANDARD 11)
 
 include_directories(.)
@@ -27,9 +29,12 @@ add_executable(Ceeify
         resource.h
         test/main_test.c
         ${UNITY_DIR}/src/unity.c
+        ${CJSON_DIR}/cJSON.c
         include/Symbol_hashtable.h
         src/Symbol_hashtable.c
         test/hashtable_test.h
 )
 
 target_link_libraries(Ceeify ${UNITY_DIR}/cmake-build-debug/libunity.a)
+target_link_libraries(Ceeify ${CJSON_DIR}/Debug/cjson.dll)
+

@@ -5,6 +5,7 @@
 #include "lexer.h"
 #include "Node_linkedlist.h"
 #include "Symbol_hashtable.h"
+#include "cJSON.h"
 
 #ifndef PARSER_H
 #define PARSER_H
@@ -193,6 +194,8 @@ void PrintImportStmt(Node const *);
 size_t Precedence(const char *);
 
 Tokens CollectExpression(Tokens const *tokens, size_t from);
+
+cJSON *SerializeNode(Node *node);
 
 // Converts a node type to string. Mostly for printing purposes
 const char *NodeTypeToString(NodeType type);

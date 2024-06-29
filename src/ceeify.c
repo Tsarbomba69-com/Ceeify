@@ -15,7 +15,8 @@ int main2(int argc, char *argv[]) {
     Token_ForEach(&lexer.tokens, PrintToken);
     printf("]\n");
     PrintArena();
-    Node_LinkedList program = ParseStatements(&lexer);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
     Node_ForEach(&program, PrintNode);
     PrintArena();
     FreeContext();

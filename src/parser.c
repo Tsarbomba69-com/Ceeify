@@ -1,7 +1,5 @@
 #include "parser.h"
 
-// TODO: Implement semantic analysis
-
 const char *UNARY_OPERATORS[] = {"+", "-", "~", "not"};
 
 Node_LinkedList ParseStatements(Parser *parser) {
@@ -370,14 +368,14 @@ Tokens InfixToPostfix(Tokens const *tokens) {
     return postfix;
 }
 
-Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable* symbolTable) {
+Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable *symbolTable) {
     Node_LinkedList stack = Node_CreateLinkedList();
 
     for (size_t i = 0; i < tokens->size; i++) {
         Token *token = Token_Get(tokens, i);
         switch (token->type) {
             case IDENTIFIER: {
-                Symbol const* targetSymbol = Symbol_Search(symbolTable, token->lexeme);
+                Symbol const *targetSymbol = Symbol_Search(symbolTable, token->lexeme);
                 if (targetSymbol == NULL) {
                     fprintf(stderr, "NameError: name \"%s\" is not defined.\n line: %zu, col: %zu\n", token->lexeme);
                     exit(1);
@@ -604,6 +602,57 @@ void TraverseTree(Node *node, size_t depth) {
     }
 }
 
+cJSON *SerializeNode(Node *node) {
+    if (node == NULL) return NULL;
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "type", NodeTypeToString(node->type));
+    cJSON_AddNumberToObject(root, "depth", node->depth);
+
+    switch (node->type) {
+        case UNARY_OPERATION:
+            SerializeNode(node->unOp->operand);
+            break;
+        case BINARY_OPERATION:
+            SerializeNode(node->binOp->left);
+            SerializeNode(node->binOp->right);
+            break;
+        case ASSIGNMENT:
+            SerializeNode(node->assignStmt->value);
+            break;
+        case IF:
+            SerializeNode(node->ifStmt->test);
+            Node_Node *current = node->ifStmt->body.head;
+            while (current != NULL) {
+                SerializeNode(current->data);
+                current = current->next;
+            }
+            current = node->ifStmt->orelse.head;
+            while (current != NULL) {
+                SerializeNode(current->data);
+                current = current->next;
+            }
+            break;
+        case LIST_EXPR:
+            current = node->list->elts.head;
+            while (current != NULL) {
+                SerializeNode(current->data);
+                current = current->next;
+            }
+            break;
+        case WHILE:
+            SerializeNode(node->whileStmt->test);
+            current = node->whileStmt->body.head;
+            while (current != NULL) {
+                SerializeNode(current->data);
+                current = current->next;
+            }
+            break;
+        default:
+            break;
+    }
+    return root;
+}
+
 void PrintVar(Name *variable, size_t depth) {
     printf("{ \033[0;36midentifer\033[0m: \033[0;33m%s\033[0m, \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mctx\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36mdepth\033[0m: \033[0;31m%zu\033[0m }",
            variable->id, NodeTypeToString(VARIABLE), CtxToString(variable), depth);
@@ -697,7 +746,8 @@ DataType InferType(Node const *node, Symbol_HashTable *symbolTable) {
         case LITERAL:
             return node->literal->type;
         case BINARY_OPERATION:
-            return TypePrecedence(InferType(node->binOp->left, symbolTable), InferType(node->binOp->right, symbolTable));
+            return TypePrecedence(InferType(node->binOp->left, symbolTable),
+                                  InferType(node->binOp->right, symbolTable));
         case UNARY_OPERATION:
             return InferType(node->unOp->operand, symbolTable);
         case VARIABLE:
