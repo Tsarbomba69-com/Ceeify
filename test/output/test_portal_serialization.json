@@ -238,7 +238,7 @@
 		"depth":	1,
 		"target":	{
 			"identifier":	"c",
-			"dataType":	"UNKNOWN",
+			"dataType":	"LIST",
 			"ctx":	"STORE"
 		},
 		"value":	{
@@ -271,7 +271,7 @@
 		"depth":	1,
 		"target":	{
 			"identifier":	"d",
-			"dataType":	"UNKNOWN",
+			"dataType":	"LIST",
 			"ctx":	"STORE"
 		},
 		"value":	{
@@ -479,5 +479,61 @@
 		}
 	}, {
 		"type":	"FOR",
-		"depth":	1
+		"depth":	1,
+		"target":	{
+			"identifier":	"sum",
+			"dataType":	"LIST",
+			"ctx":	"STORE"
+		},
+		"iter":	{
+			"type":	"LIST_EXPR",
+			"depth":	1,
+			"list":	[{
+					"type":	"LITERAL",
+					"depth":	1,
+					"dataType":	"INT",
+					"value":	"1"
+				}, {
+					"type":	"LITERAL",
+					"depth":	1,
+					"dataType":	"INT",
+					"value":	"2"
+				}, {
+					"type":	"LITERAL",
+					"depth":	1,
+					"dataType":	"INT",
+					"value":	"3"
+				}]
+		},
+		"body":	[{
+				"type":	"ASSIGNMENT",
+				"depth":	1,
+				"target":	{
+					"identifier":	"sum",
+					"dataType":	"INT",
+					"ctx":	"STORE"
+				},
+				"value":	{
+					"type":	"BINARY OPERATION",
+					"depth":	2,
+					"dataType":	"INT",
+					"operator":	"+",
+					"left":	{
+						"type":	"VARIABLE",
+						"depth":	3,
+						"variable":	{
+							"identifier":	"sum",
+							"dataType":	"INT",
+							"ctx":	"LOAD"
+						}
+					},
+					"right":	{
+						"type":	"LITERAL",
+						"depth":	3,
+						"dataType":	"INT",
+						"value":	"1"
+					}
+				}
+			}],
+		"orelse":	[]
 	}]

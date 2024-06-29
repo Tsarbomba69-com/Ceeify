@@ -663,6 +663,12 @@ cJSON *SerializeNode(Node *node) {
             cJSON_AddItemToObject(root, "body", SerializeProgram(&node->whileStmt->body));
             cJSON_AddItemToObject(root, "orelse", SerializeProgram(&node->whileStmt->orelse));
             break;
+        case FOR:
+            cJSON_AddItemToObject(root, "target", SerializeName(node->assignStmt->target));
+            cJSON_AddItemToObject(root, "iter", SerializeNode(node->forStmt->iter));
+            cJSON_AddItemToObject(root, "body", SerializeProgram(&node->forStmt->body));
+            cJSON_AddItemToObject(root, "orelse", SerializeProgram(&node->forStmt->orelse));
+            break;
         default:
             break;
     }
@@ -752,6 +758,8 @@ const char *DataTypeToString(DataType type) {
             return "STR";
         case COMPLEX:
             return "COMPLEX";
+        case LIST:
+            return "LIST";
         default:
             return "UNKNOWN";
     }
@@ -788,7 +796,7 @@ DataType InferType(Node const *node, Symbol_HashTable *symbolTable) {
         case LIST_EXPR:
             return LIST;
         default:
-            fprintf(stderr, "ERROR: Node not supported for data type \"%s\"", NodeTypeToString(node->type));
+            fprintf(stderr, "ERROR: Node not supported for data type \"%s\"\n", NodeTypeToString(node->type));
             exit(EXIT_FAILURE);
     }
 }
