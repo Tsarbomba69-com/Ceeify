@@ -197,6 +197,10 @@ Tokens CollectExpression(Tokens const *tokens, size_t from);
 
 cJSON *SerializeNode(Node *node);
 
+cJSON *SerializeName(Name *variable);
+
+cJSON *SerializeProgram(Node_LinkedList *program);
+
 // Converts a node type to string. Mostly for printing purposes
 const char *NodeTypeToString(NodeType type);
 

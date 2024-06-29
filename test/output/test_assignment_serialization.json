@@ -1,4 +1,29 @@
-{
-	"type":	"ASSIGNMENT",
-	"depth":	1
-}
+[{
+		"type":	"ASSIGNMENT",
+		"depth":	1,
+		"target":	{
+			"identifier":	"a",
+			"dataType":	"INT",
+			"ctx":	"STORE"
+		},
+		"value":	{
+			"type":	"LITERAL",
+			"depth":	2,
+			"dataType":	"INT",
+			"value":	"1"
+		}
+	}, {
+		"type":	"ASSIGNMENT",
+		"depth":	1,
+		"target":	{
+			"identifier":	"c",
+			"dataType":	"INT",
+			"ctx":	"STORE"
+		},
+		"value":	{
+			"type":	"BINARY OPERATION",
+			"depth":	2,
+			"dataType":	"INT",
+			"operator":	"+"
+		}
+	}]

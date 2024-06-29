@@ -602,6 +602,16 @@ void TraverseTree(Node *node, size_t depth) {
     }
 }
 
+cJSON *SerializeProgram(Node_LinkedList *program) {
+    cJSON *root = cJSON_CreateArray();
+    Node_Node *current = program->head;
+    while (current != NULL) {
+        cJSON_AddItemToArray(root, SerializeNode(current->data));
+        current = current->next;
+    }
+    return root;
+}
+
 cJSON *SerializeNode(Node *node) {
     if (node == NULL) return NULL;
     cJSON *root = cJSON_CreateObject();
@@ -609,16 +619,25 @@ cJSON *SerializeNode(Node *node) {
     cJSON_AddNumberToObject(root, "depth", node->depth);
 
     switch (node->type) {
+        case LITERAL:
+            cJSON_AddStringToObject(root, "dataType", DataTypeToString(node->literal->type));
+            cJSON_AddStringToObject(root, "value", node->literal->value);
+            break;
         case UNARY_OPERATION:
+            cJSON_AddStringToObject(root, "dataType", DataTypeToString(node->unOp->type));
             cJSON_AddStringToObject(root, "operator", node->unOp->operator);
             SerializeNode(node->unOp->operand);
             break;
         case BINARY_OPERATION:
+            cJSON_AddStringToObject(root, "dataType", DataTypeToString(node->binOp->type));
+            cJSON_AddStringToObject(root, "operator", node->binOp->operator);
             SerializeNode(node->binOp->left);
             SerializeNode(node->binOp->right);
             break;
-        case ASSIGNMENT:
-            SerializeNode(node->assignStmt->value);
+        case ASSIGNMENT: {
+            cJSON_AddItemToObject(root, "target", SerializeName(node->assignStmt->target));
+            cJSON_AddItemToObject(root, "value", SerializeNode(node->assignStmt->value));
+        }
             break;
         case IF:
             SerializeNode(node->ifStmt->test);
@@ -651,6 +670,14 @@ cJSON *SerializeNode(Node *node) {
         default:
             break;
     }
+    return root;
+}
+
+cJSON *SerializeName(Name *variable) {
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "identifier", variable->id);
+    cJSON_AddStringToObject(root, "dataType", DataTypeToString(variable->type));
+    cJSON_AddStringToObject(root, "ctx", CtxToString(variable));
     return root;
 }
 

@@ -157,9 +157,9 @@ void test_assignment_serialization(void) {
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
     Node_LinkedList program = ParseStatements(&parser);
-    Node *node = Node_Pop(&program);
     // Act
-    const cJSON *root = SerializeNode(node);
+    const cJSON *root = SerializeProgram(&program);
+    // Assert
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assignment_serialization.json", cJSON_Print(root)));
 }
 
