@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "parser.h"
+#include "hashtable_test.h"
 
 const char *SAMPLES[] = {
         "./test/samples/portal.py",
@@ -155,5 +156,8 @@ int main(void) {
     RUN_TEST(test_while_statement);
     RUN_TEST(test_for_statement);
     RUN_TEST(test_bin_op_type_precedence);
+    RUN_TEST(test_create_hashtable);
+    RUN_TEST(test_insert_pair);
+    RUN_TEST(test_insert_retrieve);
     return UNITY_END();
 }

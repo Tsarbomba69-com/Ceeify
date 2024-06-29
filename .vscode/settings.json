@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "parser.h": "c"
+        "parser.h": "c",
+        "node_linkedlist.h": "c"
     }
 }

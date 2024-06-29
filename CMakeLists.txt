@@ -27,6 +27,9 @@ add_executable(Ceeify
         resource.h
         test/main_test.c
         ${UNITY_DIR}/src/unity.c
+        include/Symbol_hashtable.h
+        src/Symbol_hashtable.c
+        test/hashtable_test.h
 )
 
 target_link_libraries(Ceeify ${UNITY_DIR}/cmake-build-debug/libunity.a)

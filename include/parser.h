@@ -31,7 +31,8 @@ typedef enum DataType {
     FLOAT,
     COMPLEX,
     OBJECT,
-    LIST
+    LIST,
+    FUNCTION
 } DataType;
 
 typedef enum Context {
@@ -116,6 +117,14 @@ typedef struct Node {
         List *list;
     };
 } Node;
+
+typedef struct Symbol {
+    DataType type;
+    size_t line;
+    size_t col;
+    struct Symbol *params;
+    char *scope; // The context that owns this symbol
+} Symbol;
 
 // Receives a list of tokens parses into a list of statements and advances the global token index
 Node_LinkedList ParseStatements(Lexer *lexer);
