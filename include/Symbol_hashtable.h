@@ -20,14 +20,14 @@ typedef bool (Symbol_CompareFn)(const Symbol *, const Symbol *);
 
 typedef struct char_Symbol_Pair {
     char *key;
-    Symbol const *value;
+    Symbol *value;
     bool occupied;
 } char_Symbol_Pair;
 
 typedef struct Symbol_HashTable {
     size_t capacity;
     size_t size;
-    char_Symbol_Pair *buckets;
+    char_Symbol_Pair **buckets;
 } Symbol_HashTable;
 
 //
@@ -40,10 +40,11 @@ size_t Symbol_Hash(const char *key);
 void Symbol_AllocateElementes(Symbol_HashTable *table);
 
 // Insert a key-value pair into the hash table
-void Symbol_Insert(Symbol_HashTable *table, char const *key, Symbol const *value);
+void Symbol_Insert(Symbol_HashTable *table, char const *key, Symbol *value);
 
 //
-const Symbol *Symbol_Search(const Symbol_HashTable *ht, const char *key);
+Symbol *Symbol_Search(Symbol_HashTable *ht, const char *key);
+
 //
 void Symbol_Remove(Symbol_HashTable *table, char *key);
 

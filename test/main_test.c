@@ -19,15 +19,19 @@ void test_fullscanning(void) {
 }
 
 void test_statement_number(void) {
-    Node_LinkedList program = ParseStatements(&lexer);
-    TEST_ASSERT_EQUAL(10, program.size);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
+    TEST_ASSERT_EQUAL(11, program.size);
 }
 
 void test_elif_statement_format(void) {
     source = LoadFileText(SAMPLES[2]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Node_LinkedList program = ParseStatements(&lexer);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
+    Node_Pop(&program);
+    Node_Pop(&program);
     IfStmt *ifStmt = Node_Pop(&program)->ifStmt;
     TEST_ASSERT_GREATER_OR_EQUAL(1, ifStmt->orelse.size);
     Assign const *assign_stmt = Node_Pop(&ifStmt->body)->assignStmt;
@@ -38,7 +42,8 @@ void test_list_size(void) {
     source = LoadFileText(SAMPLES[1]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Node_LinkedList program = ParseStatements(&lexer);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
     List const *num_list = Node_Pop(&program)->assignStmt->value->list;
     List const *str_list = Node_Pop(&program)->assignStmt->value->list;
     TEST_ASSERT_EQUAL(4, num_list->elts.size);
@@ -49,7 +54,9 @@ void test_while_statement(void) {
     source = LoadFileText(SAMPLES[3]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Node_LinkedList program = ParseStatements(&lexer);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
+    Node_Pop(&program);
     Node const *node = Node_Pop(&program);
     // Perform assertions on the while statement
     TEST_ASSERT_EQUAL(WHILE, node->type);
@@ -78,7 +85,9 @@ void test_for_statement(void) {
     source = LoadFileText(SAMPLES[4]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Node_LinkedList program = ParseStatements(&lexer);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
+    Node_Pop(&program);
     Node const *node = Node_Pop(&program);
     // Perform assertions on the for statement
     TEST_ASSERT_EQUAL(FOR, node->type);
@@ -103,7 +112,8 @@ void test_assign_statement(void) {
     source = LoadFileText(SAMPLES[5]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Node_LinkedList program = ParseStatements(&lexer);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
     // Check the assignment statement
     Node const *stmt1 = Node_Pop(&program);
     TEST_ASSERT_EQUAL(ASSIGNMENT, stmt1->type);
@@ -129,7 +139,9 @@ void test_bin_op_type_precedence() {
     source = LoadFileText(SAMPLES[6]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Node_LinkedList program = ParseStatements(&lexer);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
+    Node_Pop(&program);
     Node const *binOp = Node_Pop(&program)->assignStmt->value;
     TEST_ASSERT_EQUAL(FLOAT, binOp->binOp->type);
     TEST_ASSERT_EQUAL(FLOAT, binOp->binOp->left->variable->type);

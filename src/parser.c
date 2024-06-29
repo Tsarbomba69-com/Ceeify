@@ -4,10 +4,10 @@
 
 const char *UNARY_OPERATORS[] = {"+", "-", "~", "not"};
 
-Node_LinkedList ParseStatements(Lexer *lexer) {
+Node_LinkedList ParseStatements(Parser *parser) {
     Node_LinkedList stmts = Node_CreateLinkedList();
-    for (; lexer->token_idx < lexer->tokens.size; ++lexer->token_idx) {
-        Node *node = ParseStatement(lexer);
+    for (; parser->lexer.token_idx < parser->lexer.tokens.size; ++parser->lexer.token_idx) {
+        Node *node = ParseStatement(parser);
         if (node == NULL) {
             continue;
         }
@@ -18,43 +18,51 @@ Node_LinkedList ParseStatements(Lexer *lexer) {
     return stmts;
 }
 
-Node *ParseStatement(Lexer *lexer) {
+Node *ParseStatement(Parser *parser) {
     Node *node = NULL;
-    Token const *token = Token_Get(&lexer->tokens, lexer->token_idx);
-    Token const *next = Token_Get(&lexer->tokens, lexer->token_idx + 1);
+    Token const *token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
+    Token const *next = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx + 1);
 
     switch (token->type) {
         case IDENTIFIER: {
             if (strcmp(next->lexeme, "=") == 0) {
-                ++lexer->token_idx;
+                ++parser->lexer.token_idx;
                 node = CreateNode(ASSIGNMENT);
                 Assign *assign = node->assignStmt;
                 Name *var = (CreateNode(VARIABLE))->variable;
-                Node *val = ParseExpression(lexer);
-                var->type = InferType(val);
+                Node *val = ParseExpression(parser);
+                var->type = InferType(val, &parser->symbolTable);
                 var->ctx = STORE;
                 var->id = token->lexeme;
                 assign->target = var;
                 assign->value = val;
+                Symbol *symbol = Symbol_Search(&parser->symbolTable, var->id);
+                if (symbol == NULL) {
+                    symbol = AllocateContext(sizeof(Symbol));
+                    symbol->type = var->type;
+                    symbol->line = token->line;
+                    symbol->col = token->col;
+                    Symbol_Insert(&parser->symbolTable, var->id, symbol);
+                }
             }
         }
             break;
         case KEYWORD: {
             if (strcmp(token->lexeme, "if") == 0) {
-                node = ParseIfStatement(lexer);
+                node = ParseIfStatement(parser);
             }
 
             if (strcmp(token->lexeme, "import") == 0) {
                 node = CreateNode(IMPORT);
-                node->import_stmt->modules = CollectUntil(lexer, NEWLINE);
+                node->import_stmt->modules = CollectUntil(parser, NEWLINE);
             }
 
             if (strcmp(token->lexeme, "while") == 0) {
-                node = ParseWhileStatement(lexer);
+                node = ParseWhileStatement(parser);
             }
 
             if (strcmp(token->lexeme, "for") == 0) {
-                node = ParseForStatement(lexer);
+                node = ParseForStatement(parser);
             }
         }
             break;
@@ -67,56 +75,66 @@ Node *ParseStatement(Lexer *lexer) {
     return node;
 }
 
-Node *ParseForStatement(Lexer *lexer) {
+Node *ParseForStatement(Parser *parser) {
     Node *node = CreateNode(FOR);
-    Token const *token = Token_Get(&lexer->tokens, ++lexer->token_idx);
+    Token const *token = Token_Get(&parser->lexer.tokens, ++parser->lexer.token_idx);
     node->forStmt->target.variable = CreateNameExpr();
     node->forStmt->target.variable->id = token->lexeme;
     node->forStmt->target.variable->ctx = STORE;
-    token = Token_Get(&lexer->tokens, ++lexer->token_idx);
+    token = Token_Get(&parser->lexer.tokens, ++parser->lexer.token_idx);
     if (token->type != KEYWORD && strcmp(token->lexeme, "in") != 0) {
         fprintf(stderr, "Syntax Error: Keyword \"in\" expect but found \"%s\" instead. line: %zu, col: %zu",
                 token->lexeme, token->line, token->col);
         return NULL;
     }
-    node->forStmt->iter = ParseExpression(lexer);
-    lexer->token_idx += 3;
-    node->forStmt->body = ParseStatements(lexer);
+
+    node->forStmt->iter = ParseExpression(parser);
+    node->forStmt->target.variable->type = InferType(node->forStmt->iter, &parser->symbolTable);
+    Symbol *symbol = Symbol_Search(&parser->symbolTable, node->forStmt->target.variable->id);
+    if (symbol == NULL) {
+        symbol = AllocateContext(sizeof(Symbol));
+        symbol->type = node->forStmt->target.variable->type;
+        symbol->line = token->line;
+        symbol->col = token->col;
+        Symbol_Insert(&parser->symbolTable, node->forStmt->target.variable->id, symbol);
+    }
+    parser->lexer.token_idx += 3;
+    node->forStmt->body = ParseStatements(parser);
     return node;
 }
 
-Node *ParseWhileStatement(Lexer *lexer) {
+Node *ParseWhileStatement(Parser *parser) {
     Node *node = CreateNode(WHILE);
-    node->whileStmt->test = ParseExpression(lexer);
-    lexer->token_idx += 3;
-    node->whileStmt->body = ParseStatements(lexer);
+    node->whileStmt->test = ParseExpression(parser);
+    parser->lexer.token_idx += 3;
+    node->whileStmt->body = ParseStatements(parser);
     // TODO: Parse else clause
     return node;
 }
 
-Node *ParseIfStatement(Lexer *lexer) {
+Node *ParseIfStatement(Parser *parser) {
     Node *node = CreateNode(IF);
     IfStmt *ifStmt = node->ifStmt;
 
-    Token const *token = Token_Get(&lexer->tokens, lexer->token_idx);
-    ifStmt->test = ParseExpression(lexer);
-    lexer->token_idx += 3;
-    ifStmt->body = ParseStatements(lexer);
+    Token const *token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
+    ifStmt->test = ParseExpression(parser);
+    parser->lexer.token_idx += 3;
+    ifStmt->body = ParseStatements(parser);
     Node *last = node;
     // Parse the 'elif' and 'else' blocks
-    for (; lexer->token_idx < lexer->tokens.size; lexer->token_idx++) {
-        token = Token_Get(&lexer->tokens, lexer->token_idx);
+    for (; parser->lexer.token_idx < parser->lexer.tokens.size; parser->lexer.token_idx++) {
+        token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
         if (strcmp(token->lexeme, "elif") == 0) {
             Node *elifNode = CreateNode(IF);
             IfStmt *elifStmt = elifNode->ifStmt;
-            elifStmt->test = ParseExpression(lexer);
-            lexer->token_idx += 3;
-            elifStmt->body = ParseStatements(lexer);
+            elifStmt->test = ParseExpression(parser);
+            parser->lexer.token_idx += 3;
+            elifStmt->body = ParseStatements(parser);
             Node_AddLast(&ifStmt->orelse, elifNode);
             last = elifNode;
         } else if (strcmp(token->lexeme, "else") == 0) {
-            lexer->token_idx += 3;
-            last->ifStmt->orelse = ParseStatements(lexer);
+            parser->lexer.token_idx += 3;
+            last->ifStmt->orelse = ParseStatements(parser);
             break;
         }
     }
@@ -124,24 +142,24 @@ Node *ParseIfStatement(Lexer *lexer) {
     return node;
 }
 
-Token_ArrayList CollectUntil(Lexer *lexer, TokenType type) {
+Token_ArrayList CollectUntil(Parser *parser, TokenType type) {
     Token_ArrayList result = Token_CreateArrayList(10);
-    ++lexer->token_idx;
-    Token *token = Token_Get(&lexer->tokens, lexer->token_idx);
-    lexer->token_idx++;
-    for (; lexer->token_idx < lexer->tokens.size && token->type != type; ++lexer->token_idx) {
+    ++parser->lexer.token_idx;
+    Token *token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
+    parser->lexer.token_idx++;
+    for (; parser->lexer.token_idx < parser->lexer.tokens.size && token->type != type; ++parser->lexer.token_idx) {
         if (strcmp(token->lexeme, ",") != 0) Token_Push(&result, token);
-        token = Token_Get(&lexer->tokens, lexer->token_idx);
+        token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
     }
 
     return result;
 }
 
-Node *ParseExpression(Lexer *lexer) {
-    Tokens expression = CollectExpression(&lexer->tokens, lexer->token_idx + 1);
-    lexer->token_idx += expression.size;
+Node *ParseExpression(Parser *parser) {
+    Tokens expression = CollectExpression(&parser->lexer.tokens, parser->lexer.token_idx + 1);
+    parser->lexer.token_idx += expression.size;
     expression = InfixToPostfix(&expression);
-    return ShuntingYard(&expression);
+    return ShuntingYard(&expression, &parser->symbolTable);
 }
 
 ImportStmt *CreateImportStmt() {
@@ -204,7 +222,7 @@ Literal *CreateLiteral(char *value) {
     }
     if (IsFloat(value) && strchr(value, '.') != NULL) literal->type = FLOAT;
     else if (IsInteger(value)) literal->type = INT;
-    else literal->type = TEXT;
+    else literal->type = STR;
     literal->value = value;
     return literal;
 }
@@ -352,16 +370,22 @@ Tokens InfixToPostfix(Tokens const *tokens) {
     return postfix;
 }
 
-Node *ShuntingYard(Tokens const *tokens) {
+Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable* symbolTable) {
     Node_LinkedList stack = Node_CreateLinkedList();
 
     for (size_t i = 0; i < tokens->size; i++) {
         Token *token = Token_Get(tokens, i);
         switch (token->type) {
             case IDENTIFIER: {
+                Symbol const* targetSymbol = Symbol_Search(symbolTable, token->lexeme);
+                if (targetSymbol == NULL) {
+                    fprintf(stderr, "NameError: name \"%s\" is not defined.\n line: %zu, col: %zu\n", token->lexeme);
+                    exit(1);
+                }
                 Node *var = CreateNode(VARIABLE);
                 var->variable->ctx = LOAD;
                 var->variable->id = token->lexeme;
+                var->variable->type = targetSymbol->type;
                 Node_AddFirst(&stack, var);
             }
                 break;
@@ -378,7 +402,7 @@ Node *ShuntingYard(Tokens const *tokens) {
 
                 if (right != NULL && left != NULL) {
                     Node *bin = CreateBinOp(token, left, right);
-                    bin->binOp->type = InferType(bin);
+                    bin->binOp->type = InferType(bin, symbolTable);
                     Node_AddFirst(&stack, bin);
                     continue;
                 }
@@ -666,18 +690,18 @@ size_t Precedence(const char *op) {
 
 }
 
-DataType InferType(Node const *node) {
+DataType InferType(Node const *node, Symbol_HashTable *symbolTable) {
     switch (node->type) {
         case ASSIGNMENT:
-            return InferType(node->assignStmt->value);
+            return InferType(node->assignStmt->value, symbolTable);
         case LITERAL:
             return node->literal->type;
         case BINARY_OPERATION:
-            return TypePrecedence(InferType(node->binOp->left), InferType(node->binOp->right));
+            return TypePrecedence(InferType(node->binOp->left, symbolTable), InferType(node->binOp->right, symbolTable));
         case UNARY_OPERATION:
-            return InferType(node->unOp->operand);
+            return InferType(node->unOp->operand, symbolTable);
         case VARIABLE:
-            return OBJECT; // TODO: Requires symbol table to check the previous infered typed
+            return Symbol_Search(symbolTable, node->variable->id)->type;
         case LIST_EXPR:
             return LIST;
         default:

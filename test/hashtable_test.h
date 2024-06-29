@@ -1,3 +1,4 @@
+#pragma once
 #include "unity.h"
 #include "Symbol_hashtable.h"
 

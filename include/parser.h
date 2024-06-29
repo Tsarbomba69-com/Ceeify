@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "lexer.h"
 #include "Node_linkedlist.h"
+#include "Symbol_hashtable.h"
 
 #ifndef PARSER_H
 #define PARSER_H
@@ -40,6 +41,11 @@ typedef enum Context {
     DEL,
     LOAD
 } Context;
+
+typedef struct Parser {
+    Lexer lexer;
+    Symbol_HashTable symbolTable;
+} Parser;
 
 typedef struct ImportStmt {
     Token_ArrayList modules;
@@ -123,25 +129,29 @@ typedef struct Symbol {
     size_t line;
     size_t col;
     struct Symbol *params;
-    char *scope; // The context that owns this symbol
+    char *scope; // TODO: It should be a symbol table. There should be a symbol table for each scope (owner)
 } Symbol;
 
+static inline Parser CreateParser(Lexer lexer, Symbol_HashTable ht) {
+    return (Parser){.lexer = lexer, .symbolTable = ht};
+}
+
 // Receives a list of tokens parses into a list of statements and advances the global token index
-Node_LinkedList ParseStatements(Lexer *lexer);
+Node_LinkedList ParseStatements(Parser *parser);
 
 // Receives a list of tokens parses into a statement node and advances the global token index
-Node *ParseStatement(Lexer *lexer);
+Node *ParseStatement(Parser *parser);
 
-Node *ParseIfStatement(Lexer *lexer);
+Node *ParseIfStatement(Parser *parser);
 
-Node *ParseWhileStatement(Lexer *lexer);
+Node *ParseWhileStatement(Parser *parser);
 
-Node *ParseForStatement(Lexer *lexer);
+Node *ParseForStatement(Parser *parser);
 
-Token_ArrayList CollectUntil(Lexer *lexer, TokenType type);
+Token_ArrayList CollectUntil(Parser *parser, TokenType type);
 
 // Receives a list of tokens parses into an expression node and advances the global token index
-Node *ParseExpression(Lexer *lexer);
+Node *ParseExpression(Parser *parser);
 
 ImportStmt *CreateImportStmt();
 
@@ -155,7 +165,7 @@ UnaryOperation *CreateUnaryOp(char *op);
 
 ForStmt *CreateForStmt();
 
-Node *ShuntingYard(Tokens const *tokens);
+Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable* symbolTable);
 
 void PrintList(Node const *node, char *spaces);
 
@@ -169,7 +179,7 @@ Tokens InfixToPostfix(Tokens const *tokens);
 
 Node *CreateBinOp(Token *token, Node *left, Node *right);
 
-DataType InferType(Node const *node);
+DataType InferType(Node const *node, Symbol_HashTable *symbolTable);
 
 DataType TypePrecedence(DataType left, DataType right);
 
