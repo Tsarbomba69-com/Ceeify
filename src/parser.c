@@ -610,6 +610,7 @@ cJSON *SerializeNode(Node *node) {
 
     switch (node->type) {
         case UNARY_OPERATION:
+            cJSON_AddStringToObject(root, "operator", node->unOp->operator);
             SerializeNode(node->unOp->operand);
             break;
         case BINARY_OPERATION:

@@ -11,6 +11,8 @@ const char *SAMPLES[] = {
         "./test/samples/assign_statement.py",
         "./test/samples/binary_operation_type.py"
 };
+#define OUTPUT_PATH "./test/output"
+
 char *source = {0};
 Lexer lexer = {0};
 
@@ -155,10 +157,10 @@ void test_assignment_serialization(void) {
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
     Node_LinkedList program = ParseStatements(&parser);
-    Node* node = Node_Pop(&program);
+    Node *node = Node_Pop(&program);
     // Act
-    cJSON *root = SerializeNode(node);
-    char* json = cJSON_Print(root);
+    const cJSON *root = SerializeNode(node);
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assignment_serialization.json", cJSON_Print(root)));
 }
 
 void setUp(void) {

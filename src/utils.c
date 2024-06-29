@@ -75,6 +75,30 @@ char *LoadFileText(const char *fileName) {
     return text;
 }
 
+bool SaveFileText(const char *fileName, char *text) {
+    if (fileName == NULL) {
+        fprintf(stderr, "ERROR: File name provided is not valid to save\n");
+        return false;
+    }
+
+    FILE *file = fopen(fileName, "wt");
+    if (file == NULL) {
+        fprintf(stderr, "ERROR: [%s] Failed to open text file\n", fileName);
+        return false;
+    }
+
+    int count = fprintf(file, "%s", text);
+    if (count == 0) {
+        fprintf(stderr, "ERROR: [%s] Failed to write text file\n", fileName);
+        fclose(file);
+        return false;
+    }
+
+    fprintf(stdout, "SUCCESS: [%s] Text file saved successfully\n", fileName);
+    fclose(file);
+    return true;
+}
+
 char *Slice(const char *source, size_t start, size_t end) {
     size_t length = end - start;
     if (length <= 0) {
