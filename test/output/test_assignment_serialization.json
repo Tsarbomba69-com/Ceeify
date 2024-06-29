@@ -24,6 +24,21 @@
 			"type":	"BINARY OPERATION",
 			"depth":	2,
 			"dataType":	"INT",
-			"operator":	"+"
+			"operator":	"+",
+			"left":	{
+				"type":	"VARIABLE",
+				"depth":	3,
+				"variable":	{
+					"identifier":	"a",
+					"dataType":	"INT",
+					"ctx":	"LOAD"
+				}
+			},
+			"right":	{
+				"type":	"LITERAL",
+				"depth":	3,
+				"dataType":	"INT",
+				"value":	"1"
+			}
 		}
 	}]

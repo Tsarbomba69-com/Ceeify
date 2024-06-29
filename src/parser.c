@@ -52,7 +52,7 @@ Node *ParseStatement(Parser *parser) {
 
             if (strcmp(token->lexeme, "import") == 0) {
                 node = CreateNode(IMPORT);
-                node->import_stmt->modules = CollectUntil(parser, NEWLINE);
+                node->importStmt->modules = CollectUntil(parser, NEWLINE);
             }
 
             if (strcmp(token->lexeme, "while") == 0) {
@@ -269,7 +269,7 @@ Node *CreateNode(NodeType type) {
     node->depth = 1;
     switch (type) {
         case IMPORT:
-            node->import_stmt = CreateImportStmt();
+            node->importStmt = CreateImportStmt();
             return node;
         case ASSIGNMENT:
             node->assignStmt = CreateAssignStmt();
@@ -410,6 +410,7 @@ Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable *symbolTable) {
                     Node *node = CreateNode(UNARY_OPERATION);
                     node->unOp = CreateUnaryOp(token->lexeme);
                     node->unOp->operand = right;
+                    node->unOp->type = InferType(node, symbolTable);
                     Node_AddFirst(&stack, node);
                 }
             }
@@ -623,53 +624,57 @@ cJSON *SerializeNode(Node *node) {
             cJSON_AddStringToObject(root, "dataType", DataTypeToString(node->literal->type));
             cJSON_AddStringToObject(root, "value", node->literal->value);
             break;
+        case IMPORT: {
+            cJSON *modules = cJSON_CreateArray();
+            cJSON_AddItemToObject(root, "modules", modules);
+            for (size_t i = 0; i < node->importStmt->modules.size; ++i) {
+                Token *token = Token_Get(&node->importStmt->modules, i);
+                cJSON_AddItemToArray(modules, SerializeToken(token));
+            }
+        }break;
+        case VARIABLE:
+            cJSON_AddItemToObject(root, "variable", SerializeName(node->variable));
+            break;
         case UNARY_OPERATION:
             cJSON_AddStringToObject(root, "dataType", DataTypeToString(node->unOp->type));
             cJSON_AddStringToObject(root, "operator", node->unOp->operator);
-            SerializeNode(node->unOp->operand);
+            cJSON_AddItemToObject(root, "operand", SerializeNode(node->unOp->operand));
             break;
         case BINARY_OPERATION:
             cJSON_AddStringToObject(root, "dataType", DataTypeToString(node->binOp->type));
             cJSON_AddStringToObject(root, "operator", node->binOp->operator);
-            SerializeNode(node->binOp->left);
-            SerializeNode(node->binOp->right);
+            cJSON_AddItemToObject(root, "left", SerializeNode(node->binOp->left));
+            cJSON_AddItemToObject(root, "right", SerializeNode(node->binOp->right));
             break;
-        case ASSIGNMENT: {
+        case ASSIGNMENT:
             cJSON_AddItemToObject(root, "target", SerializeName(node->assignStmt->target));
             cJSON_AddItemToObject(root, "value", SerializeNode(node->assignStmt->value));
-        }
             break;
         case IF:
-            SerializeNode(node->ifStmt->test);
-            Node_Node *current = node->ifStmt->body.head;
-            while (current != NULL) {
-                SerializeNode(current->data);
-                current = current->next;
-            }
-            current = node->ifStmt->orelse.head;
-            while (current != NULL) {
-                SerializeNode(current->data);
-                current = current->next;
-            }
+            cJSON_AddItemToObject(root, "test", SerializeNode(node->ifStmt->test));
+            cJSON_AddItemToObject(root, "body", SerializeProgram(&node->ifStmt->body));
+            cJSON_AddItemToObject(root, "orelse", SerializeProgram(&node->ifStmt->orelse));
             break;
         case LIST_EXPR:
-            current = node->list->elts.head;
-            while (current != NULL) {
-                SerializeNode(current->data);
-                current = current->next;
-            }
+            cJSON_AddItemToObject(root, "list", SerializeProgram(&node->list->elts));
             break;
         case WHILE:
-            SerializeNode(node->whileStmt->test);
-            current = node->whileStmt->body.head;
-            while (current != NULL) {
-                SerializeNode(current->data);
-                current = current->next;
-            }
+            cJSON_AddItemToObject(root, "test", SerializeNode(node->whileStmt->test));
+            cJSON_AddItemToObject(root, "body", SerializeProgram(&node->whileStmt->body));
+            cJSON_AddItemToObject(root, "orelse", SerializeProgram(&node->whileStmt->orelse));
             break;
         default:
             break;
     }
+    return root;
+}
+
+cJSON *SerializeToken(Token *token) {
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "type", TokenTypeToString(token->type));
+    cJSON_AddStringToObject(root, "lexeme", token->lexeme);
+    cJSON_AddNumberToObject(root, "line", token->line);
+    cJSON_AddNumberToObject(root, "col", token->col);
     return root;
 }
 
@@ -689,7 +694,7 @@ void PrintVar(Name *variable, size_t depth) {
 void PrintImportStmt(Node const *stmt) {
     const char *type = NodeTypeToString(IMPORT);
     printf("{ \033[0;36mmodules\033[0m: [ \n");
-    Token_ForEach(&stmt->import_stmt->modules, PrintToken);
+    Token_ForEach(&stmt->importStmt->modules, PrintToken);
     printf("]");
     printf(", \033[0;36m\033[0;36mtype\033[0m\033[0m: \033[0;36m\033[0;92m%s\033[0m\033[0m, \033[0;36m\033[0;36mdepth\033[0m\033[0m: \033[0;31m%zu\033[0m }",
            type, stmt->depth);

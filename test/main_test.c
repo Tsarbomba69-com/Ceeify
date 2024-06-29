@@ -163,6 +163,19 @@ void test_assignment_serialization(void) {
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assignment_serialization.json", cJSON_Print(root)));
 }
 
+void test_portal_serialization(void) {
+    // Arrange
+    source = LoadFileText(SAMPLES[0]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
+    // Act
+    const cJSON *root = SerializeProgram(&program);
+    // Assert
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_portal_serialization.json", cJSON_Print(root)));
+}
+
 void setUp(void) {
     source = LoadFileText(SAMPLES[0]);
     if (source == NULL) return;
@@ -187,5 +200,6 @@ int main(void) {
     RUN_TEST(test_insert_pair);
     RUN_TEST(test_insert_retrieve);
     RUN_TEST(test_assignment_serialization);
+    RUN_TEST(test_portal_serialization);
     return UNITY_END();
 }

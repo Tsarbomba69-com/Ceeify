@@ -113,7 +113,7 @@ typedef struct Node {
     size_t depth;
     union {
         Literal *literal;
-        ImportStmt *import_stmt;
+        ImportStmt *importStmt;
         IfStmt *ifStmt;
         WhileStmt *whileStmt;
         ForStmt *forStmt;
@@ -200,6 +200,8 @@ cJSON *SerializeNode(Node *node);
 cJSON *SerializeName(Name *variable);
 
 cJSON *SerializeProgram(Node_LinkedList *program);
+
+cJSON *SerializeToken(Token *token);
 
 // Converts a node type to string. Mostly for printing purposes
 const char *NodeTypeToString(NodeType type);
