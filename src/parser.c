@@ -2,6 +2,8 @@
 
 const char *UNARY_OPERATORS[] = {"+", "-", "~", "not"};
 
+const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
+
 Node_LinkedList ParseStatements(Parser *parser) {
     Node_LinkedList stmts = Node_CreateLinkedList();
     for (; parser->lexer.token_idx < parser->lexer.tokens.size; ++parser->lexer.token_idx) {
@@ -394,7 +396,7 @@ Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable *symbolTable) {
                 Node_AddFirst(&stack, literal);
             }
                 break;
-            case OPERATOR: {
+            case OPERATOR: { // TODO: Create compare node type
                 Node *right = Node_Pop(&stack);
                 Node *left = Node_Pop(&stack);
 
@@ -631,7 +633,8 @@ cJSON *SerializeNode(Node *node) {
                 Token *token = Token_Get(&node->importStmt->modules, i);
                 cJSON_AddItemToArray(modules, SerializeToken(token));
             }
-        }break;
+        }
+            break;
         case VARIABLE:
             cJSON_AddItemToObject(root, "variable", SerializeName(node->variable));
             break;
@@ -760,6 +763,8 @@ const char *DataTypeToString(DataType type) {
             return "COMPLEX";
         case LIST:
             return "LIST";
+        case BOOL:
+            return "BOOL";
         default:
             return "UNKNOWN";
     }
@@ -786,9 +791,14 @@ DataType InferType(Node const *node, Symbol_HashTable *symbolTable) {
             return InferType(node->assignStmt->value, symbolTable);
         case LITERAL:
             return node->literal->type;
-        case BINARY_OPERATION:
-            return TypePrecedence(InferType(node->binOp->left, symbolTable),
-                                  InferType(node->binOp->right, symbolTable));
+        case BINARY_OPERATION: {
+            DataType left = InferType(node->binOp->left, symbolTable);
+            DataType right = InferType(node->binOp->right, symbolTable);
+            bool isComparison = Any((void **) COMPARISON_OPERATORS, ARRAYSIZE(COMPARISON_OPERATORS),
+                                    node->binOp->operator,
+                                    (CompareFn) StrEQ);
+            return isComparison ? BOOL : TypePrecedence(left, right);
+        }
         case UNARY_OPERATION:
             return InferType(node->unOp->operand, symbolTable);
         case VARIABLE:

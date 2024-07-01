@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../../../../../Unity" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../../../cJSON" vcs="Git" />
   </component>
 </project>

@@ -33,6 +33,7 @@ typedef enum DataType {
     FLOAT,
     COMPLEX,
     OBJECT,
+    BOOL,
     LIST,
     FUNCTION
 } DataType;

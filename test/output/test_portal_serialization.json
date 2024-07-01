@@ -300,12 +300,12 @@
 		"test":	{
 			"type":	"BINARY OPERATION",
 			"depth":	2,
-			"dataType":	"FLOAT",
+			"dataType":	"BOOL",
 			"operator":	"<",
 			"left":	{
 				"type":	"BINARY OPERATION",
 				"depth":	3,
-				"dataType":	"FLOAT",
+				"dataType":	"BOOL",
 				"operator":	"<=",
 				"left":	{
 					"type":	"LITERAL",
@@ -366,7 +366,7 @@
 				"test":	{
 					"type":	"BINARY OPERATION",
 					"depth":	3,
-					"dataType":	"FLOAT",
+					"dataType":	"BOOL",
 					"operator":	">",
 					"left":	{
 						"type":	"VARIABLE",

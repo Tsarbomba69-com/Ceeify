@@ -40,6 +40,21 @@ void test_elif_statement_format(void) {
     TEST_ASSERT_EQUAL_STRING("pow", assign_stmt->target->id);
 }
 
+void test_relational_operation(void) {
+    // Arrange
+    source = LoadFileText(SAMPLES[2]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    // Act
+    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Node_LinkedList program = ParseStatements(&parser);
+    Node_Pop(&program);
+    Node_Pop(&program);
+    const IfStmt *ifStmt = Node_Pop(&program)->ifStmt;
+    // Assert
+    TEST_ASSERT_EQUAL(BOOL, ifStmt->test->binOp->type);
+}
+
 void test_list_size(void) {
     source = LoadFileText(SAMPLES[1]);
     if (source == NULL) return;
@@ -201,5 +216,6 @@ int main(void) {
     RUN_TEST(test_insert_retrieve);
     RUN_TEST(test_assignment_serialization);
     RUN_TEST(test_portal_serialization);
+    RUN_TEST(test_relational_operation);
     return UNITY_END();
 }
