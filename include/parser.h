@@ -17,6 +17,7 @@ typedef enum NodeType {
     ASSIGNMENT,
     IMPORT,
     BINARY_OPERATION,
+    COMPARE,
     UNARY_OPERATION,
     LITERAL,
     VARIABLE,
@@ -109,6 +110,12 @@ typedef struct ForStmt {
     Node_LinkedList orelse;
 } ForStmt;
 
+typedef struct Compare {
+    Node *left;
+    Token_ArrayList ops;
+    Node_LinkedList comparators;
+} Compare;
+
 typedef struct Node {
     NodeType type;
     size_t depth;
@@ -119,6 +126,7 @@ typedef struct Node {
         WhileStmt *whileStmt;
         ForStmt *forStmt;
         BinaryOperation *binOp;
+        Compare *compare;
         UnaryOperation *unOp;
         Assign *assignStmt;
         Name *variable;
@@ -135,7 +143,7 @@ typedef struct Symbol {
 } Symbol;
 
 static inline Parser CreateParser(Lexer lexer, Symbol_HashTable ht) {
-    return (Parser){.lexer = lexer, .symbolTable = ht};
+    return (Parser) {.lexer = lexer, .symbolTable = ht};
 }
 
 // Receives a list of tokens parses into a list of statements and advances the global token index
@@ -167,7 +175,7 @@ UnaryOperation *CreateUnaryOp(char *op);
 
 ForStmt *CreateForStmt();
 
-Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable* symbolTable);
+Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable *symbolTable);
 
 void PrintList(Node const *node, char *spaces);
 
@@ -180,6 +188,8 @@ Node *CreateNode(NodeType type);
 Tokens InfixToPostfix(Tokens const *tokens);
 
 Node *CreateBinOp(Token *token, Node *left, Node *right);
+
+Node *CreateCompare(Token *token, Node *left, Node *right);
 
 DataType InferType(Node const *node, Symbol_HashTable *symbolTable);
 

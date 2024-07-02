@@ -52,7 +52,7 @@ void test_relational_operation(void) {
     Node_Pop(&program);
     const IfStmt *ifStmt = Node_Pop(&program)->ifStmt;
     // Assert
-    TEST_ASSERT_EQUAL(BOOL, ifStmt->test->binOp->type);
+    TEST_ASSERT_EQUAL(LITERAL, ifStmt->test->compare->left->type);
 }
 
 void test_list_size(void) {
@@ -80,11 +80,14 @@ void test_while_statement(void) {
     TEST_ASSERT_NOT_EQUAL(NULL, node->whileStmt->test);
     TEST_ASSERT_GREATER_OR_EQUAL(1, node->whileStmt->body.size);
     // Check the test expression
-    TEST_ASSERT_EQUAL(BINARY_OPERATION, node->whileStmt->test->type);
-    TEST_ASSERT_EQUAL_STRING("<=", node->whileStmt->test->binOp->operator);
-    TEST_ASSERT_EQUAL(VARIABLE, node->whileStmt->test->binOp->left->type);
-    TEST_ASSERT_EQUAL(LITERAL, node->whileStmt->test->binOp->right->type);
-    TEST_ASSERT_EQUAL(LOAD, node->whileStmt->test->binOp->left->variable->ctx);
+    TEST_ASSERT_EQUAL(COMPARE, node->whileStmt->test->type);
+    const Token* op = Token_Get(&node->whileStmt->test->compare->ops, 0);
+    TEST_ASSERT_EQUAL_STRING("<=", op->lexeme);
+    const Node* left = node->whileStmt->test->compare->left;
+    TEST_ASSERT_EQUAL(VARIABLE, left->type);
+    const Node* right = Node_Pop(&node->whileStmt->test->compare->comparators);
+    TEST_ASSERT_EQUAL(LITERAL, right->type);
+    TEST_ASSERT_EQUAL(LOAD, left->variable->ctx);
     // Check the body statement
     Node const *stmt = Node_Pop(&node->whileStmt->body);
     TEST_ASSERT_EQUAL(ASSIGNMENT, stmt->type);

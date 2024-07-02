@@ -298,37 +298,39 @@
 		"type":	"IF",
 		"depth":	1,
 		"test":	{
-			"type":	"BINARY OPERATION",
+			"type":	"COMPARE",
 			"depth":	2,
-			"dataType":	"BOOL",
-			"operator":	"<",
 			"left":	{
-				"type":	"BINARY OPERATION",
-				"depth":	3,
-				"dataType":	"BOOL",
-				"operator":	"<=",
-				"left":	{
+				"type":	"LITERAL",
+				"depth":	1,
+				"dataType":	"INT",
+				"value":	"1"
+			},
+			"ops":	[{
+					"type":	"OPERATOR",
+					"lexeme":	"<=",
+					"line":	11,
+					"col":	7
+				}, {
+					"type":	"OPERATOR",
+					"lexeme":	"<",
+					"line":	11,
+					"col":	11
+				}],
+			"comparators":	[{
 					"type":	"LITERAL",
-					"depth":	4,
+					"depth":	1,
 					"dataType":	"INT",
-					"value":	"1"
-				},
-				"right":	{
+					"value":	"10"
+				}, {
 					"type":	"VARIABLE",
-					"depth":	4,
+					"depth":	1,
 					"variable":	{
 						"identifier":	"a",
 						"dataType":	"FLOAT",
 						"ctx":	"LOAD"
 					}
-				}
-			},
-			"right":	{
-				"type":	"LITERAL",
-				"depth":	3,
-				"dataType":	"INT",
-				"value":	"10"
-			}
+				}]
 		},
 		"body":	[{
 				"type":	"ASSIGNMENT",
@@ -364,40 +366,44 @@
 				"type":	"IF",
 				"depth":	2,
 				"test":	{
-					"type":	"BINARY OPERATION",
+					"type":	"COMPARE",
 					"depth":	3,
-					"dataType":	"BOOL",
-					"operator":	">",
 					"left":	{
 						"type":	"VARIABLE",
-						"depth":	4,
+						"depth":	1,
 						"variable":	{
 							"identifier":	"a",
 							"dataType":	"FLOAT",
 							"ctx":	"LOAD"
 						}
 					},
-					"right":	{
-						"type":	"BINARY OPERATION",
-						"depth":	4,
-						"dataType":	"INT",
-						"operator":	"*",
-						"left":	{
-							"type":	"VARIABLE",
-							"depth":	5,
-							"variable":	{
-								"identifier":	"b",
-								"dataType":	"INT",
-								"ctx":	"LOAD"
-							}
-						},
-						"right":	{
-							"type":	"LITERAL",
-							"depth":	5,
+					"ops":	[{
+							"type":	"OPERATOR",
+							"lexeme":	">",
+							"line":	13,
+							"col":	8
+						}],
+					"comparators":	[{
+							"type":	"BINARY OPERATION",
+							"depth":	1,
 							"dataType":	"INT",
-							"value":	"2"
-						}
-					}
+							"operator":	"*",
+							"left":	{
+								"type":	"VARIABLE",
+								"depth":	1,
+								"variable":	{
+									"identifier":	"b",
+									"dataType":	"INT",
+									"ctx":	"LOAD"
+								}
+							},
+							"right":	{
+								"type":	"LITERAL",
+								"depth":	1,
+								"dataType":	"INT",
+								"value":	"2"
+							}
+						}]
 				},
 				"body":	[{
 						"type":	"ASSIGNMENT",

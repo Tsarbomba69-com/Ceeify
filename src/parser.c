@@ -115,15 +115,13 @@ Node *ParseWhileStatement(Parser *parser) {
 Node *ParseIfStatement(Parser *parser) {
     Node *node = CreateNode(IF);
     IfStmt *ifStmt = node->ifStmt;
-
-    Token const *token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
     ifStmt->test = ParseExpression(parser);
     parser->lexer.token_idx += 3;
     ifStmt->body = ParseStatements(parser);
     Node *last = node;
     // Parse the 'elif' and 'else' blocks
     for (; parser->lexer.token_idx < parser->lexer.tokens.size; parser->lexer.token_idx++) {
-        token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
+        Token const *token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
         if (strcmp(token->lexeme, "elif") == 0) {
             Node *elifNode = CreateNode(IF);
             IfStmt *elifStmt = elifNode->ifStmt;
@@ -282,6 +280,7 @@ Node *CreateNode(NodeType type) {
         case UNARY_OPERATION:
         case LITERAL:
         case BINARY_OPERATION:
+        case COMPARE:
             return node;
         case LIST_EXPR:
             node->list = AllocateContext(sizeof(List));
@@ -396,11 +395,25 @@ Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable *symbolTable) {
                 Node_AddFirst(&stack, literal);
             }
                 break;
-            case OPERATOR: { // TODO: Create compare node type
+            case OPERATOR: {
                 Node *right = Node_Pop(&stack);
                 Node *left = Node_Pop(&stack);
 
                 if (right != NULL && left != NULL) {
+                    if (Any((void **) COMPARISON_OPERATORS, ARRAYSIZE(COMPARISON_OPERATORS), token->lexeme,
+                            (CompareFn) StrEQ)) {
+                        Node *comp = NULL;
+                        if (left->type == COMPARE) {
+                            Node_AddFirst(&left->compare->comparators, right);
+                            Token_Push(&left->compare->ops, token);
+                            comp = left;
+                        } else {
+                            comp = CreateCompare(token, left, right);
+                        }
+                        Node_AddFirst(&stack, comp);
+                        continue;
+                    }
+
                     Node *bin = CreateBinOp(token, left, right);
                     bin->binOp->type = InferType(bin, symbolTable);
                     Node_AddFirst(&stack, bin);
@@ -444,6 +457,22 @@ Node *CreateBinOp(Token *token, Node *left, Node *right) {
     node->binOp->left = left;
     node->binOp->right = right;
     node->binOp->operator = token->lexeme;
+    return node;
+}
+
+Node *CreateCompare(Token *token, Node *left, Node *right) {
+    Node *node = CreateNode(COMPARE);
+    node->compare = AllocateContext(sizeof(Compare));
+    if (node->binOp == NULL) {
+        fprintf(stderr, "ERROR: Could not allocate memory for comparison operation\n");
+        return NULL;
+    }
+
+    node->compare->left = left;
+    node->compare->comparators = Node_CreateLinkedList();
+    node->compare->ops = Token_CreateArrayList(5);
+    Token_Push(&node->compare->ops, token);
+    Node_AddFirst(&node->compare->comparators, right);
     return node;
 }
 
@@ -653,6 +682,16 @@ cJSON *SerializeNode(Node *node) {
             cJSON_AddItemToObject(root, "target", SerializeName(node->assignStmt->target));
             cJSON_AddItemToObject(root, "value", SerializeNode(node->assignStmt->value));
             break;
+        case COMPARE:
+            cJSON_AddItemToObject(root, "left", SerializeNode(node->compare->left));
+            cJSON *ops = cJSON_CreateArray();
+            cJSON_AddItemToObject(root, "ops", ops);
+            cJSON_AddItemToObject(root, "comparators", SerializeProgram(&node->compare->comparators));
+            for (size_t i = 0; i < node->compare->ops.size; ++i) {
+                Token *token = Token_Get(&node->compare->ops, i);
+                cJSON_AddItemToArray(ops, SerializeToken(token));
+            }
+            break;
         case IF:
             cJSON_AddItemToObject(root, "test", SerializeNode(node->ifStmt->test));
             cJSON_AddItemToObject(root, "body", SerializeProgram(&node->ifStmt->body));
@@ -723,6 +762,8 @@ const char *NodeTypeToString(NodeType type) {
             return "LITERAL";
         case UNARY_OPERATION:
             return "UNARY OPERATION";
+        case COMPARE:
+            return "COMPARE";
         case BINARY_OPERATION:
             return "BINARY OPERATION";
         case LIST_EXPR:
