@@ -398,5 +398,6 @@ FodyWeavers.xsd
 *.sln.iml
 
 .idea/
+.vscode/
 cmake-build-debug/
 cmake-build-release/
