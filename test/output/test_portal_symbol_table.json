@@ -1,0 +1,42 @@
+{
+	"kind":	"MODULE",
+	"dataType":	"VOID",
+	"scope":	[{
+			"kind":	"VAR",
+			"dataType":	"FLOAT",
+			"scope":	[],
+			"line":	3,
+			"col":	1,
+			"id":	"a"
+		}, {
+			"kind":	"VAR",
+			"dataType":	"INT",
+			"scope":	[],
+			"line":	4,
+			"col":	1,
+			"id":	"b"
+		}, {
+			"kind":	"VAR",
+			"dataType":	"LIST",
+			"scope":	[],
+			"line":	8,
+			"col":	1,
+			"id":	"c"
+		}, {
+			"kind":	"VAR",
+			"dataType":	"LIST",
+			"scope":	[],
+			"line":	9,
+			"col":	1,
+			"id":	"d"
+		}, {
+			"kind":	"VAR",
+			"dataType":	"INT",
+			"scope":	[],
+			"line":	17,
+			"col":	3,
+			"id":	"sum"
+		}],
+	"line":	0,
+	"col":	0
+}

@@ -4,6 +4,8 @@ const char *UNARY_OPERATORS[] = {"+", "-", "~", "not"};
 
 const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
 
+const char *const SymbolTypeToString(SymbolType type);
+
 Node_LinkedList ParseStatements(Parser *parser) {
     Node_LinkedList stmts = Node_CreateLinkedList();
     for (; parser->lexer.token_idx < parser->lexer.tokens.size; ++parser->lexer.token_idx) {
@@ -31,18 +33,17 @@ Node *ParseStatement(Parser *parser) {
                 Assign *assign = node->assignStmt;
                 Name *var = (CreateNode(VARIABLE))->variable;
                 Node *val = ParseExpression(parser);
-                var->type = InferType(val, &parser->symbolTable);
+                var->type = InferType(val, parser->context);
                 var->ctx = STORE;
                 var->id = token->lexeme;
                 assign->target = var;
                 assign->value = val;
-                Symbol *symbol = Symbol_Search(&parser->symbolTable, var->id);
+                Symbol *symbol = StackSymbolsLookup(parser->context, var->id);
                 if (symbol == NULL) {
-                    symbol = AllocateContext(sizeof(Symbol));
-                    symbol->type = var->type;
+                    symbol = CreateSymbol(var->type, VAR);
                     symbol->line = token->line;
                     symbol->col = token->col;
-                    Symbol_Insert(&parser->symbolTable, var->id, symbol);
+                    Symbol_Insert(&parser->context->scope, var->id, symbol);
                 }
             }
         }
@@ -67,7 +68,10 @@ Node *ParseStatement(Parser *parser) {
         }
             break;
         case NEWLINE:
-            if (next->ident != token->ident) return CreateNode(END_BLOCK);
+            if (next->ident != token->ident) {
+                parser->context = parser->context->parent == NULL ? parser->context : parser->context->parent;
+                return CreateNode(END_BLOCK);
+            }
             break;
         default:
             break;
@@ -89,18 +93,29 @@ Node *ParseForStatement(Parser *parser) {
     }
 
     node->forStmt->iter = ParseExpression(parser);
-    node->forStmt->target.variable->type = InferType(node->forStmt->iter, &parser->symbolTable);
-    Symbol *symbol = Symbol_Search(&parser->symbolTable, node->forStmt->target.variable->id);
+    node->forStmt->target.variable->type = InferType(node->forStmt->iter, parser->context);
+    Symbol *symbol = StackSymbolsLookup(parser->context, node->forStmt->target.variable->id);
     if (symbol == NULL) {
         symbol = AllocateContext(sizeof(Symbol));
         symbol->type = node->forStmt->target.variable->type;
         symbol->line = token->line;
         symbol->col = token->col;
-        Symbol_Insert(&parser->symbolTable, node->forStmt->target.variable->id, symbol);
+        Symbol_Insert(&parser->context->scope, node->forStmt->target.variable->id, symbol);
     }
     parser->lexer.token_idx += 3;
     node->forStmt->body = ParseStatements(parser);
     return node;
+}
+
+Symbol *StackSymbolsLookup(Symbol *scope, const char *id) {
+    for (Symbol_HashTable *current = &scope->scope; current != NULL;) {
+        Symbol *symbol = Symbol_Search(current, id);
+        if (symbol != NULL) {
+            return symbol;
+        }
+        current = scope->parent == NULL ? NULL : &scope->parent->scope;
+    }
+    return NULL;
 }
 
 Node *ParseWhileStatement(Parser *parser) {
@@ -157,7 +172,7 @@ Node *ParseExpression(Parser *parser) {
     Tokens expression = CollectExpression(&parser->lexer.tokens, parser->lexer.token_idx + 1);
     parser->lexer.token_idx += expression.size;
     expression = InfixToPostfix(&expression);
-    return ShuntingYard(&expression, &parser->symbolTable);
+    return ShuntingYard(&expression, parser->context);
 }
 
 ImportStmt *CreateImportStmt() {
@@ -369,14 +384,14 @@ Tokens InfixToPostfix(Tokens const *tokens) {
     return postfix;
 }
 
-Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable *symbolTable) {
+Node *ShuntingYard(Tokens const *tokens, Symbol *namespace) {
     Node_LinkedList stack = Node_CreateLinkedList();
 
     for (size_t i = 0; i < tokens->size; i++) {
         Token *token = Token_Get(tokens, i);
         switch (token->type) {
             case IDENTIFIER: {
-                Symbol const *targetSymbol = Symbol_Search(symbolTable, token->lexeme);
+                Symbol const *targetSymbol = StackSymbolsLookup(namespace, token->lexeme);
                 if (targetSymbol == NULL) {
                     fprintf(stderr, "NameError: name \"%s\" is not defined.\n line: %zu, col: %zu\n", token->lexeme);
                     exit(1);
@@ -415,7 +430,7 @@ Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable *symbolTable) {
                     }
 
                     Node *bin = CreateBinOp(token, left, right);
-                    bin->binOp->type = InferType(bin, symbolTable);
+                    bin->binOp->type = InferType(bin, namespace);
                     Node_AddFirst(&stack, bin);
                     continue;
                 }
@@ -425,7 +440,7 @@ Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable *symbolTable) {
                     Node *node = CreateNode(UNARY_OPERATION);
                     node->unOp = CreateUnaryOp(token->lexeme);
                     node->unOp->operand = right;
-                    node->unOp->type = InferType(node, symbolTable);
+                    node->unOp->type = InferType(node, namespace);
                     Node_AddFirst(&stack, node);
                 }
             }
@@ -806,6 +821,8 @@ const char *DataTypeToString(DataType type) {
             return "LIST";
         case BOOL:
             return "BOOL";
+        case VOID:
+            return "VOID";
         default:
             return "UNKNOWN";
     }
@@ -826,24 +843,24 @@ size_t Precedence(const char *op) {
 
 }
 
-DataType InferType(Node const *node, Symbol_HashTable *symbolTable) {
+DataType InferType(Node const *node, Symbol *namespace) {
     switch (node->type) {
         case ASSIGNMENT:
-            return InferType(node->assignStmt->value, symbolTable);
+            return InferType(node->assignStmt->value, namespace);
         case LITERAL:
             return node->literal->type;
         case BINARY_OPERATION: {
-            DataType left = InferType(node->binOp->left, symbolTable);
-            DataType right = InferType(node->binOp->right, symbolTable);
+            DataType left = InferType(node->binOp->left, namespace);
+            DataType right = InferType(node->binOp->right, namespace);
             bool isComparison = Any((void **) COMPARISON_OPERATORS, ARRAYSIZE(COMPARISON_OPERATORS),
                                     node->binOp->operator,
                                     (CompareFn) StrEQ);
             return isComparison ? BOOL : TypePrecedence(left, right);
         }
         case UNARY_OPERATION:
-            return InferType(node->unOp->operand, symbolTable);
+            return InferType(node->unOp->operand, namespace);
         case VARIABLE:
-            return Symbol_Search(symbolTable, node->variable->id)->type;
+            return StackSymbolsLookup(namespace, node->variable->id)->type;
         case LIST_EXPR:
             return LIST;
         default:
@@ -861,3 +878,52 @@ DataType TypePrecedence(DataType left, DataType right) {
 
     return left;
 }
+
+Symbol *CreateSymbol(DataType type, SymbolType kind) {
+    Symbol *sym = AllocateContext(sizeof(Symbol));
+    sym->kind = kind;
+    sym->type = type;
+    sym->parent = NULL;
+    sym->col = 0;
+    sym->line = 0;
+    sym->scope = Symbol_CreateHashTable(10);
+    return sym;
+}
+
+cJSON *SerializeSymbolTable(Symbol_HashTable *namespaces) {
+    cJSON *root = cJSON_CreateArray();
+    for (size_t i = 0; i < namespaces->size; ++i) {
+        char_Symbol_Pair *kv = namespaces->buckets[i];
+        cJSON *item = SerializeSymbol(kv->value);
+        cJSON_AddStringToObject(item, "id", kv->key);
+        cJSON_AddItemToArray(root, item);
+    }
+    return root;
+}
+
+cJSON *SerializeSymbol(Symbol *symbol) {
+    if (symbol == NULL) return NULL;
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "kind", SymbolTypeToString(symbol->kind));
+    cJSON_AddStringToObject(root, "dataType", DataTypeToString(symbol->type));
+    cJSON_AddItemToObject(root, "scope", SerializeSymbolTable(&symbol->scope));
+    cJSON_AddNumberToObject(root, "line", symbol->line);
+    cJSON_AddNumberToObject(root, "col", symbol->col);
+    return root;
+}
+
+const char *const SymbolTypeToString(SymbolType type) {
+    switch (type) {
+        case CLASS:
+            return "CLASS";
+        case FUNCTION:
+            return "FUNCTION";
+        case MODULE:
+            return "MODULE";
+        case VAR:
+            return "VAR";
+        default:
+            return "UNKNOWN";
+    }
+}
+

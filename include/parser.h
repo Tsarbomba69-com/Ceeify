@@ -33,11 +33,17 @@ typedef enum DataType {
     INT,
     FLOAT,
     COMPLEX,
-    OBJECT,
     BOOL,
     LIST,
-    FUNCTION
+    VOID
 } DataType;
+
+typedef enum SymbolType {
+    CLASS,
+    MODULE,
+    FUNCTION,
+    VAR
+} SymbolType;
 
 typedef enum Context {
     STORE,
@@ -47,7 +53,8 @@ typedef enum Context {
 
 typedef struct Parser {
     Lexer lexer;
-    Symbol_HashTable symbolTable;
+    // Symbol_HashTable namespaces;
+    Symbol *context;
 } Parser;
 
 typedef struct ImportStmt {
@@ -136,20 +143,26 @@ typedef struct Node {
 
 typedef struct Symbol {
     DataType type;
+    SymbolType kind;
     size_t line;
     size_t col;
-    struct Symbol *params;
-    char *scope; // TODO: It should be a symbol table. There should be a symbol table for each scope (owner)
+    Symbol *parent;
+    Symbol_HashTable scope;
 } Symbol;
 
-static inline Parser CreateParser(Lexer lexer, Symbol_HashTable ht) {
-    return (Parser) {.lexer = lexer, .symbolTable = ht};
+Symbol *CreateSymbol(DataType type, SymbolType kind);
+
+static inline Parser CreateParser(Lexer lexer) {
+    Symbol *global = CreateSymbol(VOID, MODULE);
+    return (Parser) {.lexer = lexer, .context = global};
 }
 
-// Receives a list of tokens parses into a list of statements and advances the global token index
+Symbol *StackSymbolsLookup(Symbol *scope, const char *id);
+
+// Receives a list of tokens parses into a list of statements and advances the lexer's token index
 Node_LinkedList ParseStatements(Parser *parser);
 
-// Receives a list of tokens parses into a statement node and advances the global token index
+// Receives a list of tokens parses into a statement node and advances the lexer's token index
 Node *ParseStatement(Parser *parser);
 
 Node *ParseIfStatement(Parser *parser);
@@ -160,7 +173,7 @@ Node *ParseForStatement(Parser *parser);
 
 Token_ArrayList CollectUntil(Parser *parser, TokenType type);
 
-// Receives a list of tokens parses into an expression node and advances the global token index
+// Receives a list of tokens parses into an expression node and advances the lexer's token index
 Node *ParseExpression(Parser *parser);
 
 ImportStmt *CreateImportStmt();
@@ -175,7 +188,7 @@ UnaryOperation *CreateUnaryOp(char *op);
 
 ForStmt *CreateForStmt();
 
-Node *ShuntingYard(Tokens const *tokens, Symbol_HashTable *symbolTable);
+Node *ShuntingYard(Tokens const *tokens, Symbol *namespace);
 
 void PrintList(Node const *node, char *spaces);
 
@@ -191,7 +204,7 @@ Node *CreateBinOp(Token *token, Node *left, Node *right);
 
 Node *CreateCompare(Token *token, Node *left, Node *right);
 
-DataType InferType(Node const *node, Symbol_HashTable *symbolTable);
+DataType InferType(Node const *node, Symbol *namespace);
 
 DataType TypePrecedence(DataType left, DataType right);
 
@@ -213,6 +226,10 @@ cJSON *SerializeName(Name *variable);
 cJSON *SerializeProgram(Node_LinkedList *program);
 
 cJSON *SerializeToken(Token *token);
+
+cJSON *SerializeSymbolTable(Symbol_HashTable* namespaces);
+
+cJSON *SerializeSymbol(Symbol* symbol);
 
 // Converts a node type to string. Mostly for printing purposes
 const char *NodeTypeToString(NodeType type);

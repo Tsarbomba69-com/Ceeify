@@ -21,7 +21,7 @@ void test_fullscanning(void) {
 }
 
 void test_statement_number(void) {
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     TEST_ASSERT_EQUAL(11, program.size);
 }
@@ -30,7 +30,7 @@ void test_elif_statement_format(void) {
     source = LoadFileText(SAMPLES[2]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     Node_Pop(&program);
     Node_Pop(&program);
@@ -46,7 +46,7 @@ void test_relational_operation(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     // Act
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     Node_Pop(&program);
     Node_Pop(&program);
@@ -59,7 +59,7 @@ void test_list_size(void) {
     source = LoadFileText(SAMPLES[1]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     List const *num_list = Node_Pop(&program)->assignStmt->value->list;
     List const *str_list = Node_Pop(&program)->assignStmt->value->list;
@@ -71,7 +71,7 @@ void test_while_statement(void) {
     source = LoadFileText(SAMPLES[3]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     Node_Pop(&program);
     Node const *node = Node_Pop(&program);
@@ -105,7 +105,7 @@ void test_for_statement(void) {
     source = LoadFileText(SAMPLES[4]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     Node_Pop(&program);
     Node const *node = Node_Pop(&program);
@@ -132,7 +132,7 @@ void test_assign_statement(void) {
     source = LoadFileText(SAMPLES[5]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     // Check the assignment statement
     Node const *stmt1 = Node_Pop(&program);
@@ -159,7 +159,7 @@ void test_bin_op_type_precedence() {
     source = LoadFileText(SAMPLES[6]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     Node_Pop(&program);
     Node const *binOp = Node_Pop(&program)->assignStmt->value;
@@ -173,7 +173,7 @@ void test_assignment_serialization(void) {
     source = LoadFileText(SAMPLES[5]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     // Act
     const cJSON *root = SerializeProgram(&program);
@@ -186,12 +186,14 @@ void test_portal_serialization(void) {
     source = LoadFileText(SAMPLES[0]);
     if (source == NULL) return;
     lexer = Tokenize(source);
-    Parser parser = CreateParser(lexer, Symbol_CreateHashTable(10));
+    Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
     // Act
     const cJSON *root = SerializeProgram(&program);
+    const cJSON *symTable = SerializeSymbol(parser.context);
     // Assert
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_portal_serialization.json", cJSON_Print(root)));
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_portal_symbol_table.json", cJSON_Print(symTable)));
 }
 
 void setUp(void) {
