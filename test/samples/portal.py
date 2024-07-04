@@ -15,5 +15,5 @@ elif a > b * 2:
 else:
     pow = pow * pow
 sum = 0
-for sum in [1, 2, 3]:
-    sum = sum + 1
+for s in [1, 2, 3]:
+    sum = s + 1

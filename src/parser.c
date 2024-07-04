@@ -4,8 +4,6 @@ const char *UNARY_OPERATORS[] = {"+", "-", "~", "not"};
 
 const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
 
-const char *const SymbolTypeToString(SymbolType type);
-
 Node_LinkedList ParseStatements(Parser *parser) {
     Node_LinkedList stmts = Node_CreateLinkedList();
     for (; parser->lexer.token_idx < parser->lexer.tokens.size; ++parser->lexer.token_idx) {
@@ -82,6 +80,8 @@ Node *ParseStatement(Parser *parser) {
 Node *ParseForStatement(Parser *parser) {
     Node *node = CreateNode(FOR);
     Token const *token = Token_Get(&parser->lexer.tokens, ++parser->lexer.token_idx);
+    size_t line = token->line;
+    size_t col = token->col;
     node->forStmt->target.variable = CreateNameExpr();
     node->forStmt->target.variable->id = token->lexeme;
     node->forStmt->target.variable->ctx = STORE;
@@ -96,11 +96,16 @@ Node *ParseForStatement(Parser *parser) {
     node->forStmt->target.variable->type = InferType(node->forStmt->iter, parser->context);
     Symbol *symbol = StackSymbolsLookup(parser->context, node->forStmt->target.variable->id);
     if (symbol == NULL) {
-        symbol = AllocateContext(sizeof(Symbol));
-        symbol->type = node->forStmt->target.variable->type;
+        symbol = CreateSymbol(node->forStmt->target.variable->type, VAR);
         symbol->line = token->line;
         symbol->col = token->col;
-        Symbol_Insert(&parser->context->scope, node->forStmt->target.variable->id, symbol);
+        Symbol *ctx = CreateSymbol(VOID, BLOCK);
+        ctx->line = line;
+        ctx->col = col;
+        ctx->parent = parser->context;
+        Symbol_Insert(&ctx->scope, node->forStmt->target.variable->id, symbol);
+        Symbol_Insert(&parser->context->scope, TextFormat("%zu:%zu_for", line, col), ctx);
+        parser->context = ctx;
     }
     parser->lexer.token_idx += 3;
     node->forStmt->body = ParseStatements(parser);
@@ -892,7 +897,7 @@ Symbol *CreateSymbol(DataType type, SymbolType kind) {
 
 cJSON *SerializeSymbolTable(Symbol_HashTable *namespaces) {
     cJSON *root = cJSON_CreateArray();
-    for (size_t i = 0; i < namespaces->size; ++i) {
+    for (size_t i = 0; i < namespaces->capacity; ++i) {
         char_Symbol_Pair *kv = namespaces->buckets[i];
         cJSON *item = SerializeSymbol(kv->value);
         cJSON_AddStringToObject(item, "id", kv->key);
@@ -912,7 +917,7 @@ cJSON *SerializeSymbol(Symbol *symbol) {
     return root;
 }
 
-const char *const SymbolTypeToString(SymbolType type) {
+const char *SymbolTypeToString(SymbolType type) {
     switch (type) {
         case CLASS:
             return "CLASS";
@@ -922,6 +927,8 @@ const char *const SymbolTypeToString(SymbolType type) {
             return "MODULE";
         case VAR:
             return "VAR";
+        case BLOCK:
+            return "BLOCK";
         default:
             return "UNKNOWN";
     }

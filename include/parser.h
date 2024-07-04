@@ -42,6 +42,7 @@ typedef enum SymbolType {
     CLASS,
     MODULE,
     FUNCTION,
+    BLOCK,
     VAR
 } SymbolType;
 
@@ -227,9 +228,9 @@ cJSON *SerializeProgram(Node_LinkedList *program);
 
 cJSON *SerializeToken(Token *token);
 
-cJSON *SerializeSymbolTable(Symbol_HashTable* namespaces);
+cJSON *SerializeSymbolTable(Symbol_HashTable *namespaces);
 
-cJSON *SerializeSymbol(Symbol* symbol);
+cJSON *SerializeSymbol(Symbol *symbol);
 
 // Converts a node type to string. Mostly for printing purposes
 const char *NodeTypeToString(NodeType type);
@@ -239,6 +240,9 @@ const char *CtxToString(Name const *var);
 
 // Converts a data type to string. Mostly for printing purposes
 const char *DataTypeToString(DataType type);
+
+// Converts a symbol type to string. Mostly for printing purposes
+const char *SymbolTypeToString(SymbolType type);
 
 // Recursively traverse AST and assign depth to each node
 void TraverseTree(Node *node, size_t depth);

@@ -36,6 +36,27 @@
 			"line":	17,
 			"col":	3,
 			"id":	"sum"
+		}, {
+			"kind":	"BLOCK",
+			"dataType":	"VOID",
+			"scope":	[{
+					"kind":	"VAR",
+					"dataType":	"LIST",
+					"scope":	[],
+					"line":	18,
+					"col":	8,
+					"id":	"s"
+				}],
+			"line":	18,
+			"col":	5,
+			"id":	"18:5_for"
+		}, {
+			"kind":	"VAR",
+			"dataType":	"FLOAT",
+			"scope":	[],
+			"line":	12,
+			"col":	7,
+			"id":	"pow"
 		}],
 	"line":	0,
 	"col":	0
