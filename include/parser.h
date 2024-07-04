@@ -35,6 +35,7 @@ typedef enum DataType {
     COMPLEX,
     BOOL,
     LIST,
+    OBJECT,
     VOID
 } DataType;
 
@@ -207,6 +208,8 @@ Node *CreateCompare(Token *token, Node *left, Node *right);
 
 DataType InferType(Node const *node, Symbol *namespace);
 
+DataType InferListType(Node_LinkedList list, Symbol *namespace);
+
 DataType TypePrecedence(DataType left, DataType right);
 
 // Recursively traverse AST and print each node
@@ -228,7 +231,7 @@ cJSON *SerializeProgram(Node_LinkedList *program);
 
 cJSON *SerializeToken(Token *token);
 
-cJSON *SerializeSymbolTable(Symbol_HashTable *namespaces);
+cJSON *SerializeSymbolTable(const Symbol_HashTable *namespaces);
 
 cJSON *SerializeSymbol(Symbol *symbol);
 

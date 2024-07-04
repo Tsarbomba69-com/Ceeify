@@ -488,7 +488,7 @@
 		"depth":	1,
 		"target":	{
 			"identifier":	"s",
-			"dataType":	"LIST",
+			"dataType":	"INT",
 			"ctx":	"STORE"
 		},
 		"iter":	{
@@ -516,20 +516,20 @@
 				"depth":	1,
 				"target":	{
 					"identifier":	"sum",
-					"dataType":	"LIST",
+					"dataType":	"INT",
 					"ctx":	"STORE"
 				},
 				"value":	{
 					"type":	"BINARY OPERATION",
 					"depth":	2,
-					"dataType":	"LIST",
+					"dataType":	"INT",
 					"operator":	"+",
 					"left":	{
 						"type":	"VARIABLE",
 						"depth":	3,
 						"variable":	{
 							"identifier":	"s",
-							"dataType":	"LIST",
+							"dataType":	"INT",
 							"ctx":	"LOAD"
 						}
 					},

@@ -41,7 +41,7 @@
 			"dataType":	"VOID",
 			"scope":	[{
 					"kind":	"VAR",
-					"dataType":	"LIST",
+					"dataType":	"INT",
 					"scope":	[],
 					"line":	18,
 					"col":	8,

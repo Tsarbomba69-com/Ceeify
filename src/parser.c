@@ -94,6 +94,8 @@ Node *ParseForStatement(Parser *parser) {
 
     node->forStmt->iter = ParseExpression(parser);
     node->forStmt->target.variable->type = InferType(node->forStmt->iter, parser->context);
+    node->forStmt->target.variable->type = node->forStmt->iter->type == LIST_EXPR ?
+            InferListType(node->forStmt->iter->list->elts, parser->context) : node->forStmt->target.variable->type;
     Symbol *symbol = StackSymbolsLookup(parser->context, node->forStmt->target.variable->id);
     if (symbol == NULL) {
         symbol = CreateSymbol(node->forStmt->target.variable->type, VAR);
@@ -874,6 +876,15 @@ DataType InferType(Node const *node, Symbol *namespace) {
     }
 }
 
+DataType InferListType(Node_LinkedList list, Symbol *namespace) {
+    Node_Node *current = list.head;
+    DataType hType = InferType(current->data, namespace);
+    for (; current != NULL; current = current->next) {
+        if (hType != InferType(current->data, namespace)) return OBJECT;
+    }
+    return hType;
+}
+
 DataType TypePrecedence(DataType left, DataType right) {
     if (left == INT && (right == FLOAT || right == COMPLEX)) {
         return right;
@@ -895,7 +906,7 @@ Symbol *CreateSymbol(DataType type, SymbolType kind) {
     return sym;
 }
 
-cJSON *SerializeSymbolTable(Symbol_HashTable *namespaces) {
+cJSON *SerializeSymbolTable(const Symbol_HashTable *namespaces) {
     cJSON *root = cJSON_CreateArray();
     for (size_t i = 0; i < namespaces->capacity; ++i) {
         char_Symbol_Pair *kv = namespaces->buckets[i];
