@@ -33,6 +33,8 @@ add_executable(Ceeify
         include/Symbol_hashtable.h
         src/Symbol_hashtable.c
         test/hashtable_test.h
+        src/code_generator.c
+        include/code_generator.h
 )
 
 target_link_libraries(Ceeify ${UNITY_DIR}/cmake-build-debug/libunity.a)

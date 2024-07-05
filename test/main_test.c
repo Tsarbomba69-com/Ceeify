@@ -1,6 +1,7 @@
 #include "unity.h"
 #include "parser.h"
 #include "hashtable_test.h"
+#include "code_generator.h"
 
 const char *SAMPLES[] = {
         "./test/samples/portal.py",
@@ -83,11 +84,11 @@ void test_while_statement(void) {
     TEST_ASSERT_GREATER_OR_EQUAL(1, node->whileStmt->body.size);
     // Check the test expression
     TEST_ASSERT_EQUAL(COMPARE, node->whileStmt->test->type);
-    const Token* op = Token_Get(&node->whileStmt->test->compare->ops, 0);
+    const Token *op = Token_Get(&node->whileStmt->test->compare->ops, 0);
     TEST_ASSERT_EQUAL_STRING("<=", op->lexeme);
-    const Node* left = node->whileStmt->test->compare->left;
+    const Node *left = node->whileStmt->test->compare->left;
     TEST_ASSERT_EQUAL(VARIABLE, left->type);
-    const Node* right = Node_Pop(&node->whileStmt->test->compare->comparators);
+    const Node *right = Node_Pop(&node->whileStmt->test->compare->comparators);
     TEST_ASSERT_EQUAL(LITERAL, right->type);
     TEST_ASSERT_EQUAL(LOAD, left->variable->ctx);
     // Check the body statement
@@ -104,6 +105,17 @@ void test_while_statement(void) {
     // Assert serialization
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/while_statement.json", cJSON_Print(root)));
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/while_statement_symbol_table.json", cJSON_Print(symTable)));
+}
+
+void test_assign_codegen(void) {
+    // Arrange
+    source = LoadFileText(SAMPLES[5]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Parser parser = CreateParser(lexer);
+    Node_LinkedList program = ParseStatements(&parser);
+    Transpile(&program);
+    TEST_ASSERT_NOT_EMPTY(LoadFileText(OUTPUT_PATH"/assign_statement.c"));
 }
 
 void test_for_statement(void) {
@@ -227,5 +239,6 @@ int main(void) {
     RUN_TEST(test_assignment_serialization);
     RUN_TEST(test_portal_serialization);
     RUN_TEST(test_relational_operation);
+    RUN_TEST(test_assign_codegen);
     return UNITY_END();
 }

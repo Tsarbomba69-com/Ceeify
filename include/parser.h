@@ -55,7 +55,6 @@ typedef enum Context {
 
 typedef struct Parser {
     Lexer lexer;
-    // Symbol_HashTable namespaces;
     Symbol *context;
 } Parser;
 
