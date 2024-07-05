@@ -73,6 +73,8 @@ void test_while_statement(void) {
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
+    const cJSON *root = SerializeProgram(&program);
+    const cJSON *symTable = SerializeSymbol(parser.context);
     Node_Pop(&program);
     Node const *node = Node_Pop(&program);
     // Perform assertions on the while statement
@@ -99,6 +101,9 @@ void test_while_statement(void) {
     TEST_ASSERT_EQUAL(LOAD, stmt->assignStmt->value->binOp->left->variable->ctx);
     TEST_ASSERT_EQUAL(LITERAL, stmt->assignStmt->value->binOp->right->type);
     TEST_ASSERT_EQUAL_STRING("1", stmt->assignStmt->value->binOp->right->literal->value);
+    // Assert serialization
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/while_statement.json", cJSON_Print(root)));
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/while_statement_symbol_table.json", cJSON_Print(symTable)));
 }
 
 void test_for_statement(void) {

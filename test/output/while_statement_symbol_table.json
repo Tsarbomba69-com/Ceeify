@@ -1,0 +1,21 @@
+{
+	"kind":	"MODULE",
+	"dataType":	"VOID",
+	"scope":	[{
+			"kind":	"VAR",
+			"dataType":	"INT",
+			"scope":	[],
+			"line":	1,
+			"col":	4,
+			"id":	"sum"
+		}, {
+			"kind":	"BLOCK",
+			"dataType":	"VOID",
+			"scope":	[],
+			"line":	2,
+			"col":	15,
+			"id":	"2:15_while"
+		}],
+	"line":	0,
+	"col":	0
+}

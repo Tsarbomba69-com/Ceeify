@@ -1,0 +1,74 @@
+[{
+		"type":	"ASSIGNMENT",
+		"depth":	1,
+		"target":	{
+			"identifier":	"sum",
+			"dataType":	"INT",
+			"ctx":	"STORE"
+		},
+		"value":	{
+			"type":	"LITERAL",
+			"depth":	2,
+			"dataType":	"INT",
+			"value":	"0"
+		}
+	}, {
+		"type":	"WHILE",
+		"depth":	1,
+		"test":	{
+			"type":	"COMPARE",
+			"depth":	2,
+			"left":	{
+				"type":	"VARIABLE",
+				"depth":	1,
+				"variable":	{
+					"identifier":	"sum",
+					"dataType":	"INT",
+					"ctx":	"LOAD"
+				}
+			},
+			"ops":	[{
+					"type":	"OPERATOR",
+					"lexeme":	"<=",
+					"line":	2,
+					"col":	12
+				}],
+			"comparators":	[{
+					"type":	"LITERAL",
+					"depth":	1,
+					"dataType":	"INT",
+					"value":	"20"
+				}]
+		},
+		"body":	[{
+				"type":	"ASSIGNMENT",
+				"depth":	2,
+				"target":	{
+					"identifier":	"sum",
+					"dataType":	"INT",
+					"ctx":	"STORE"
+				},
+				"value":	{
+					"type":	"BINARY OPERATION",
+					"depth":	3,
+					"dataType":	"INT",
+					"operator":	"+",
+					"left":	{
+						"type":	"VARIABLE",
+						"depth":	4,
+						"variable":	{
+							"identifier":	"sum",
+							"dataType":	"INT",
+							"ctx":	"LOAD"
+						}
+					},
+					"right":	{
+						"type":	"LITERAL",
+						"depth":	4,
+						"dataType":	"INT",
+						"value":	"1"
+					}
+				}
+			}],
+		"orelse":	[]
+	}]

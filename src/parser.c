@@ -128,6 +128,13 @@ Symbol *StackSymbolsLookup(Symbol *namespace, const char *id) {
 Node *ParseWhileStatement(Parser *parser) {
     Node *node = CreateNode(WHILE);
     node->whileStmt->test = ParseExpression(parser);
+    Token const *token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
+    Symbol *ctx = CreateSymbol(VOID, BLOCK);
+    ctx->line = token->line;
+    ctx->col = token->col;
+    ctx->parent = parser->context;
+    Symbol_Insert(&parser->context->scope, TextFormat("%zu:%zu_while", ctx->line, ctx->col), ctx);
+    parser->context = ctx;
     parser->lexer.token_idx += 3;
     node->whileStmt->body = ParseStatements(parser);
     // TODO: Parse else clause
