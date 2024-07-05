@@ -41,7 +41,7 @@ bool SaveFileText(const char *fileName, char *text);
 // Take a string slice of the source string. WARNING: The caller is responsible for cleaning the memory
 char *Slice(const char *source, size_t start, size_t end);
 
-char *Join(char *separator, char **items, size_t count);
+char *Join(const char *separator, char **items, size_t count);
 
 char *Repeat(const char *str, size_t count);
 

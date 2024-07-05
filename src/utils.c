@@ -56,6 +56,7 @@ char *LoadFileText(const char *fileName) {
 
     if (size <= 0) {
         fprintf(stderr, "FATAL: [%s] Failed to read text file\n", fileName);
+        fclose(file);
         return NULL;
     }
 
@@ -63,6 +64,7 @@ char *LoadFileText(const char *fileName) {
 
     if (text == NULL) {
         fprintf(stderr, "FATAL: [%s] Failed to allocate memory for file reading\n", fileName);
+        fclose(file);
         return NULL;
     }
 
@@ -117,25 +119,6 @@ char *Slice(const char *source, size_t start, size_t end) {
     return result;
 }
 
-void AllocateElementes(ArrayList *list) {
-    list->elements = AllocateContext(list->capacity * sizeof(void *));
-    if (list->elements == NULL) {
-        fprintf(stderr, "ERROR: Could not allocate memory for array list elements");
-    }
-    list->size = 0;
-}
-
-ArrayList *AllocateArrayList(size_t capacity) {
-    ArrayList *list = AllocateContext(sizeof(ArrayList));
-    if (list == NULL) {
-        fprintf(stderr, "ERROR: Could not allocate memory for array list");
-        return NULL;
-    }
-    list->capacity = capacity;
-    AllocateElementes(list);
-    return list;
-}
-
 char *Repeat(const char *str, size_t count) {
     size_t str_len = strlen(str);
     size_t result_len = str_len * count;
@@ -163,7 +146,7 @@ bool Any(void *arr[], size_t size, void *el, CompareFn fn) {
     return false;
 }
 
-char *Join(char *separator, char **items, size_t count) {
+char *Join(const char *separator, char **items, size_t count) {
     if (count == 0) {
         fprintf(stderr, "ERROR: Count must be greater than zero\n");
         return NULL;
