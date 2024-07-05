@@ -3,6 +3,34 @@
 	"dataType":	"VOID",
 	"scope":	[{
 			"kind":	"VAR",
+			"dataType":	"INT",
+			"scope":	[],
+			"line":	17,
+			"col":	3,
+			"id":	"sum"
+		}, {
+			"kind":	"BLOCK",
+			"dataType":	"VOID",
+			"scope":	[{
+					"kind":	"VAR",
+					"dataType":	"FLOAT",
+					"scope":	[],
+					"line":	12,
+					"col":	7,
+					"id":	"pow"
+				}],
+			"line":	11,
+			"col":	14,
+			"id":	"11:14_if"
+		}, {
+			"kind":	"VAR",
+			"dataType":	"FLOAT",
+			"scope":	[],
+			"line":	14,
+			"col":	7,
+			"id":	"pow"
+		}, {
+			"kind":	"VAR",
 			"dataType":	"FLOAT",
 			"scope":	[],
 			"line":	3,
@@ -30,13 +58,6 @@
 			"col":	1,
 			"id":	"d"
 		}, {
-			"kind":	"VAR",
-			"dataType":	"INT",
-			"scope":	[],
-			"line":	17,
-			"col":	3,
-			"id":	"sum"
-		}, {
 			"kind":	"BLOCK",
 			"dataType":	"VOID",
 			"scope":	[{
@@ -50,13 +71,6 @@
 			"line":	18,
 			"col":	5,
 			"id":	"18:5_for"
-		}, {
-			"kind":	"VAR",
-			"dataType":	"FLOAT",
-			"scope":	[],
-			"line":	12,
-			"col":	7,
-			"id":	"pow"
 		}],
 	"line":	0,
 	"col":	0

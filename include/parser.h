@@ -159,7 +159,7 @@ static inline Parser CreateParser(Lexer lexer) {
     return (Parser) {.lexer = lexer, .context = global};
 }
 
-Symbol *StackSymbolsLookup(Symbol *scope, const char *id);
+Symbol *StackSymbolsLookup(Symbol *namespace, const char *id);
 
 // Receives a list of tokens parses into a list of statements and advances the lexer's token index
 Node_LinkedList ParseStatements(Parser *parser);
@@ -233,7 +233,7 @@ cJSON *SerializeToken(Token *token);
 
 cJSON *SerializeSymbolTable(const Symbol_HashTable *namespaces);
 
-cJSON *SerializeSymbol(Symbol *symbol);
+cJSON *SerializeSymbol(const Symbol *symbol);
 
 // Converts a node type to string. Mostly for printing purposes
 const char *NodeTypeToString(NodeType type);

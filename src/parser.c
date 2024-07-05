@@ -95,7 +95,8 @@ Node *ParseForStatement(Parser *parser) {
     node->forStmt->iter = ParseExpression(parser);
     node->forStmt->target.variable->type = InferType(node->forStmt->iter, parser->context);
     node->forStmt->target.variable->type = node->forStmt->iter->type == LIST_EXPR ?
-            InferListType(node->forStmt->iter->list->elts, parser->context) : node->forStmt->target.variable->type;
+                                           InferListType(node->forStmt->iter->list->elts, parser->context)
+                                                                                  : node->forStmt->target.variable->type;
     Symbol *symbol = StackSymbolsLookup(parser->context, node->forStmt->target.variable->id);
     if (symbol == NULL) {
         symbol = CreateSymbol(node->forStmt->target.variable->type, VAR);
@@ -114,13 +115,12 @@ Node *ParseForStatement(Parser *parser) {
     return node;
 }
 
-Symbol *StackSymbolsLookup(Symbol *scope, const char *id) {
-    for (Symbol_HashTable *current = &scope->scope; current != NULL;) {
-        Symbol *symbol = Symbol_Search(current, id);
+Symbol *StackSymbolsLookup(Symbol *namespace, const char *id) {
+    for (Symbol *current = namespace; current != NULL; current = current->parent) {
+        Symbol *symbol = Symbol_Search(&current->scope, id);
         if (symbol != NULL) {
             return symbol;
         }
-        current = scope->parent == NULL ? NULL : &scope->parent->scope;
     }
     return NULL;
 }
@@ -138,12 +138,19 @@ Node *ParseIfStatement(Parser *parser) {
     Node *node = CreateNode(IF);
     IfStmt *ifStmt = node->ifStmt;
     ifStmt->test = ParseExpression(parser);
+    Token const *token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
+    Symbol *ctx = CreateSymbol(VOID, BLOCK);
+    ctx->line = token->line;
+    ctx->col = token->col;
+    ctx->parent = parser->context;
+    Symbol_Insert(&parser->context->scope, TextFormat("%zu:%zu_if", ctx->line, ctx->col), ctx);
+    parser->context = ctx;
     parser->lexer.token_idx += 3;
     ifStmt->body = ParseStatements(parser);
     Node *last = node;
     // Parse the 'elif' and 'else' blocks
     for (; parser->lexer.token_idx < parser->lexer.tokens.size; parser->lexer.token_idx++) {
-        Token const *token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
+        token = Token_Get(&parser->lexer.tokens, parser->lexer.token_idx);
         if (strcmp(token->lexeme, "elif") == 0) {
             Node *elifNode = CreateNode(IF);
             IfStmt *elifStmt = elifNode->ifStmt;
@@ -401,7 +408,7 @@ Node *ShuntingYard(Tokens const *tokens, Symbol *namespace) {
                 Symbol const *targetSymbol = StackSymbolsLookup(namespace, token->lexeme);
                 if (targetSymbol == NULL) {
                     fprintf(stderr, "NameError: name \"%s\" is not defined.\n line: %zu, col: %zu\n", token->lexeme);
-                    exit(1);
+                    exit(EXIT_FAILURE);
                 }
                 Node *var = CreateNode(VARIABLE);
                 var->variable->ctx = LOAD;
@@ -917,7 +924,7 @@ cJSON *SerializeSymbolTable(const Symbol_HashTable *namespaces) {
     return root;
 }
 
-cJSON *SerializeSymbol(Symbol *symbol) {
+cJSON *SerializeSymbol(const Symbol *symbol) {
     if (symbol == NULL) return NULL;
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "kind", SymbolTypeToString(symbol->kind));
