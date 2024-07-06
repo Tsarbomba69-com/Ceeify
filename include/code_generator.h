@@ -8,8 +8,8 @@
 
 const char *PyToCType(DataType type);
 
-void *Transpile(Node_LinkedList *ast);
+const char *Transpile(Node_LinkedList *ast);
 
-const char *VisitNode(Node *node);
+const char *TranspileNode(Node *node);
 
 #endif //CODE_GENERATOR_H

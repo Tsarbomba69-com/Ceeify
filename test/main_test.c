@@ -114,8 +114,21 @@ void test_assign_codegen(void) {
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
-    Transpile(&program);
-    TEST_ASSERT_NOT_EMPTY(LoadFileText(OUTPUT_PATH"/assign_statement.c"));
+    const char *code = Transpile(&program);
+    TEST_ASSERT_NOT_EMPTY(code);
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assign_codegen.c", (char*)code));
+}
+
+void binary_operation_type_codegen(void) {
+    // Arrange
+    source = LoadFileText(SAMPLES[6]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Parser parser = CreateParser(lexer);
+    Node_LinkedList program = ParseStatements(&parser);
+    const char *code = Transpile(&program);
+    TEST_ASSERT_NOT_EMPTY(code);
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/binary_operation_type_codegen.c",(char*)code));
 }
 
 void test_for_statement(void) {
@@ -240,5 +253,6 @@ int main(void) {
     RUN_TEST(test_portal_serialization);
     RUN_TEST(test_relational_operation);
     RUN_TEST(test_assign_codegen);
+    RUN_TEST(binary_operation_type_codegen);
     return UNITY_END();
 }
