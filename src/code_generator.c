@@ -54,10 +54,14 @@ const char *TranspileNode(Node *node, Symbol *namespace) {
         case LITERAL:
             return TextFormat("%s", node->literal->value);
         case BINARY_OPERATION:
-            return TextFormat("(%s %s %s)",
-                              TranspileNode(node->binOp->left, namespace),
-                              node->binOp->operator,
-                              TranspileNode(node->binOp->right, namespace));
+            const char *left = TranspileNode(node->binOp->left, namespace);
+            const char *right = TranspileNode(node->binOp->right, namespace);
+            size_t currentPrecedence = Precedence(node->binOp->operator);
+            size_t leftPrecedence = Precedence(node->binOp->left->binOp->operator);
+            size_t rightPrecedence = Precedence(node->binOp->right->binOp->operator);
+            const char *leftStr = (leftPrecedence < currentPrecedence) ? TextFormat("(%s)", left) : left;
+            const char *rightStr = (rightPrecedence < currentPrecedence) ? TextFormat("(%s)", right) : right;
+            return TextFormat("%s %s %s", leftStr, node->binOp->operator, rightStr);
         case UNARY_OPERATION:
             return TextFormat("%s%s", node->unOp->operator, TranspileNode(node->unOp->operand, namespace));
         case VARIABLE:
