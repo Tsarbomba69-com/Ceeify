@@ -116,7 +116,7 @@ void test_assign_codegen(void) {
     Node_LinkedList program = ParseStatements(&parser);
     const char *code = Transpile(&program);
     TEST_ASSERT_NOT_EMPTY(code);
-    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assign_codegen.c", (char*)code));
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assign_codegen.c", (char *) code));
 }
 
 void binary_operation_type_codegen(void) {
@@ -128,7 +128,7 @@ void binary_operation_type_codegen(void) {
     Node_LinkedList program = ParseStatements(&parser);
     const char *code = Transpile(&program);
     TEST_ASSERT_NOT_EMPTY(code);
-    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/binary_operation_type_codegen.c",(char*)code));
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/binary_operation_type_codegen.c", (char *) code));
 }
 
 void test_for_statement(void) {
@@ -191,6 +191,7 @@ void test_bin_op_type_precedence() {
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
     Node_LinkedList program = ParseStatements(&parser);
+    Node_Pop(&program);
     Node_Pop(&program);
     Node const *binOp = Node_Pop(&program)->assignStmt->value;
     TEST_ASSERT_EQUAL(FLOAT, binOp->binOp->type);
