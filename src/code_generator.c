@@ -1,20 +1,24 @@
 #include "code_generator.h"
 
-const char *Transpile(Node_LinkedList *ast) {
+const char *Transpile(Parser *parser) {
+    return TranspileBlock(parser, "int main(void) {\n", "\treturn 0;\n}");
+}
+
+const char *TranspileBlock(Parser *parser, const char *initStr, const char *finalStr) {
     size_t cap = 1024;
     char *outputStr = AllocateContext(cap);
-    strcpy(outputStr, "int main(void) {\n");
+    strcpy(outputStr, initStr);
     size_t outLen = strlen(outputStr);
-    Node_Node *current = ast->head;
+    Node_Node *current = parser->ast.head;
     while (current != NULL) {
-        const char *nodeStr = TranspileNode(current->data);
+        const char *nodeStr = TranspileNode(current->data, parser->context);
         size_t nodeStrLen = strlen(nodeStr) + 3;
         // Reallocate if necessary
         while (outLen + nodeStrLen >= cap) {
             cap *= 2;
             outputStr = ReallocateContext(outputStr, outLen, cap);
             if (!outputStr) {
-                fprintf(stderr, "Unable to allocate memory for code");
+                perror("ERROR: Unable to allocate memory for code");
                 exit(EXIT_FAILURE);
             }
         }
@@ -23,13 +27,12 @@ const char *Transpile(Node_LinkedList *ast) {
         current = current->next;
     }
 
-    const char *finalStr = "\treturn 0;\n}";
     size_t finalStrLen = strlen(finalStr) + 1; // +1 for \0
     if (outLen + finalStrLen >= cap) {
         cap = outLen + finalStrLen;
         outputStr = ReallocateContext(outputStr, outLen, cap);
         if (!outputStr) {
-            perror("Unable to allocate memory");
+            perror("ERROR: Unable to reallocate memory for code generation");
             exit(EXIT_FAILURE);
         }
     }
@@ -38,22 +41,25 @@ const char *Transpile(Node_LinkedList *ast) {
     return outputStr;
 }
 
-const char *TranspileNode(Node *node) {
+const char *TranspileNode(Node *node, Symbol *namespace) {
     switch (node->type) {
         case ASSIGNMENT:
-            return TextFormat("%s %s = %s;",
+            Symbol *sym = StackSymbolsLookup(namespace, node->assignStmt->target->id);
+            const char *nodeCode = TranspileNode(node->assignStmt->value, namespace);
+            return sym->col == node->assignStmt->target->col && sym->line == node->assignStmt->target->line ?
+                   TextFormat("%s %s = %s;",
                               PyToCType(node->assignStmt->target->type),
                               node->assignStmt->target->id,
-                              TranspileNode(node->assignStmt->value));
+                              nodeCode) : TextFormat("%s = %s;", node->assignStmt->target->id, nodeCode);
         case LITERAL:
             return TextFormat("%s", node->literal->value);
         case BINARY_OPERATION:
             return TextFormat("(%s %s %s)",
-                              TranspileNode(node->binOp->left),
+                              TranspileNode(node->binOp->left, namespace),
                               node->binOp->operator,
-                              TranspileNode(node->binOp->right));
+                              TranspileNode(node->binOp->right, namespace));
         case UNARY_OPERATION:
-            return TextFormat("%s%s", node->unOp->operator, TranspileNode(node->unOp->operand));
+            return TextFormat("%s%s", node->unOp->operator, TranspileNode(node->unOp->operand, namespace));
         case VARIABLE:
             return node->variable->id;
         default:

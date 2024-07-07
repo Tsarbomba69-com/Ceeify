@@ -56,6 +56,7 @@ typedef enum Context {
 typedef struct Parser {
     Lexer lexer;
     Symbol *context;
+    Node_LinkedList ast;
 } Parser;
 
 typedef struct ImportStmt {
@@ -84,6 +85,8 @@ typedef struct Name {
     char *id;
     DataType type;
     Context ctx;
+    size_t line;
+    size_t col;
 } Name;
 
 typedef struct IfStmt {

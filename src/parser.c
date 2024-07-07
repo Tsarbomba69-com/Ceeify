@@ -30,6 +30,8 @@ Node *ParseStatement(Parser *parser) {
                 node = CreateNode(ASSIGNMENT);
                 Assign *assign = node->assignStmt;
                 Name *var = (CreateNode(VARIABLE))->variable;
+                var->line = token->line;
+                var->col = token->col;
                 Node *val = ParseExpression(parser);
                 var->type = InferType(val, parser->context);
                 var->ctx = STORE;

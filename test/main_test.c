@@ -113,8 +113,8 @@ void test_assign_codegen(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
-    const char *code = Transpile(&program);
+    parser.ast = ParseStatements(&parser);
+    const char *code = Transpile(&parser);
     TEST_ASSERT_NOT_EMPTY(code);
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assign_codegen.c", (char *) code));
 }
@@ -125,8 +125,8 @@ void binary_operation_type_codegen(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
-    const char *code = Transpile(&program);
+    parser.ast = ParseStatements(&parser);
+    const char *code = Transpile(&parser);
     TEST_ASSERT_NOT_EMPTY(code);
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/binary_operation_type_codegen.c", (char *) code));
 }
@@ -218,9 +218,9 @@ void test_portal_serialization(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    parser.ast = ParseStatements(&parser);
     // Act
-    const cJSON *root = SerializeProgram(&program);
+    const cJSON *root = SerializeProgram(&parser.ast);
     const cJSON *symTable = SerializeSymbol(parser.context);
     // Assert
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_portal_serialization.json", cJSON_Print(root)));
