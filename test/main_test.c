@@ -131,6 +131,18 @@ void binary_operation_type_codegen(void) {
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/binary_operation_type_codegen.c", (char *) code));
 }
 
+void binary_operation_type_codegen_IR(void) {
+    // Arrange
+    source = LoadFileText(SAMPLES[6]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Parser parser = CreateParser(lexer);
+    parser.ast = ParseStatements(&parser);
+    const char *code = CompileIR(&parser);
+    TEST_ASSERT_NOT_EMPTY(code);
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/binary_operation_type_codegen_IR.ll", (char *) code));
+}
+
 void test_for_statement(void) {
     source = LoadFileText(SAMPLES[4]);
     if (source == NULL) return;
@@ -255,5 +267,6 @@ int main(void) {
     RUN_TEST(test_relational_operation);
     RUN_TEST(test_assign_codegen);
     RUN_TEST(binary_operation_type_codegen);
+    RUN_TEST(binary_operation_type_codegen_IR);
     return UNITY_END();
 }
