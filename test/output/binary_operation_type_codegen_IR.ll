@@ -1,22 +1,36 @@
-%0 = add f32 0, 5.0
-store f32 %0, f32* a
-%1 = add i32 0, 2
-store i32 %1, i32* b
-
-%2 = add f32 a, 2
-store f32 %2, f32* c
-
-%2 = add f32 a, b
-%3 = mul f32 %2, a
-%4 = sub f32 %3, 1
-store f32 %4, f32* a
-
-%4 = mul f32 b, a
-%5 = add f32 a, %4
-%6 = sub f32 %5, 1
-store f32 %6, f32* a
-
-%6 = sub f32 a, 1
-%7 = mul f32 b, %6
-%8 = add f32 a, %7
-store f32 %8, f32* a
+%1 = add f32 0, 5.0
+store %0, f32* a
+%3 = add i32 0, 2
+store %2, i32* b
+%5 = load f32, f32* a
+%6 = add i32 0, 2
+%7 = add f32 %7, %6
+store %4, f32* c
+%9 = load f32, f32* a
+%10 = load i32, i32* b
+%11 = add f32 %11, %10
+%12 = load f32, f32* a
+%13 = mul f32 %13, %12
+%14 = add i32 0, 1
+%15 = sub f32 %15, %14
+store %8, f32* a
+%18 = load i32, i32* b
+%19 = load f32, f32* a
+%20 = mul f32 %20, %19
+%18 = load i32, i32* b
+%19 = load f32, f32* a
+%20 = mul f32 %20, %19
+%21 = add f32 %21, %20
+%22 = add i32 0, 1
+%23 = sub f32 %23, %22
+store %16, f32* a
+%31 = add f32 %31, %30
+%27 = load f32, f32* a
+%28 = add i32 0, 1
+%29 = sub f32 %29, %28
+%27 = load f32, f32* a
+%28 = add i32 0, 1
+%29 = sub f32 %29, %28
+%30 = mul f32 %30, %29
+%31 = add f32 %31, %30
+store %24, f32* a

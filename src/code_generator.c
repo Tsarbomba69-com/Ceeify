@@ -1,7 +1,10 @@
 #include "code_generator.h"
 
 static size_t currentRegister = 0;
-static size_t lastRegister = 0;
+
+static int AllocateRegister() {
+    return currentRegister++;
+}
 
 const char *Transpile(Parser *parser) {
     return TranspileBlock(parser, "int main(void) {\n", "\treturn 0;\n}");
@@ -103,59 +106,42 @@ const char *TranspileNode(Node *node, Symbol *namespace) {
 const char *GenerateIR(Node *node, Symbol *namespace) {
     switch (node->type) {
         case ASSIGNMENT: {
-            const char *target = node->assignStmt->target->id;
+            size_t targetReg = AllocateRegister();
+            const char *dt = PyToIRType(node->assignStmt->target->type);
             const char *value = GenerateIR(node->assignStmt->value, namespace);
-            const char *targetType = PyToIRType(node->assignStmt->target->type);
-            return node->assignStmt->value->type == BINARY_OPERATION ?
-                   TextFormat("%s\nstore %s %%%d, %s* %s", value,
-                              targetType,
-                              currentRegister, targetType, target) :
-                   TextFormat("%%%d = add %s 0, %s\n"
-                              "store %s %%%d, %s* %s",
-                              currentRegister++, targetType, value,
-                              targetType, currentRegister,
-                              targetType, target);
+            const char *result = TextFormat("store %%%d, %s* %s", targetReg, dt,
+                                            node->assignStmt->target->id);
+            return TextFormat("%s\n%s", value, result);
         }
         case LITERAL:
-            return TextFormat("%s", node->literal->value);
+            size_t reg = AllocateRegister();
+            return TextFormat("%%%d = add %s 0, %s",
+                              reg, PyToIRType(node->binOp->type), node->literal->value);
         case VARIABLE:
-            return node->variable->id;
+            size_t varReg = AllocateRegister();
+            const char *dt = PyToIRType(node->variable->type);
+            return TextFormat("%%%d = load %s, %s* %s", varReg, dt, dt, node->variable->id);
         case BINARY_OPERATION: {
             const char *left = GenerateIR(node->binOp->left, namespace);
             const char *right = GenerateIR(node->binOp->right, namespace);
-            const char *op;
+            size_t resultReg = AllocateRegister();
             if (strcmp(node->binOp->operator, "+") == 0) {
-                op = "add";
+                const char *result = TextFormat("%%%d = add %s %%%d, %%%d",
+                                                resultReg, PyToIRType(node->binOp->type), currentRegister - 1,
+                                                currentRegister - 2);
+                return TextFormat("%s\n%s\n%s", left, right, result);
             } else if (strcmp(node->binOp->operator, "-") == 0) {
-                op = "sub";
+                const char *result = TextFormat("%%%d = sub %s %%%d, %%%d",
+                                                resultReg, PyToIRType(node->binOp->type), currentRegister - 1,
+                                                currentRegister - 2);
+                return TextFormat("%s\n%s\n%s", left, right, result);
             } else if (strcmp(node->binOp->operator, "*") == 0) {
-                op = "mul";
-            } else if (strcmp(node->binOp->operator, "*") == 0) {
-                op = "sdiv";  // Assuming signed division
-            } else return "";
-            if (node->binOp->left->type == BINARY_OPERATION) {
-                return TextFormat("%s\n%%%d = %s %s %%%d, %s",
-                                  left,
-                                  ++currentRegister,
-                                  op,
-                                  PyToIRType(node->binOp->type),
-                                  currentRegister,
-                                  right);
-            } else if (node->binOp->right->type == BINARY_OPERATION) {
-                return TextFormat("%s\n%%%d = %s %s %s, %%%d",
-                                  right,
-                                  ++currentRegister,
-                                  op,
-                                  PyToIRType(node->binOp->type),
-                                  left,
-                                  currentRegister);
+                const char *result = TextFormat("%%%d = mul %s %%%d, %%%d",
+                                                resultReg, PyToIRType(node->binOp->type), currentRegister - 1,
+                                                currentRegister - 2);
+                return TextFormat("%s\n%s\n%s", left, right, result);
             }
-            return TextFormat("\n%%%d = %s %s %s, %s",
-                              currentRegister,
-                              op,
-                              PyToIRType(node->binOp->type),
-                              left,
-                              right);
+            return "";
         }
         default:
             return "";
