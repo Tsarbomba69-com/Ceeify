@@ -1,10 +1,12 @@
 #include "code_generator.h"
 
+// TODO: Remove me
 static size_t currentRegister = 0;
 
 static int AllocateRegister() {
     return currentRegister++;
 }
+// !TODO
 
 const char *Transpile(Parser *parser) {
     return TranspileBlock(parser, "int main(void) {\n", "\treturn 0;\n}");
@@ -103,6 +105,7 @@ const char *TranspileNode(Node *node, Symbol *namespace) {
     }
 }
 
+// TODO: Remove this code after reimplementing IR generation on ir.c
 const char *GenerateIR(Node *node, Symbol *namespace) {
     switch (node->type) {
         case ASSIGNMENT: {
@@ -169,6 +172,7 @@ const char *PyToCType(DataType type) {
     }
 }
 
+// TODO: Move this function to ir.c
 const char *PyToIRType(DataType type) {
     switch (type) {
         case FLOAT:

@@ -14,12 +14,6 @@ include_directories(.)
 include_directories(include)
 
 add_executable(Ceeify
-        include/arena.h
-        include/lexer.h
-        include/Node_linkedlist.h
-        include/parser.h
-        include/Token_arraylist.h
-        include/utils.h
         src/ceeify.c
         src/lexer.c
         src/Node_linkedlist.c
@@ -35,6 +29,8 @@ add_executable(Ceeify
         test/hashtable_test.h
         src/code_generator.c
         include/code_generator.h
+        src/IRNode_arraylist.c
+        src/ir.c
 )
 
 target_link_libraries(Ceeify ${UNITY_DIR}/cmake-build-debug/libunity.a)
