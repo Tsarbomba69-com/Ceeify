@@ -2,6 +2,7 @@
 #include "parser.h"
 #include "hashtable_test.h"
 #include "code_generator.h"
+#include "ir.h"
 
 const char *SAMPLES[] = {
         "./test/samples/portal.py",
@@ -131,18 +132,6 @@ void binary_operation_type_codegen(void) {
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/binary_operation_type_codegen.c", (char *) code));
 }
 
-void binary_operation_type_codegen_IR(void) {
-    // Arrange
-    source = LoadFileText(SAMPLES[6]);
-    if (source == NULL) return;
-    lexer = Tokenize(source);
-    Parser parser = CreateParser(lexer);
-    parser.ast = ParseStatements(&parser);
-    const char *code = CompileIR(&parser);
-    TEST_ASSERT_NOT_EMPTY(code);
-    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/binary_operation_type_codegen_IR.ll", (char *) code));
-}
-
 void test_for_statement(void) {
     source = LoadFileText(SAMPLES[4]);
     if (source == NULL) return;
@@ -211,6 +200,21 @@ void test_bin_op_type_precedence() {
     TEST_ASSERT_EQUAL(INT, binOp->binOp->right->literal->type);
 }
 
+void test_bin_op_type_precedence_IR(void) {
+    source = LoadFileText(SAMPLES[6]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Parser parser = CreateParser(lexer);
+    parser.ast = ParseStatements(&parser);
+    IRNode_ArrayList ir = ParseIR(&parser);
+    IRNode_Pop(&ir);
+    IRNode_Pop(&ir);
+    IRNode const *binOp = IRNode_Pop(&ir)->assign.value;
+    TEST_ASSERT_EQUAL(FLOAT, binOp->dataType);
+    TEST_ASSERT_EQUAL(FLOAT, binOp->binary.left->dataType);
+    TEST_ASSERT_EQUAL(INT, binOp->binary.right->dataType);
+}
+
 void test_assignment_serialization(void) {
     // Arrange
     source = LoadFileText(SAMPLES[5]);
@@ -222,6 +226,28 @@ void test_assignment_serialization(void) {
     const cJSON *root = SerializeProgram(&program);
     // Assert
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assignment_serialization.json", cJSON_Print(root)));
+}
+
+void test_bin_op_type_precedence_IRGen(void) {
+    source = LoadFileText(SAMPLES[6]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Parser parser = CreateParser(lexer);
+    parser.ast = ParseStatements(&parser);
+    IRNode_ArrayList ir = ParseIR(&parser);
+    size_t cap = 1024;
+    char* generatedCode = AllocateContext(cap * sizeof(char));  // Adjust size as needed
+    size_t outLen = 0;
+    for (size_t i = 0; i < ir.size; ++i) {
+        char* nodeStr = GenerateFullIRText(IRNode_Get(&ir, i));
+        size_t nodeStrLen = strlen(nodeStr) + 3;
+        outLen += snprintf(generatedCode + outLen, cap - outLen, "%s\n", nodeStr);
+        if (outLen + nodeStrLen >= cap) {
+            cap *= 2;
+            generatedCode = ReallocateContext(generatedCode, outLen, cap);
+        }
+    }
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_bin_op_type_precedence_IRGen.ll", generatedCode));
 }
 
 void test_portal_serialization(void) {
@@ -267,6 +293,7 @@ int main(void) {
     RUN_TEST(test_relational_operation);
     RUN_TEST(test_assign_codegen);
     RUN_TEST(binary_operation_type_codegen);
-    RUN_TEST(binary_operation_type_codegen_IR);
+    RUN_TEST(test_bin_op_type_precedence_IR);
+    RUN_TEST(test_bin_op_type_precedence_IRGen);
     return UNITY_END();
 }

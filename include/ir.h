@@ -31,11 +31,21 @@ typedef struct IRNode {
                 IR_DIV,
             } type;
         } binary;
+        struct {
+            struct IRNode *value;
+            char *target;
+        } assign;
     };
 } IRNode;
 
 IRNode_ArrayList ParseIR(Parser *parser);
 
 IRNode *ParseIRNode(Node *ast);
+
+char *GenerateIRText(IRNode *node);
+
+char *GenerateFullIRText(IRNode *root);
+
+const char *PyToIRType(DataType type);
 
 #endif // !IR_H

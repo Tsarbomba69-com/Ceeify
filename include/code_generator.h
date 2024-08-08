@@ -8,12 +8,6 @@
 
 const char *PyToCType(DataType type);
 
-const char *PyToIRType(DataType type);
-
-const char *CompileIR(Parser *parser);
-
-const char *GenerateIR(Node *node, Symbol *namespace);
-
 // Transpile python code to C
 const char *Transpile(Parser *parser);
 
