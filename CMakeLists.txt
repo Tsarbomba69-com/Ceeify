@@ -31,6 +31,7 @@ add_executable(Ceeify
         include/code_generator.h
         src/IRNode_arraylist.c
         src/ir.c
+        src/stringbuilder.c
 )
 
 target_link_libraries(Ceeify ${UNITY_DIR}/cmake-build-debug/libunity.a)

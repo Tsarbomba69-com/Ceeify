@@ -48,4 +48,6 @@ void Node_ForEach(Node_LinkedList *list, Node_Action callback);
 // Get the last element and remove it
 Node *Node_Pop(Node_LinkedList *list);
 
+Node* Node_GetFirst(Node_LinkedList *list);
+
 #endif // !Node_LINKEDLIST_H

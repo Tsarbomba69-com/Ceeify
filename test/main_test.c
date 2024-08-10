@@ -1,6 +1,7 @@
 #include "unity.h"
 #include "parser.h"
 #include "hashtable_test.h"
+#include "stringbuilder_test.h"
 #include "code_generator.h"
 #include "ir.h"
 
@@ -118,6 +119,19 @@ void test_assign_codegen(void) {
     const char *code = Transpile(&parser);
     TEST_ASSERT_NOT_EMPTY(code);
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assign_codegen.c", (char *) code));
+}
+
+
+void test_if_stmt_codegen(void) {
+    // Arrange
+    source = LoadFileText(SAMPLES[2]);
+    if (source == NULL) return;
+    lexer = Tokenize(source);
+    Parser parser = CreateParser(lexer);
+    parser.ast = ParseStatements(&parser);
+    const char *code = Transpile(&parser);
+    TEST_ASSERT_NOT_EMPTY(code);
+    TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_if_stmt_codegen.c", (char *) code));
 }
 
 void binary_operation_type_codegen(void) {
@@ -295,5 +309,7 @@ int main(void) {
     RUN_TEST(binary_operation_type_codegen);
     RUN_TEST(test_bin_op_type_precedence_IR);
     RUN_TEST(test_bin_op_type_precedence_IRGen);
+    RUN_TEST(test_if_stmt_codegen);
+    RUN_TEST(sb_append_test);
     return UNITY_END();
 }

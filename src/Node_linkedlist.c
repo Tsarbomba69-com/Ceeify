@@ -61,6 +61,32 @@ void Node_ForEach(Node_LinkedList *list, Node_Action callback) {
     }
 }
 
+Node *Node_GetFirst(Node_LinkedList *list) {
+    if (list->head == NULL) {
+        perror("ERROR: List is empty\n");
+        return NULL;
+    }
+
+    if (list->head->next == NULL) {
+        Node *data = list->head->data;
+        free(list->head);
+        list->head = NULL;
+        list->size--;
+        return data;
+    }
+
+    Node_Node *current = list->head;
+    while (current->next->next != NULL) {
+        current = current->next;
+    }
+
+    Node *data = current->next->data;
+    free(current->next);
+    current->next = NULL;
+    list->size--;
+    return data;
+}
+
 Node *Node_Pop(Node_LinkedList *list) {
     if (list->head == NULL) {
         return NULL;

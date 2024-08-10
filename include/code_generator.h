@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parser.h"
+#include "stringbuilder.h"
 
 #ifndef CODE_GENERATOR_H
 #define CODE_GENERATOR_H

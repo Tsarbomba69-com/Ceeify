@@ -44,7 +44,7 @@ const char *TranspileBlock(Parser *parser, const char *initStr, const char *fina
 const char *TranspileNode(Node *node, Symbol *namespace) {
     switch (node->type) {
         case ASSIGNMENT:
-            Symbol *sym = StackSymbolsLookup(namespace, node->assignStmt->target->id);
+            const Symbol *sym = StackSymbolsLookup(namespace, node->assignStmt->target->id);
             const char *nodeCode = TranspileNode(node->assignStmt->value, namespace);
             return sym->col == node->assignStmt->target->col && sym->line == node->assignStmt->target->line ?
                    TextFormat("%s %s = %s;",
@@ -53,7 +53,7 @@ const char *TranspileNode(Node *node, Symbol *namespace) {
                               nodeCode) : TextFormat("%s = %s;", node->assignStmt->target->id, nodeCode);
         case LITERAL:
             return TextFormat("%s", node->literal->value);
-        case BINARY_OPERATION:
+        case BINARY_OPERATION: {
             const char *left = TranspileNode(node->binOp->left, namespace);
             const char *right = TranspileNode(node->binOp->right, namespace);
             size_t currentPrecedence = Precedence(node->binOp->operator);
@@ -62,6 +62,39 @@ const char *TranspileNode(Node *node, Symbol *namespace) {
             const char *leftStr = (leftPrecedence < currentPrecedence) ? TextFormat("(%s)", left) : left;
             const char *rightStr = (rightPrecedence < currentPrecedence) ? TextFormat("(%s)", right) : right;
             return TextFormat("%s %s %s", leftStr, node->binOp->operator, rightStr);
+        }
+        case IF: {
+            StringBuilder sb = sb_create(5);
+            sb_append(&sb, TextFormat("if (%s) {\n", TranspileNode(node->ifStmt->test, namespace)));
+            for (Node_Node *curr = node->ifStmt->body.head; curr != NULL; curr = curr->next) {
+                sb_append(&sb, TranspileNode(curr->data, namespace));
+            }
+
+            if (node->ifStmt->orelse.size > 0) {
+                if (node->ifStmt->orelse.head->data->type == IF) sb_append(&sb, "} else ");
+                else sb_append(&sb, "} else {\n");
+            }
+            bool close_bracket = true;
+            for (Node_Node *curr = node->ifStmt->orelse.head; curr != NULL; curr = curr->next) {
+                close_bracket = !close_bracket;
+                sb_append(&sb, TranspileNode(curr->data, namespace));
+            }
+            if (close_bracket) sb_append(&sb, "\n}");
+            return sb.buffer;
+        }
+        case COMPARE: {
+            StringBuilder sb = sb_create(5);
+            sb_append(&sb, TranspileNode(node->compare->left, namespace));
+            for (size_t i = 0; i < node->compare->ops.size; ++i) {
+                Token *op = Token_Get(&node->compare->ops, i);
+                const char *right = TranspileNode(Node_GetFirst(&node->compare->comparators), namespace);
+                sb_append(&sb, TextFormat(" %s %s", op->lexeme, right));
+                if (i < node->compare->ops.size - 1) {
+                    sb_append(&sb, TextFormat(" && %s", right));
+                }
+            }
+            return sb.buffer;
+        }
         case UNARY_OPERATION:
             return TextFormat("%s%s", node->unOp->operator, TranspileNode(node->unOp->operand, namespace));
         case VARIABLE:
