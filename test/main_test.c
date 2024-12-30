@@ -6,13 +6,13 @@
 #include "ir.h"
 
 const char *SAMPLES[] = {
-        "./test/samples/portal.py",
-        "./test/samples/list.py",
-        "./test/samples/if_statement.py",
-        "./test/samples/while_statement.py",
-        "./test/samples/for_statement.py",
-        "./test/samples/assign_statement.py",
-        "./test/samples/binary_operation_type.py"
+    "./test/samples/portal.py",
+    "./test/samples/list.py",
+    "./test/samples/if_statement.py",
+    "./test/samples/while_statement.py",
+    "./test/samples/for_statement.py",
+    "./test/samples/assign_statement.py",
+    "./test/samples/binary_operation_type.py"
 };
 #define OUTPUT_PATH "./test/output"
 
@@ -25,7 +25,7 @@ void test_fullscanning(void) {
 
 void test_statement_number(void) {
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     TEST_ASSERT_EQUAL(11, program.size);
 }
 
@@ -34,7 +34,7 @@ void test_elif_statement_format(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     Node_Pop(&program);
     Node_Pop(&program);
     IfStmt *ifStmt = Node_Pop(&program)->ifStmt;
@@ -50,7 +50,7 @@ void test_relational_operation(void) {
     lexer = Tokenize(source);
     // Act
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     Node_Pop(&program);
     Node_Pop(&program);
     const IfStmt *ifStmt = Node_Pop(&program)->ifStmt;
@@ -63,7 +63,7 @@ void test_list_size(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     List const *num_list = Node_Pop(&program)->assignStmt->value->list;
     List const *str_list = Node_Pop(&program)->assignStmt->value->list;
     TEST_ASSERT_EQUAL(4, num_list->elts.size);
@@ -75,7 +75,7 @@ void test_while_statement(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     const cJSON *root = SerializeProgram(&program);
     const cJSON *symTable = SerializeSymbol(parser.context);
     Node_Pop(&program);
@@ -115,7 +115,7 @@ void test_assign_codegen(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    parser.ast = ParseStatements(&parser);
+    parser.ast = parse_statements(&parser);
     const char *code = Transpile(&parser);
     TEST_ASSERT_NOT_EMPTY(code);
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_assign_codegen.c", (char *) code));
@@ -128,7 +128,7 @@ void test_if_stmt_codegen(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    parser.ast = ParseStatements(&parser);
+    parser.ast = parse_statements(&parser);
     const char *code = Transpile(&parser);
     TEST_ASSERT_NOT_EMPTY(code);
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/test_if_stmt_codegen.c", (char *) code));
@@ -140,7 +140,7 @@ void binary_operation_type_codegen(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    parser.ast = ParseStatements(&parser);
+    parser.ast = parse_statements(&parser);
     const char *code = Transpile(&parser);
     TEST_ASSERT_NOT_EMPTY(code);
     TEST_ASSERT_TRUE(SaveFileText(OUTPUT_PATH"/binary_operation_type_codegen.c", (char *) code));
@@ -151,7 +151,7 @@ void test_for_statement(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     Node_Pop(&program);
     Node const *node = Node_Pop(&program);
     // Perform assertions on the for statement
@@ -178,7 +178,7 @@ void test_assign_statement(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     // Check the assignment statement
     Node const *stmt1 = Node_Pop(&program);
     TEST_ASSERT_EQUAL(ASSIGNMENT, stmt1->type);
@@ -205,7 +205,7 @@ void test_bin_op_type_precedence() {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     Node_Pop(&program);
     Node_Pop(&program);
     Node const *binOp = Node_Pop(&program)->assignStmt->value;
@@ -219,7 +219,7 @@ void test_bin_op_type_precedence_IR(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    parser.ast = ParseStatements(&parser);
+    parser.ast = parse_statements(&parser);
     IRNode_ArrayList ir = ParseIR(&parser);
     IRNode_Pop(&ir);
     IRNode_Pop(&ir);
@@ -235,7 +235,7 @@ void test_assignment_serialization(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     // Act
     const cJSON *root = SerializeProgram(&program);
     // Assert
@@ -247,13 +247,13 @@ void test_bin_op_type_precedence_IRGen(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    parser.ast = ParseStatements(&parser);
+    parser.ast = parse_statements(&parser);
     IRNode_ArrayList ir = ParseIR(&parser);
     size_t cap = 1024;
-    char* generatedCode = AllocateContext(cap * sizeof(char));  // Adjust size as needed
+    char *generatedCode = AllocateContext(cap * sizeof(char)); // Adjust size as needed
     size_t outLen = 0;
     for (size_t i = 0; i < ir.size; ++i) {
-        char* nodeStr = GenerateFullIRText(IRNode_Get(&ir, i));
+        char *nodeStr = GenerateFullIRText(IRNode_Get(&ir, i));
         size_t nodeStrLen = strlen(nodeStr) + 3;
         outLen += snprintf(generatedCode + outLen, cap - outLen, "%s\n", nodeStr);
         if (outLen + nodeStrLen >= cap) {
@@ -270,7 +270,7 @@ void test_portal_serialization(void) {
     if (source == NULL) return;
     lexer = Tokenize(source);
     Parser parser = CreateParser(lexer);
-    parser.ast = ParseStatements(&parser);
+    parser.ast = parse_statements(&parser);
     // Act
     const cJSON *root = SerializeProgram(&parser.ast);
     const cJSON *symTable = SerializeSymbol(parser.context);

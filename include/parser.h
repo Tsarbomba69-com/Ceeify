@@ -164,7 +164,7 @@ static inline Parser CreateParser(Lexer lexer) {
 Symbol *StackSymbolsLookup(Symbol *namespace, const char *id);
 
 // Receives a list of tokens parses into a list of statements and advances the lexer's token index
-Node_LinkedList ParseStatements(Parser *parser);
+Node_LinkedList parse_statements(Parser *parser);
 
 // Receives a list of tokens parses into a statement node and advances the lexer's token index
 Node *ParseStatement(Parser *parser);

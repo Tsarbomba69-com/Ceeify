@@ -4,7 +4,7 @@ const char *UNARY_OPERATORS[] = {"+", "-", "~", "not"};
 
 const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
 
-Node_LinkedList ParseStatements(Parser *parser) {
+Node_LinkedList parse_statements(Parser *parser) {
     Node_LinkedList stmts = Node_CreateLinkedList();
     for (; parser->lexer.token_idx < parser->lexer.tokens.size; ++parser->lexer.token_idx) {
         Node *node = ParseStatement(parser);
@@ -113,7 +113,7 @@ Node *ParseForStatement(Parser *parser) {
         parser->context = ctx;
     }
     parser->lexer.token_idx += 3;
-    node->forStmt->body = ParseStatements(parser);
+    node->forStmt->body = parse_statements(parser);
     return node;
 }
 
@@ -138,7 +138,7 @@ Node *ParseWhileStatement(Parser *parser) {
     Symbol_Insert(&parser->context->scope, TextFormat("%zu:%zu_while", ctx->line, ctx->col), ctx);
     parser->context = ctx;
     parser->lexer.token_idx += 3;
-    node->whileStmt->body = ParseStatements(parser);
+    node->whileStmt->body = parse_statements(parser);
     // TODO: Parse else clause
     return node;
 }
@@ -155,7 +155,7 @@ Node *ParseIfStatement(Parser *parser) {
     Symbol_Insert(&parser->context->scope, TextFormat("%zu:%zu_if", ctx->line, ctx->col), ctx);
     parser->context = ctx;
     parser->lexer.token_idx += 3;
-    ifStmt->body = ParseStatements(parser);
+    ifStmt->body = parse_statements(parser);
     Node *last = node;
     // Parse the 'elif' and 'else' blocks
     for (; parser->lexer.token_idx < parser->lexer.tokens.size; parser->lexer.token_idx++) {
@@ -165,12 +165,12 @@ Node *ParseIfStatement(Parser *parser) {
             IfStmt *elifStmt = elifNode->ifStmt;
             elifStmt->test = ParseExpression(parser);
             parser->lexer.token_idx += 3;
-            elifStmt->body = ParseStatements(parser);
+            elifStmt->body = parse_statements(parser);
             Node_AddLast(&ifStmt->orelse, elifNode);
             last = elifNode;
         } else if (strcmp(token->lexeme, "else") == 0) {
             parser->lexer.token_idx += 3;
-            last->ifStmt->orelse = ParseStatements(parser);
+            last->ifStmt->orelse = parse_statements(parser);
             break;
         }
     }
@@ -416,7 +416,7 @@ Node *ShuntingYard(Tokens const *tokens, Symbol *namespace) {
             case IDENTIFIER: {
                 Symbol const *targetSymbol = StackSymbolsLookup(namespace, token->lexeme);
                 if (targetSymbol == NULL) {
-                    fprintf(stderr, "NameError: name \"%s\" is not defined.\n line: %zu, col: %zu\n", token->lexeme);
+                    fprintf(stderr, "NameError: name \"%s\" is not defined.\n line: %zu, col: %zu\n", token->lexeme, token->line, token->col);
                     exit(EXIT_FAILURE);
                 }
                 Node *var = CreateNode(VARIABLE);
@@ -471,7 +471,7 @@ Node *ShuntingYard(Tokens const *tokens, Symbol *namespace) {
             case RSQB: {
                 Node *value = NULL;
                 Node *node = CreateNode(LIST_EXPR);
-                while ((value = Node_Pop(&stack)) && value->type != LSQB) {
+                while ((value = Node_Pop(&stack)) && (TokenType)value->type != LSQB) {
                     Node_AddFirst(&node->list->elts, value);
                 }
                 Node_AddFirst(&stack, node);

@@ -43,14 +43,16 @@ const char *TranspileBlock(Parser *parser, const char *initStr, const char *fina
 
 const char *TranspileNode(Node *node, Symbol *namespace) {
     switch (node->type) {
-        case ASSIGNMENT:
+        case ASSIGNMENT: {
             const Symbol *sym = StackSymbolsLookup(namespace, node->assignStmt->target->id);
             const char *nodeCode = TranspileNode(node->assignStmt->value, namespace);
-            return sym->col == node->assignStmt->target->col && sym->line == node->assignStmt->target->line ?
-                   TextFormat("%s %s = %s;",
-                              PyToCType(node->assignStmt->target->type),
-                              node->assignStmt->target->id,
-                              nodeCode) : TextFormat("%s = %s;", node->assignStmt->target->id, nodeCode);
+            return sym->col == node->assignStmt->target->col && sym->line == node->assignStmt->target->line
+                       ? TextFormat("%s %s = %s;",
+                                    PyToCType(node->assignStmt->target->type),
+                                    node->assignStmt->target->id,
+                                    nodeCode)
+                       : TextFormat("%s = %s;", node->assignStmt->target->id, nodeCode);
+        }
         case LITERAL:
             return TextFormat("%s", node->literal->value);
         case BINARY_OPERATION: {
@@ -124,8 +126,3 @@ const char *PyToCType(DataType type) {
             return "UNKNOWN";
     }
 }
-
-
-
-
-

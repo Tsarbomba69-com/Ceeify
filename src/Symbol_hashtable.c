@@ -42,7 +42,7 @@ void Symbol_Insert(Symbol_HashTable *table, char const *key, Symbol *value) {
         table->capacity *= 2;
         Symbol_AllocateElementes(table);
 
-        for (int i = 0; i < old_capacity; ++i) {
+        for (size_t i = 0; i < old_capacity; ++i) {
             if (old_table[i]->occupied) {
                 Symbol_Insert(table, old_table[i]->key, old_table[i]->value);
             }

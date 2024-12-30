@@ -16,7 +16,7 @@ int main2(int argc, char *argv[]) {
     printf("]\n");
     PrintArena();
     Parser parser = CreateParser(lexer);
-    Node_LinkedList program = ParseStatements(&parser);
+    Node_LinkedList program = parse_statements(&parser);
     Node_ForEach(&program, PrintNode);
     PrintArena();
     FreeContext();

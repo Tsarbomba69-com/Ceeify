@@ -7,7 +7,7 @@
 static Arena default_arena = {0};
 
 void PrintArena() {
-    Region *current = default_arena.begin;
+    const Region *current = default_arena.begin;
     size_t total_elements = 0;
 
     for (size_t i = 1; current != NULL; ++i) {

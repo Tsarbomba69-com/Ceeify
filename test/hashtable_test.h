@@ -27,7 +27,7 @@ void test_insert_retrieve(void) {
     Symbol *sym = AllocateContext(sizeof(Symbol));
     Symbol *sym2 = AllocateContext(sizeof(Symbol));
     Symbol *sym3 = AllocateContext(sizeof(Symbol));
-    sym->type = FUNCTION;
+    sym->type = OBJECT;
     sym2->type = LIST;
     sym3->type = FLOAT;
     // Act
@@ -35,7 +35,7 @@ void test_insert_retrieve(void) {
     Symbol_Insert(&table, "2", sym2);
     Symbol_Insert(&table, "3", sym3);
     // Assert
-    TEST_ASSERT_EQUAL(FUNCTION, Symbol_Search(&table, "1")->type);
+    TEST_ASSERT_EQUAL(OBJECT, Symbol_Search(&table, "1")->type);
     TEST_ASSERT_EQUAL(LIST, Symbol_Search(&table, "2")->type);
     TEST_ASSERT_EQUAL(FLOAT, Symbol_Search(&table, "3")->type);
 }
