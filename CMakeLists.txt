@@ -20,12 +20,18 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(unity)
 
-include_directories(${unity_SOURCE_DIR}/src)
+include_directories(${unity_SOURCE_DIR}/src includes tests)
 
 set(SOURCES
     src/main.c
+    src/lexer.c
+    src/token_arraylist.c
+    src/utils.c
 )
 
 add_executable(ceeify ${SOURCES})
 
 target_link_libraries(ceeify unity)
+
+enable_testing()
+add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

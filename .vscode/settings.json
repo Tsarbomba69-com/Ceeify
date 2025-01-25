@@ -1,3 +1,14 @@
 {
-    "cmake.sourceDirectory": "/home/hendrick-dias/projects/ceeify"
+    "cmake.sourceDirectory": "/home/hendrick-dias/projects/ceeify",
+    "files.associations": {
+        "stdio.h": "c",
+        "stddef.h": "c",
+        "lexer.h": "c",
+        "test_lexer.h": "c",
+        "token_arraylist.h": "c",
+        "string.h": "c",
+        "unity.h": "c",
+        "arena.h": "c",
+        "utils.h": "c"
+    }
 }

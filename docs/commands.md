@@ -22,10 +22,28 @@ ctest
 clang-tidy $your_code.c --checks=*
 ```
 
+### Reformat entire project
+
+```
+find . -name "*.c" -o -name "*.h" | xargs clang-format -i
+```
+
+#### Run linter for the entire dir
+
+```
+find . -name "*.c" -o -name "*.cpp" | xargs clang-tidy --checks=*
+```
+
 #### Run Valgrind
 
 ```
 valgrind --leak-check=full ./your_program
+```
+
+#### Run Valgrind for the entire dir
+
+```
+find . -name "*.c" -o -name "*.cpp" | xargs valgrind --leak-check=full
 ```
 
 #### Run debugger
