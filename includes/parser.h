@@ -1,10 +1,11 @@
-#pragma once
 #ifndef PARSER_H_
 #define PARSER_H_
+#pragma once
 
+#include "ASTNode_linkedlist.h"
 #include "lexer.h"
 #include "utils.h"
-#endif
+#include <stdbool.h>
 
 typedef enum NodeType {
   PROGRAM = 0,
@@ -24,8 +25,6 @@ typedef enum NodeType {
 
 typedef struct Symbol Symbol;
 
-typedef struct Node_LinkedList Node_LinkedList;
-
 typedef struct BinaryOperation BinaryOperation;
 
 typedef enum SymbolType { CLASS, MODULE, FUNCTION, BLOCK, VAR } SymbolType;
@@ -44,10 +43,10 @@ typedef enum DataType {
 } DataType;
 
 typedef struct Parser {
-  Lexer lexer;
-  Symbol *context;
-  Node_LinkedList *ast;
-} Parser;
+  Lexer *lexer;
+  ASTNode_LinkedList ast;
+  Arena allocator;
+} __attribute__((aligned(ALIGNED_64))) Parser;
 
 typedef struct ASTNode {
   NodeType type;
@@ -56,7 +55,7 @@ typedef struct ASTNode {
   union {
     BinaryOperation *bin_op;
   };
-} ASTNode;
+} __attribute__((aligned(ALIGNED_32))) ASTNode;
 
 typedef struct __attribute__((aligned(ALIGNED_16))) BinaryOperation {
   ASTNode *left;
@@ -65,7 +64,8 @@ typedef struct __attribute__((aligned(ALIGNED_16))) BinaryOperation {
 
 Symbol *create_symbol(DataType type, SymbolType kind);
 
-static inline Parser parse(Lexer lexer) {
-  Symbol *global = create_symbol(VOID, MODULE);
-  return (Parser){.lexer = lexer, .context = global};
-}
+Parser parse(Lexer *lexer);
+
+size_t precedence(const char *operation);
+
+#endif // !PARSER_H_

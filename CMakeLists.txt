@@ -15,7 +15,7 @@ include(FetchContent)
 FetchContent_Declare(
     unity
     GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
-    GIT_TAG        v2.6.1
+    GIT_TAG v2.6.1
 )
 
 FetchContent_MakeAvailable(unity)
@@ -23,8 +23,10 @@ FetchContent_MakeAvailable(unity)
 include_directories(${unity_SOURCE_DIR}/src includes tests)
 
 set(SOURCES
-    src/main.c
+    src/ASTNode_linkedlist.c
     src/lexer.c
+    src/main.c
+    src/parser.c
     src/token_arraylist.c
     src/utils.c
 )

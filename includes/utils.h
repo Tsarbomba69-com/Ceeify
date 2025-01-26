@@ -18,7 +18,6 @@
 #include "arena.h"
 #include <stdio.h>
 #include <stdlib.h>
-#endif
 
 typedef enum {
   LOG_ALL = 0, // Display all logs
@@ -31,8 +30,10 @@ typedef enum {
   LOG_NONE     // Disable logging
 } TraceLogLevel;
 
-char *load_file_text(Arena *arena, const char *filename);
+char *load_file_text(Arena *allocator, const char *filename);
 
-char *slice(Arena *arena, const char *source, size_t start, size_t end);
+char *slice(Arena *allocator, const char *source, size_t start, size_t end);
 
 void trace_log(TraceLogLevel logType, const char *text, ...);
+
+#endif

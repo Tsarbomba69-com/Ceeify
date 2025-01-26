@@ -1,0 +1,190 @@
+#include "parser.h"
+
+static inline Parser parser_new(Lexer *lexer) {
+  return (Parser){.lexer = lexer, .ast = ASTNode_linkedlist_new()};
+}
+
+const char *node_type_to_string(NodeType type) {
+  switch (type) {
+  case IMPORT:
+    return "IMPORT";
+  case PROGRAM:
+    return "PROGRAM";
+  case VARIABLE:
+    return "VARIABLE";
+  case ASSIGNMENT:
+    return "ASSIGNMENT";
+  case LITERAL:
+    return "LITERAL";
+  case UNARY_OPERATION:
+    return "UNARY OPERATION";
+  case COMPARE:
+    return "COMPARE";
+  case BINARY_OPERATION:
+    return "BINARY OPERATION";
+  case LIST_EXPR:
+    return "LIST_EXPR";
+  case IF:
+    return "IF";
+  case WHILE:
+    return "WHILE";
+  case FOR:
+    return "FOR";
+  default:
+    return "UNKNOWN";
+  }
+}
+
+ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
+  ASTNode *node = arena_alloc(&parser->allocator, sizeof(ASTNode));
+  if (node == NULL) {
+    trace_log(LOG_ERROR, "Could not allocate memory for AST node");
+    return NULL;
+  }
+
+  node->type = type;
+  node->token = token;
+  node->depth = 1;
+  switch (type) {
+  case LITERAL:
+    return node;
+  default:
+    trace_log(LOG_WARNING, "Unrecognized node type \"%s\"",
+              node_type_to_string(type));
+    return node;
+  }
+}
+
+bool blacklist_tokens(TokenType type, const TokenType blacklist[],
+                      size_t size) {
+  for (size_t i = 0; i < size; i++) {
+    if (blacklist[i] == type) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Token_ArrayList collect_expression(Token_ArrayList const *tokens, size_t from) {
+  Token *token = Token_get(tokens, from);
+  Token_ArrayList expression = Token_arraylist_new(20);
+  TokenType blacklist[] = {NEWLINE, ENDMARKER};
+  size_t scope = token->ident;
+
+  for (size_t j = from + 1;
+       (!blacklist_tokens(token->type, blacklist, ARRAYSIZE(blacklist)) &&
+        strcmp(token->lexeme, ":") != 0);
+       ++j) {
+    Token_push(&expression, token);
+    token = Token_get(tokens, j);
+
+    if (token->ident != scope) {
+      break;
+    }
+  }
+
+  return expression;
+}
+
+Token_ArrayList infix_to_postfix(Token_ArrayList *tokens) {
+  Token_ArrayList stack = Token_arraylist_new(10);
+  Token_ArrayList postfix = Token_arraylist_new(10);
+
+  for (size_t i = 0; i < tokens->size; i++) {
+    Token *token = Token_get(tokens, i);
+
+    if (token->type == IDENTIFIER || token->type == NUMERIC) {
+      Token_push(&postfix, token);
+    } else if (strcmp(token->lexeme, "(") == 0) {
+      Token_push(&stack, token);
+    } else if (strcmp(token->lexeme, ")") == 0) {
+      Token const *last = Token_get(&stack, stack.size - 1);
+      while (stack.size > 0 && strcmp(last->lexeme, "(") != 0) {
+        Token_push(&postfix, Token_pop(&stack));
+      }
+      if (stack.size > 0 && strcmp(last->lexeme, "(") == 0) {
+        Token_pop(&stack); // Pop the open bracket
+      }
+    } else {
+      Token *last = Token_get(&stack, stack.size - 1);
+
+      while (stack.size > 0 &&
+             precedence(last->lexeme) >= precedence(token->lexeme) &&
+             strcmp(last->lexeme, "(") != 0) {
+        Token_push(&postfix, Token_pop(&stack));
+        last = stack.size > 0 ? Token_get(&stack, stack.size - 1) : last;
+      }
+
+      Token_push(&stack, token);
+    }
+  }
+
+  while (stack.size > 0) {
+    Token_push(&postfix, Token_pop(&stack));
+  }
+  arena_free(&stack.allocator);
+  arena_free(&tokens->allocator);
+  return postfix;
+}
+
+ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
+  ASTNode_LinkedList stack = ASTNode_linkedlist_new();
+
+  for (size_t i = 0; i < tokens->size; i++) {
+    Token *token = Token_get(tokens, i);
+
+    switch (token->type) {
+    case TEXT:
+    case NUMERIC: {
+      ASTNode *literal = node_new(parser, token, LITERAL);
+      ASTNode_add_first(&stack, literal);
+    } break;
+    default:
+      break;
+    }
+  }
+  arena_free(&tokens->allocator);
+  ASTNode *root = Node_pop(&stack);
+  return root;
+}
+
+ASTNode *parse_expression(Parser *parser) {
+  Token_ArrayList expression =
+      collect_expression(&parser->lexer->tokens, parser->lexer->token_idx - 1);
+  parser->lexer->token_idx += expression.size;
+  expression = infix_to_postfix(&expression);
+  return shunting_yard(parser, &expression);
+}
+
+Parser parse(Lexer *lexer) {
+  Parser parser = parser_new(lexer);
+  Token *token = NULL;
+
+  while ((token = next_token(parser.lexer)) != NULL) {
+    switch (token->type) {
+    case NUMERIC: {
+      ASTNode *expr = parse_expression(&parser);
+      ASTNode_add_last(&parser.ast, expr);
+    } break;
+    default:
+      break;
+    }
+  }
+
+  return parser;
+}
+
+size_t precedence(const char *op) {
+  if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0) {
+    return 1;
+  } else if (strcmp(op, "*") == 0 || strcmp(op, "/") == 0) {
+    return 2;
+  } else if (strcmp(op, "^") == 0) {
+    return 3;
+  } else if (strcmp(op, "<") == 0 || strcmp(op, ">") == 0 ||
+             strcmp(op, "<=") == 0 || strcmp(op, ">=") == 0 ||
+             strcmp(op, "==") == 0 || strcmp(op, "!=") == 0) {
+    return 0;
+  } else
+    return -1;
+}

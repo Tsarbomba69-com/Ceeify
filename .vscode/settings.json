@@ -10,6 +10,12 @@
         "unity.h": "c",
         "arena.h": "c",
         "utils.h": "c",
-        "ctype.h": "c"
+        "ctype.h": "c",
+        "parser.h": "c",
+        "node_linkedlist.h": "c",
+        "test_parser.h": "c",
+        "astnode_linkedlist.h": "c",
+        "stdint.h": "c",
+        "stdlib.h": "c"
     }
 }

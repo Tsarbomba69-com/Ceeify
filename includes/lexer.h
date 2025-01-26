@@ -8,7 +8,6 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#endif
 
 typedef struct Token_ArrayList Token_ArrayList;
 
@@ -45,3 +44,5 @@ typedef struct Lexer {
 Lexer tokenize(const char *source);
 
 Token *next_token(Lexer *lexer);
+
+#endif // !LEXER_H_
