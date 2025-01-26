@@ -25,7 +25,8 @@ typedef enum TokenType {
   ENDMARKER
 } TokenType;
 
-typedef struct Token {
+typedef struct __attribute__((packed))
+__attribute__((aligned(ALIGNED_64))) Token {
   TokenType type;
   char *lexeme;
   size_t line;
@@ -43,4 +44,4 @@ typedef struct Lexer {
 
 Lexer tokenize(const char *source);
 
-Token* next_token(Lexer *lexer);
+Token *next_token(Lexer *lexer);

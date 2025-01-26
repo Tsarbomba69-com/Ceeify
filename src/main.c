@@ -1,4 +1,5 @@
 #include "test_lexer.h"
+#include "test_parser.h"
 #ifndef ARENA_IMPLEMENTATION
 #define ARENA_IMPLEMENTATION
 #include "arena.h"
@@ -17,6 +18,7 @@ void tearDown(void) {
 
 int main(void) {
   UNITY_BEGIN();
+  // Lexer
   RUN_TEST(test_lexer_identifier);
   RUN_TEST(test_lexer_numeric);
   RUN_TEST(test_lexer_operator);
@@ -25,5 +27,7 @@ int main(void) {
   RUN_TEST(test_lexer_newline);
   RUN_TEST(test_lexer_square_brackets);
   RUN_TEST(test_lexer_endmarker);
+  // Parser
+  RUN_TEST(test_parser_single_number);
   return UNITY_END();
 }
