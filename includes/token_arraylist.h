@@ -4,6 +4,7 @@
 #define TOKEN_ARRAYLIST_H_
 
 #include "arena.h"
+#include "utils.h"
 #include <stdio.h>
 #endif
 

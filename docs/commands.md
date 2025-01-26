@@ -22,16 +22,16 @@ ctest
 clang-tidy $your_code.c --checks=*
 ```
 
-### Reformat entire project
+#### Reformat entire project
 
 ```
-find . -name "*.c" -o -name "*.h" | xargs clang-format -i
+find $dir -name "*.c" -o -name "*.h" | xargs clang-format -i
 ```
 
 #### Run linter for the entire dir
 
 ```
-find . -name "*.c" -o -name "*.cpp" | xargs clang-tidy --checks=*
+find $dir -name "*.c" -o -name "*.cpp" | xargs clang-tidy --checks=*
 ```
 
 #### Run Valgrind

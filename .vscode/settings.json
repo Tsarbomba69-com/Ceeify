@@ -9,6 +9,7 @@
         "string.h": "c",
         "unity.h": "c",
         "arena.h": "c",
-        "utils.h": "c"
+        "utils.h": "c",
+        "ctype.h": "c"
     }
 }

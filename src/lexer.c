@@ -93,8 +93,9 @@ Lexer tokenize(const char *source) {
       }
     }
 
-    if (token != NULL)
+    if (token != NULL) {
       continue;
+    }
 
     if (matched_operator != NULL) {
       // Build the operator lexeme
@@ -215,7 +216,7 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
   char *lexeme =
       arena_alloc(&lexer->tokens.arena, max_lexeme_length * sizeof(char) + 1);
   if (lexeme == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
     return NULL;
   }
 
@@ -225,7 +226,7 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
 
   Token *token = arena_alloc(&lexer->tokens.arena, sizeof(Token));
   if (token == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for token\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for token");
     return NULL;
   }
 
@@ -256,6 +257,9 @@ Token *create_number_token(Lexer *lexer, char character) {
   lexeme[lexeme_length++] = character;
   lexer->position++;
 
+#ifdef __GNUC__
+#pragma GCC unroll 100
+#endif
   while (lexer->position < lexer->source_length) {
     character = lexer->source[lexer->position];
     if (isdigit(character) || character == '_') {
@@ -283,11 +287,18 @@ Token *create_number_token(Lexer *lexer, char character) {
 Token *create_string_token(Lexer *lexer, char character) {
   size_t start = lexer->position + 1;
   lexer->position++;
-  while (lexer->source[lexer->position] != character)
+
+#ifdef __GNUC__
+#pragma GCC unroll 100
+#endif
+  while (lexer->source[lexer->position] != character) {
     lexer->position++;
+  }
+
   char *lexeme =
       slice(&lexer->tokens.arena, lexer->source, start, lexer->position);
   Token *token = arena_alloc(&lexer->tokens.arena, sizeof(Token));
+
   if (token == NULL) {
     fprintf(stderr, "ERROR: Failed to allocate memory for token\n");
     return NULL;
@@ -301,22 +312,29 @@ Token *create_string_token(Lexer *lexer, char character) {
 
 Token *create_keyword_token(Lexer *lexer, char character) {
   char *lexeme = arena_alloc(&lexer->tokens.arena, LEX_CAP * sizeof(char));
+
   if (lexeme == NULL) {
     fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
     return NULL;
   }
+
   size_t lexeme_length = 0;
   lexeme[lexeme_length++] = character;
   lexer->position++;
 
-  // Build the lexeme until a non-alphanumeric character is encountered
+// Build the lexeme until a non-alphanumeric character is encountered
+#ifdef __GNUC__
+#pragma GCC unroll 100
+#endif
   while (lexer->position < lexer->source_length) {
     character = lexer->source[lexer->position];
     if (isalnum(character) || character == '_') {
       lexeme[lexeme_length++] = character;
       lexer->position++;
-    } else
-      break;
+      continue;
+    }
+
+    break;
   }
   lexeme[lexeme_length] = '\0';
 

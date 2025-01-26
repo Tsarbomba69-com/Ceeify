@@ -18,12 +18,12 @@ void tearDown(void) {
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_lexer_identifier);
-  // RUN_TEST(test_lexer_numeric);
-  // RUN_TEST(test_lexer_operator);
-  // RUN_TEST(test_lexer_keyword);
-  // RUN_TEST(test_lexer_delimiter);
-  // RUN_TEST(test_lexer_newline);
-  // RUN_TEST(test_lexer_square_brackets);
-  // RUN_TEST(test_lexer_endmarker);
+  RUN_TEST(test_lexer_numeric);
+  RUN_TEST(test_lexer_operator);
+  RUN_TEST(test_lexer_keyword);
+  RUN_TEST(test_lexer_delimiter);
+  RUN_TEST(test_lexer_newline);
+  RUN_TEST(test_lexer_square_brackets);
+  RUN_TEST(test_lexer_endmarker);
   return UNITY_END();
 }

@@ -4,16 +4,16 @@
 #define LEXER_H_
 
 #include "token_arraylist.h"
-#include <stdlib.h>
-#include <string.h>
 #include "utils.h"
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 #endif
 
 typedef struct Token_ArrayList Token_ArrayList;
 
 typedef enum TokenType {
-  IDENTIFIER,
+  IDENTIFIER = 0,
   TEXT,
   NUMERIC,
   OPERATOR,
@@ -41,6 +41,6 @@ typedef struct Lexer {
   Token_ArrayList tokens;
 } Lexer;
 
-Lexer tokenize(const char* source);
+Lexer tokenize(const char *source);
 
 Token* next_token(Lexer *lexer);

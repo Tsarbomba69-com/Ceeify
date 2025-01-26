@@ -6,9 +6,8 @@ Token_ArrayList Token_arraylist_new(size_t capacity) {
   list.elements = arena_alloc(&list.arena, capacity * sizeof(Token *));
 
   if (list.elements == NULL) {
-    fprintf(
-        stderr,
-        "ERROR: Could not allocate memory for \"Token*\" array list elements");
+    trace_log(LOG_ERROR,
+              "Could not allocate memory for \"Token*\" array list elements");
   }
   return list;
 }
@@ -21,7 +20,7 @@ void Token_push(Token_ArrayList *list, Token *value) {
                       list->size * sizeof(Token *), cap * sizeof(Token *));
 
     if (elements == NULL) {
-      fprintf(stderr, "ERROR: Failed to resize \"Token*\" array list\n");
+      trace_log(LOG_ERROR, "Failed to resize \"Token*\" array list");
       return;
     }
 
