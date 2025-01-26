@@ -174,16 +174,17 @@ Parser parse(Lexer *lexer) {
   return parser;
 }
 
-size_t precedence(const char *op) {
-  if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0) {
+size_t precedence(const char *operator) {
+  if (strcmp(operator, "+") == 0 || strcmp(operator, "-") == 0) {
     return 1;
-  } else if (strcmp(op, "*") == 0 || strcmp(op, "/") == 0) {
+  }
+  if (strcmp(operator, "*") == 0 || strcmp(operator, "/") == 0) {
     return 2;
-  } else if (strcmp(op, "^") == 0) {
+  } else if (strcmp(operator, "^") == 0) {
     return 3;
-  } else if (strcmp(op, "<") == 0 || strcmp(op, ">") == 0 ||
-             strcmp(op, "<=") == 0 || strcmp(op, ">=") == 0 ||
-             strcmp(op, "==") == 0 || strcmp(op, "!=") == 0) {
+  } else if (strcmp(operator, "<") == 0 || strcmp(operator, ">") == 0 ||
+             strcmp(operator, "<=") == 0 || strcmp(operator, ">=") == 0 ||
+             strcmp(operator, "==") == 0 || strcmp(operator, "!=") == 0) {
     return 0;
   } else
     return -1;

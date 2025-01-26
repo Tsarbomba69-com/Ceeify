@@ -1,11 +1,10 @@
-#pragma once
-
 #ifndef TOKEN_ARRAYLIST_H_
 #define TOKEN_ARRAYLIST_H_
 
+#pragma once
+
 #include "arena.h"
 #include "utils.h"
-#include <stdio.h>
 
 typedef struct Token Token;
 
@@ -14,7 +13,7 @@ typedef struct Token_ArrayList {
   size_t size;
   size_t capacity;
   Arena allocator;
-} Token_ArrayList;
+} __attribute__((aligned(ALIGNED_64))) Token_ArrayList;
 
 Token_ArrayList Token_arraylist_new(size_t capacity);
 

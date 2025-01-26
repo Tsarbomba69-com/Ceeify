@@ -1,7 +1,6 @@
-#pragma once
-
 #ifndef LEXER_H_
 #define LEXER_H_
+#pragma once
 
 #include "token_arraylist.h"
 #include "utils.h"
@@ -39,7 +38,7 @@ typedef struct Lexer {
   size_t token_idx;
   size_t source_length;
   Token_ArrayList tokens;
-} Lexer;
+} __attribute__((aligned(ALIGNED_128))) Lexer;
 
 Lexer tokenize(const char *source);
 

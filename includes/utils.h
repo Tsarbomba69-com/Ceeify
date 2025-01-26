@@ -1,7 +1,8 @@
-#pragma once
-
 #ifndef UTILS_H_
 #define UTILS_H_
+
+#pragma once
+
 
 #define ALIGNED_8 8
 #define ALIGNED_16 16
