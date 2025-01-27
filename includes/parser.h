@@ -25,8 +25,6 @@ typedef enum NodeType {
 
 typedef struct Symbol Symbol;
 
-typedef struct BinaryOperation BinaryOperation;
-
 typedef enum SymbolType { CLASS, MODULE, FUNCTION, BLOCK, VAR } SymbolType;
 
 typedef enum Context { STORE, DEL, LOAD } Context;
@@ -42,10 +40,14 @@ typedef enum DataType {
   VOID
 } DataType;
 
+typedef struct __attribute__((aligned(ALIGNED_16))) BinaryOperation {
+  ASTNode *left;
+  ASTNode *right;
+} BinaryOperation;
+
 typedef struct Parser {
   Lexer *lexer;
   ASTNode_LinkedList ast;
-  Arena allocator;
 } __attribute__((aligned(ALIGNED_64))) Parser;
 
 typedef struct ASTNode {
@@ -53,14 +55,9 @@ typedef struct ASTNode {
   size_t depth;
   Token *token;
   union {
-    BinaryOperation *bin_op;
+    BinaryOperation bin_op;
   };
 } __attribute__((aligned(ALIGNED_32))) ASTNode;
-
-typedef struct __attribute__((aligned(ALIGNED_16))) BinaryOperation {
-  ASTNode *left;
-  ASTNode *right;
-} BinaryOperation;
 
 Symbol *create_symbol(DataType type, SymbolType kind);
 

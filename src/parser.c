@@ -36,7 +36,7 @@ const char *node_type_to_string(NodeType type) {
 }
 
 ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
-  ASTNode *node = arena_alloc(&parser->allocator, sizeof(ASTNode));
+  ASTNode *node = arena_alloc(&parser->ast.allocator, sizeof(ASTNode));
   if (node == NULL) {
     trace_log(LOG_ERROR, "Could not allocate memory for AST node");
     return NULL;
@@ -45,14 +45,14 @@ ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
   node->type = type;
   node->token = token;
   node->depth = 1;
-  switch (type) {
-  case LITERAL:
-    return node;
-  default:
-    trace_log(LOG_WARNING, "Unrecognized node type \"%s\"",
-              node_type_to_string(type));
-    return node;
-  }
+  return node;
+}
+
+ASTNode *bin_op_new(Parser *parser, Token *operation, ASTNode *left,
+                    ASTNode *right) {
+  ASTNode *node = node_new(parser, operation, BINARY_OPERATION);
+  node->bin_op = (BinaryOperation){.left = left, .right = right};
+  return node;
 }
 
 bool blacklist_tokens(TokenType type, const TokenType blacklist[],
@@ -139,12 +139,23 @@ ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
       ASTNode *literal = node_new(parser, token, LITERAL);
       ASTNode_add_first(&stack, literal);
     } break;
+    case OPERATOR: {
+      ASTNode *right = Node_pop(&stack);
+      ASTNode *left = Node_pop(&stack);
+
+      if (right != NULL && left != NULL) {
+        ASTNode *node = bin_op_new(parser, token, left, right);
+        ASTNode_add_first(&stack, node);
+        continue;
+      }
+    } break;
     default:
       break;
     }
   }
   arena_free(&tokens->allocator);
   ASTNode *root = Node_pop(&stack);
+  arena_free(&stack.allocator);
   return root;
 }
 
@@ -180,7 +191,7 @@ size_t precedence(const char *operator) {
   }
   if (strcmp(operator, "*") == 0 || strcmp(operator, "/") == 0) {
     return 2;
-  } else if (strcmp(operator, "^") == 0) {
+  } if (strcmp(operator, "^") == 0) {
     return 3;
   } else if (strcmp(operator, "<") == 0 || strcmp(operator, ">") == 0 ||
              strcmp(operator, "<=") == 0 || strcmp(operator, ">=") == 0 ||

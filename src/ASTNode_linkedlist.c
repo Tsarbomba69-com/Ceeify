@@ -7,8 +7,8 @@ ASTNode_LinkedList ASTNode_linkedlist_new() {
   return list;
 }
 
-ASTNode_Node *ASTNode_node_new(ASTNode *data) {
-  ASTNode_Node *newNode = malloc(sizeof(ASTNode_Node));
+ASTNode_Node *ASTNode_node_new(ASTNode_LinkedList *list, ASTNode *data) {
+  ASTNode_Node *newNode = arena_alloc(&list->allocator, sizeof(ASTNode_Node));
   if (newNode == NULL) {
     trace_log(LOG_ERROR, "Failed to allocate memory for \"Node*\" node");
     return NULL;
@@ -19,7 +19,7 @@ ASTNode_Node *ASTNode_node_new(ASTNode *data) {
 }
 
 void ASTNode_add_last(ASTNode_LinkedList *list, ASTNode *data) {
-  ASTNode_Node *newNode = ASTNode_node_new(data);
+  ASTNode_Node *newNode = ASTNode_node_new(list, data);
   list->size++;
 
   if (list->head == NULL) {
@@ -36,7 +36,7 @@ void ASTNode_add_last(ASTNode_LinkedList *list, ASTNode *data) {
 }
 
 void ASTNode_add_first(ASTNode_LinkedList *list, ASTNode *data) {
-  ASTNode_Node *newNode = ASTNode_node_new(data);
+  ASTNode_Node *newNode = ASTNode_node_new(list, data);
   newNode->next = list->head;
   list->head = newNode;
   list->size++;
@@ -48,9 +48,7 @@ ASTNode *Node_pop(ASTNode_LinkedList *list) {
   }
 
   ASTNode *value = list->head->data;
-  ASTNode_Node *temp = list->head;
   list->head = list->head->next;
   list->size--;
-  free(temp);
   return value;
 }

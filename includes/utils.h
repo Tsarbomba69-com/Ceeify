@@ -3,7 +3,6 @@
 
 #pragma once
 
-
 #define ALIGNED_8 8
 #define ALIGNED_16 16
 #define ALIGNED_64 64

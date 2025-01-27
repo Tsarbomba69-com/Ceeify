@@ -18,6 +18,7 @@ typedef struct ASTNode_Node {
 typedef struct ASTNode_LinkedList {
   ASTNode_Node *head;
   size_t size;
+  Arena allocator;
 } ASTNode_LinkedList;
 
 // Stack allocated linkedlist constructor
