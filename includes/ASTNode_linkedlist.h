@@ -2,9 +2,8 @@
 #ifndef NODE_LIKNEDLIST_H_
 #define NODE_LIKNEDLIST_H_
 
-#include "stdlib.h"
 #include "utils.h"
-#include <assert.h>
+#include <stdint.h>
 
 #define DEFAULT_CAP 10
 
@@ -16,7 +15,7 @@ typedef struct ASTNode_Node ASTNode_Node;
 typedef struct ASTNode_Node {
   ASTNode *data;
   uint8_t next;
-} ASTNode_Node;
+} __attribute__((aligned(ALIGNED_64))) ASTNode_Node;
 
 typedef struct ASTNode_LinkedList {
   Arena allocator;
@@ -26,7 +25,7 @@ typedef struct ASTNode_LinkedList {
   uint8_t head;           // Index of the first element in the list
   uint8_t tail;           // Index of the last element in the list
   uint8_t free;           // Index of the first free node in the array
-} ASTNode_LinkedList;
+} __attribute__((packed)) __attribute__((aligned(ALIGNED_64))) ASTNode_LinkedList;
 
 // Stack allocated linkedlist constructor
 ASTNode_LinkedList ASTNode_linkedlist_new(size_t capacity);
