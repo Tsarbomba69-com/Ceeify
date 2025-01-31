@@ -1,7 +1,7 @@
 #include "parser.h"
 
 static inline Parser parser_new(Lexer *lexer) {
-  return (Parser){.lexer = lexer, .ast = ASTNode_linkedlist_new()};
+  return (Parser){.lexer = lexer, .ast = ASTNode_linkedlist_new(DEFAULT_CAP)};
 }
 
 const char *node_type_to_string(NodeType type) {
@@ -128,7 +128,7 @@ Token_ArrayList infix_to_postfix(Token_ArrayList *tokens) {
 }
 
 ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
-  ASTNode_LinkedList stack = ASTNode_linkedlist_new();
+  ASTNode_LinkedList stack = ASTNode_linkedlist_new(DEFAULT_CAP);
 
   for (size_t i = 0; i < tokens->size; i++) {
     Token *token = Token_get(tokens, i);
@@ -137,15 +137,15 @@ ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
     case TEXT:
     case NUMERIC: {
       ASTNode *literal = node_new(parser, token, LITERAL);
-      ASTNode_add_first(&stack, literal);
+      ASTNode_add_last(&stack, literal);
     } break;
     case OPERATOR: {
-      ASTNode *right = Node_pop(&stack);
-      ASTNode *left = Node_pop(&stack);
+      ASTNode *right = ASTNode_pop(&stack);
+      ASTNode *left = ASTNode_pop(&stack);
 
       if (right != NULL && left != NULL) {
         ASTNode *node = bin_op_new(parser, token, left, right);
-        ASTNode_add_first(&stack, node);
+        ASTNode_add_last(&stack, node);
         continue;
       }
     } break;
@@ -154,8 +154,8 @@ ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
     }
   }
   arena_free(&tokens->allocator);
-  ASTNode *root = Node_pop(&stack);
-  arena_free(&stack.allocator);
+  ASTNode *root = ASTNode_pop(&stack);
+  ASTNode_linkedlist_free(&stack);
   return root;
 }
 
@@ -191,7 +191,8 @@ size_t precedence(const char *operator) {
   }
   if (strcmp(operator, "*") == 0 || strcmp(operator, "/") == 0) {
     return 2;
-  } if (strcmp(operator, "^") == 0) {
+  }
+  if (strcmp(operator, "^") == 0) {
     return 3;
   } else if (strcmp(operator, "<") == 0 || strcmp(operator, ">") == 0 ||
              strcmp(operator, "<=") == 0 || strcmp(operator, ">=") == 0 ||

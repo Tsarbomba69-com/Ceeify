@@ -16,6 +16,11 @@
         "test_parser.h": "c",
         "astnode_linkedlist.h": "c",
         "stdint.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "atomic": "cpp",
+        "cstdint": "cpp"
     }
 }
