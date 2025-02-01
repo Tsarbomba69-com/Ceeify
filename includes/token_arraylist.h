@@ -31,4 +31,4 @@ static inline Token *Token_get(Token_ArrayList const *arrayList, size_t index) {
 // Free linked list resources
 void Token_free(Token_ArrayList *list);
 
-#endif // !TOKEN_ARRAYLIST_H_
+#endif // TOKEN_ARRAYLIST_H_

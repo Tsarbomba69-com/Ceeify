@@ -58,7 +58,7 @@ char *slice(Arena *allocator, const char *source, size_t start, size_t end) {
 
   char *result = arena_alloc(allocator, (length + 1) * sizeof(char));
   if (result == NULL) {
-    trace_log(LOG_FATAL, "Failed to allocate memory for string slice");
+    trace_log(LOG_ERROR, "Failed to allocate memory for string slice");
     return NULL;
   }
 

@@ -25,11 +25,29 @@ void test_parse_arithmetic_expression(void) {
   TEST_ASSERT_EQUAL_STRING("3", result->bin_op.left->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("*", result->bin_op.right->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("5",
-                        result->bin_op.right->bin_op.left->token->lexeme);
+                           result->bin_op.right->bin_op.left->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("2",
-                        result->bin_op.right->bin_op.right->token->lexeme);
+                           result->bin_op.right->bin_op.right->token->lexeme);
   ASTNode_free(&parser.ast);
   Token_free(&lexer.tokens);
+}
+
+// Test parsing a variable assignment
+void test_parse_variable_assignment(void) {
+  Lexer lexer = tokenize("x = 42");
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *target = ASTNode_pop(&node->assign.targets);
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, node->type);
+  TEST_ASSERT_EQUAL_INT(VARIABLE, target->type);
+  TEST_ASSERT_EQUAL_INT(LITERAL, node->assign.value->type);
+  TEST_ASSERT_EQUAL_STRING("=", node->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("42", node->assign.value->token->lexeme);
+  Token_free(&lexer.tokens);
+  ASTNode_free(&node->assign.targets);
+  ASTNode_free(&parser.ast);
 }
 
 #endif

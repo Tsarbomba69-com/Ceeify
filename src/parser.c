@@ -177,6 +177,21 @@ Parser parse(Lexer *lexer) {
       ASTNode *expr = parse_expression(&parser);
       ASTNode_add_last(&parser.ast, expr);
     } break;
+    case IDENTIFIER: {
+      Token *next = next_token(parser.lexer);
+
+      if (strcmp(next->lexeme, "=") == 0) {
+        parser.lexer->token_idx++;
+        ASTNode *node = node_new(&parser, next, ASSIGNMENT);
+        ASTNode *expr = parse_expression(&parser);
+        node->assign = (Assign){.targets = ASTNode_new(1), .value = expr};
+        ASTNode *var = node_new(&parser, token, VARIABLE);
+        ASTNode_add_last(&node->assign.targets, var);
+        ASTNode_add_last(&parser.ast, node);
+        continue;
+      }
+
+    } break;
     default:
       break;
     }

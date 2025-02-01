@@ -1,6 +1,7 @@
-#pragma once
 #ifndef NODE_LIKNEDLIST_H_
 #define NODE_LIKNEDLIST_H_
+
+#pragma once
 
 #include "utils.h"
 #include <stdint.h>
@@ -43,4 +44,4 @@ ASTNode *ASTNode_pop(ASTNode_LinkedList *list);
 // Free linked list resources
 void ASTNode_free(ASTNode_LinkedList *list);
 
-#endif // !NODE_LIKNEDLIST_H_
+#endif // NODE_LIKNEDLIST_H_

@@ -45,10 +45,16 @@ typedef struct __attribute__((aligned(ALIGNED_16))) BinaryOperation {
   ASTNode *right;
 } BinaryOperation;
 
+typedef struct Assign {
+  ASTNode_LinkedList targets;
+  ASTNode *value;
+  char *type_comment;
+} __attribute__((aligned(128))) Assign;
+
 typedef struct Parser {
   Lexer *lexer;
   ASTNode_LinkedList ast;
-} __attribute__((aligned(ALIGNED_64))) Parser;
+} __attribute__((aligned(128))) Parser;
 
 typedef struct ASTNode {
   NodeType type;
@@ -56,8 +62,10 @@ typedef struct ASTNode {
   Token *token;
   union {
     BinaryOperation bin_op;
+    Assign assign;
+    Context ctx;
   };
-} __attribute__((aligned(ALIGNED_32))) ASTNode;
+} __attribute__((packed)) __attribute__((aligned(128))) ASTNode;
 
 Symbol *create_symbol(DataType type, SymbolType kind);
 
@@ -65,4 +73,4 @@ Parser parse(Lexer *lexer);
 
 size_t precedence(const char *operation);
 
-#endif // !PARSER_H_
+#endif // PARSER_H_
