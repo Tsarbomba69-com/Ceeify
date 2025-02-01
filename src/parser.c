@@ -1,7 +1,7 @@
 #include "parser.h"
 
 static inline Parser parser_new(Lexer *lexer) {
-  return (Parser){.lexer = lexer, .ast = ASTNode_linkedlist_new(DEFAULT_CAP)};
+  return (Parser){.lexer = lexer, .ast = ASTNode_new(DEFAULT_CAP)};
 }
 
 const char *node_type_to_string(NodeType type) {
@@ -67,7 +67,7 @@ bool blacklist_tokens(TokenType type, const TokenType blacklist[],
 
 Token_ArrayList collect_expression(Token_ArrayList const *tokens, size_t from) {
   Token *token = Token_get(tokens, from);
-  Token_ArrayList expression = Token_arraylist_new(20);
+  Token_ArrayList expression = Token_new(20);
   TokenType blacklist[] = {NEWLINE, ENDMARKER};
   size_t scope = token->ident;
 
@@ -87,8 +87,8 @@ Token_ArrayList collect_expression(Token_ArrayList const *tokens, size_t from) {
 }
 
 Token_ArrayList infix_to_postfix(Token_ArrayList *tokens) {
-  Token_ArrayList stack = Token_arraylist_new(10);
-  Token_ArrayList postfix = Token_arraylist_new(10);
+  Token_ArrayList stack = Token_new(10);
+  Token_ArrayList postfix = Token_new(10);
 
   for (size_t i = 0; i < tokens->size; i++) {
     Token *token = Token_get(tokens, i);
@@ -128,7 +128,7 @@ Token_ArrayList infix_to_postfix(Token_ArrayList *tokens) {
 }
 
 ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
-  ASTNode_LinkedList stack = ASTNode_linkedlist_new(DEFAULT_CAP);
+  ASTNode_LinkedList stack = ASTNode_new(DEFAULT_CAP);
 
   for (size_t i = 0; i < tokens->size; i++) {
     Token *token = Token_get(tokens, i);
@@ -155,7 +155,7 @@ ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
   }
   arena_free(&tokens->allocator);
   ASTNode *root = ASTNode_pop(&stack);
-  ASTNode_linkedlist_free(&stack);
+  ASTNode_free(&stack);
   return root;
 }
 

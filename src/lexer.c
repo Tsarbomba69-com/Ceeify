@@ -38,7 +38,7 @@ Lexer lexer_new(const char *source) {
                  .position = 0,
                  .token_idx = 0,
                  .source_length = len,
-                 .tokens = Token_arraylist_new(100)};
+                 .tokens = Token_new(100)};
 }
 
 Lexer tokenize(const char *source) {
@@ -181,13 +181,13 @@ Token *next_token(Lexer *lexer) {
 Token *create_token_from_char(Lexer *lexer, char character, TokenType type) {
   Token *token = arena_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    fprintf(stderr, "ERROR: Could not allocate memory for token\n");
+    trace_log(LOG_ERROR, "Could not allocate memory for token");
     return NULL;
   }
 
   char *lexeme = arena_alloc(&lexer->tokens.allocator, sizeof(char) * 2);
   if (lexeme == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
     return NULL;
   }
 
@@ -238,7 +238,7 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
 Token *create_EOF_token(Lexer *lexer) {
   Token *token = arena_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for EOF token\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for EOF token");
     return NULL;
   }
 
@@ -250,7 +250,7 @@ Token *create_EOF_token(Lexer *lexer) {
 Token *create_number_token(Lexer *lexer, char character) {
   char *lexeme = arena_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
   if (lexeme == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
     return NULL;
   }
   size_t lexeme_length = 0;
@@ -275,7 +275,7 @@ Token *create_number_token(Lexer *lexer, char character) {
   lexeme[lexeme_length] = '\0';
   Token *token = arena_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for token\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for token");
     return NULL;
   }
 
@@ -300,7 +300,7 @@ Token *create_string_token(Lexer *lexer, char character) {
   Token *token = arena_alloc(&lexer->tokens.allocator, sizeof(Token));
 
   if (token == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for token\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for token");
     return NULL;
   }
 
@@ -314,7 +314,7 @@ Token *create_keyword_token(Lexer *lexer, char character) {
   char *lexeme = arena_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
 
   if (lexeme == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for lexeme\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
     return NULL;
   }
 
@@ -340,7 +340,7 @@ Token *create_keyword_token(Lexer *lexer, char character) {
 
   Token *token = arena_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for token\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for token");
     return NULL;
   }
   token->lexeme = lexeme;
@@ -359,7 +359,7 @@ Token *create_keyword_token(Lexer *lexer, char character) {
 Token *create_newline_token(Lexer *lexer) {
   Token *token = arena_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    fprintf(stderr, "ERROR: Failed to allocate memory for NEWLINE token\n");
+    trace_log(LOG_ERROR, "Failed to allocate memory for NEWLINE token");
     return NULL;
   }
 

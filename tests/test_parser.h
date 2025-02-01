@@ -12,8 +12,8 @@ void test_parser_single_number(void) {
   ASTNode *node = ASTNode_pop(&parser.ast);
   TEST_ASSERT_EQUAL_INT(LITERAL, node->type);
   TEST_ASSERT_EQUAL_STRING("123", node->token->lexeme);
-  arena_free(&parser.ast.allocator);
-  arena_free(&lexer.tokens.allocator);
+  ASTNode_free(&parser.ast);
+  Token_free(&lexer.tokens);
 }
 
 void test_parse_arithmetic_expression(void) {
@@ -28,8 +28,8 @@ void test_parse_arithmetic_expression(void) {
                         result->bin_op.right->bin_op.left->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("2",
                         result->bin_op.right->bin_op.right->token->lexeme);
-  ASTNode_linkedlist_free(&parser.ast);
-  arena_free(&lexer.tokens.allocator);
+  ASTNode_free(&parser.ast);
+  Token_free(&lexer.tokens);
 }
 
 #endif

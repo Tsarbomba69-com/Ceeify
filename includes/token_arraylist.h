@@ -15,7 +15,7 @@ typedef struct Token_ArrayList {
   Arena allocator;
 } __attribute__((aligned(ALIGNED_64))) Token_ArrayList;
 
-Token_ArrayList Token_arraylist_new(size_t capacity);
+Token_ArrayList Token_new(size_t capacity);
 
 // Pushes an element to the end of the array list
 void Token_push(Token_ArrayList *list, Token *value);
@@ -27,5 +27,8 @@ Token *Token_pop(Token_ArrayList *list);
 static inline Token *Token_get(Token_ArrayList const *arrayList, size_t index) {
   return index < arrayList->size ? arrayList->elements[index] : NULL;
 }
+
+// Free linked list resources
+void Token_free(Token_ArrayList *list);
 
 #endif // !TOKEN_ARRAYLIST_H_

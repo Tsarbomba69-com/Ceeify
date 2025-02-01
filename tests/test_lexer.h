@@ -13,7 +13,7 @@ void test_lexer_identifier(void) {
   TEST_ASSERT_EQUAL_STRING("my_variable", token->lexeme);
   TEST_ASSERT_EQUAL(1, token->line);
   TEST_ASSERT_EQUAL(1, token->col);
-  arena_free(&lexer.tokens.allocator);
+  Token_free(&lexer.tokens);
 }
 
 void test_lexer_numeric(void) {
@@ -22,7 +22,7 @@ void test_lexer_numeric(void) {
   // Assertions
   TEST_ASSERT_EQUAL_INT(NUMERIC, token->type);
   TEST_ASSERT_EQUAL_STRING("123", token->lexeme);
-  arena_free(&lexer.tokens.allocator);
+  Token_free(&lexer.tokens);
 }
 
 void test_lexer_operator(void) {
@@ -31,7 +31,7 @@ void test_lexer_operator(void) {
   // Assertions
   TEST_ASSERT_EQUAL_INT(OPERATOR, token->type);
   TEST_ASSERT_EQUAL_STRING("+", token->lexeme);
-  arena_free(&lexer.tokens.allocator);
+  Token_free(&lexer.tokens);
 }
 
 void test_lexer_keyword(void) {
@@ -40,7 +40,7 @@ void test_lexer_keyword(void) {
   // Assertions
   TEST_ASSERT_EQUAL_INT(KEYWORD, token->type);
   TEST_ASSERT_EQUAL_STRING("class", token->lexeme);
-  arena_free(&lexer.tokens.allocator);
+  Token_free(&lexer.tokens);
 }
 
 void test_lexer_delimiter(void) {
@@ -49,7 +49,7 @@ void test_lexer_delimiter(void) {
   // Assertions
   TEST_ASSERT_EQUAL_INT(DELIMITER, token->type);
   TEST_ASSERT_EQUAL_STRING("(", token->lexeme);
-  arena_free(&lexer.tokens.allocator);
+  Token_free(&lexer.tokens);
 }
 
 void test_lexer_newline(void) {
@@ -58,7 +58,7 @@ void test_lexer_newline(void) {
   // Assertions
   TEST_ASSERT_EQUAL_INT(NEWLINE, token->type);
   TEST_ASSERT_EQUAL_STRING("\\n", token->lexeme);
-  arena_free(&lexer.tokens.allocator);
+  Token_free(&lexer.tokens);
 }
 
 void test_lexer_square_brackets(void) {
@@ -67,7 +67,7 @@ void test_lexer_square_brackets(void) {
   // Assertions
   TEST_ASSERT_EQUAL_INT(LSQB, token->type);
   TEST_ASSERT_EQUAL_STRING("[", token->lexeme);
-  arena_free(&lexer.tokens.allocator);
+  Token_free(&lexer.tokens);
 }
 
 void test_lexer_endmarker(void) {
@@ -76,7 +76,7 @@ void test_lexer_endmarker(void) {
   // Assertions
   TEST_ASSERT_EQUAL_INT(ENDMARKER, token->type);
   TEST_ASSERT_EQUAL_STRING("EOF", token->lexeme);
-  arena_free(&lexer.tokens.allocator);
+  Token_free(&lexer.tokens);
 }
 
 #endif

@@ -1,6 +1,6 @@
 #include "token_arraylist.h"
 
-Token_ArrayList Token_arraylist_new(size_t capacity) {
+Token_ArrayList Token_new(size_t capacity) {
   Token_ArrayList list = {
       .capacity = capacity, .allocator = (Arena){0}, .size = 0};
   list.capacity = capacity;
@@ -40,4 +40,11 @@ Token *Token_pop(Token_ArrayList *list) {
   Token *element = list->elements[list->size - 1]; // Get the last element
   list->size--;                                    // Decrement the size
   return element;                                  // Return the last element
+}
+
+void Token_free(Token_ArrayList *list) {
+  arena_free(&list->allocator);
+  list->elements = NULL;
+  list->capacity = 0;
+  list->size = 0;
 }

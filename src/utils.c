@@ -52,14 +52,13 @@ char *load_file_text(Arena *allocator, const char *filename) {
 char *slice(Arena *allocator, const char *source, size_t start, size_t end) {
   size_t length = end - start;
   if (length <= 0) {
-    fprintf(stderr,
-            "ERROR: the length of the slice must be greater than zero\n");
+    trace_log(LOG_ERROR, "The length of the slice must be greater than zero");
     return NULL;
   }
 
   char *result = arena_alloc(allocator, (length + 1) * sizeof(char));
   if (result == NULL) {
-    fprintf(stderr, "FATAL: Failed to allocate memory for string slice\n");
+    trace_log(LOG_FATAL, "Failed to allocate memory for string slice");
     return NULL;
   }
 
