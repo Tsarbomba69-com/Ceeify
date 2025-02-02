@@ -24,7 +24,7 @@ typedef enum TokenType {
 } TokenType;
 
 typedef struct __attribute__((packed))
-__attribute__((aligned(ALIGNED_64))) Token {
+__attribute__((aligned(64))) Token {
   TokenType type;
   char *lexeme;
   size_t line;
@@ -38,7 +38,7 @@ typedef struct Lexer {
   size_t token_idx;
   size_t source_length;
   Token_ArrayList tokens;
-} __attribute__((aligned(ALIGNED_128))) Lexer;
+} __attribute__((aligned(128))) Lexer;
 
 Lexer tokenize(const char *source);
 

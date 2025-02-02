@@ -99,9 +99,11 @@ Token_ArrayList infix_to_postfix(Token_ArrayList *tokens) {
       Token_push(&stack, token);
     } else if (strcmp(token->lexeme, ")") == 0) {
       Token const *last = Token_get(&stack, stack.size - 1);
+
       while (stack.size > 0 && strcmp(last->lexeme, "(") != 0) {
         Token_push(&postfix, Token_pop(&stack));
       }
+
       if (stack.size > 0 && strcmp(last->lexeme, "(") == 0) {
         Token_pop(&stack); // Pop the open bracket
       }
@@ -119,9 +121,13 @@ Token_ArrayList infix_to_postfix(Token_ArrayList *tokens) {
     }
   }
 
+#ifdef __GNUC__
+#pragma GCC unroll 100
+#endif
   while (stack.size > 0) {
     Token_push(&postfix, Token_pop(&stack));
   }
+
   arena_free(&stack.allocator);
   arena_free(&tokens->allocator);
   return postfix;
@@ -204,15 +210,20 @@ size_t precedence(const char *operator) {
   if (strcmp(operator, "+") == 0 || strcmp(operator, "-") == 0) {
     return 1;
   }
+
   if (strcmp(operator, "*") == 0 || strcmp(operator, "/") == 0) {
     return 2;
   }
+
   if (strcmp(operator, "^") == 0) {
     return 3;
-  } else if (strcmp(operator, "<") == 0 || strcmp(operator, ">") == 0 ||
-             strcmp(operator, "<=") == 0 || strcmp(operator, ">=") == 0 ||
-             strcmp(operator, "==") == 0 || strcmp(operator, "!=") == 0) {
+  }
+
+  if (strcmp(operator, "<") == 0 || strcmp(operator, ">") == 0 ||
+      strcmp(operator, "<=") == 0 || strcmp(operator, ">=") == 0 ||
+      strcmp(operator, "==") == 0 || strcmp(operator, "!=") == 0) {
     return 0;
-  } else
-    return -1;
+  }
+
+  return -1;
 }

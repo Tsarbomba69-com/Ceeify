@@ -3,12 +3,6 @@
 
 #pragma once
 
-#define ALIGNED_8 8
-#define ALIGNED_16 16
-#define ALIGNED_64 64
-#define ALIGNED_32 32
-#define ALIGNED_128 128
-
 #define DEFER(fn) __attribute__((cleanup(fn)))
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof((a)[0]))

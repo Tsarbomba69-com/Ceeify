@@ -16,7 +16,7 @@ typedef struct ASTNode_Node ASTNode_Node;
 typedef struct ASTNode_Node {
   ASTNode *data;
   size_t next;
-} __attribute__((packed)) __attribute__((aligned(ALIGNED_16))) ASTNode_Node;
+} __attribute__((packed)) __attribute__((aligned(16))) ASTNode_Node;
 
 typedef struct ASTNode_LinkedList {
   Arena allocator;
@@ -27,7 +27,7 @@ typedef struct ASTNode_LinkedList {
   size_t tail;            // Index of the last element in the list
   size_t free;            // Index of the first free node in the array
 } __attribute__((packed))
-__attribute__((aligned(ALIGNED_64))) ASTNode_LinkedList;
+__attribute__((aligned(64))) ASTNode_LinkedList;
 
 // Stack allocated linkedlist constructor
 ASTNode_LinkedList ASTNode_new(size_t capacity);

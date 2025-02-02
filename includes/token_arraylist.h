@@ -13,7 +13,7 @@ typedef struct Token_ArrayList {
   size_t size;
   size_t capacity;
   Arena allocator;
-} __attribute__((aligned(ALIGNED_64))) Token_ArrayList;
+} __attribute__((aligned(64))) Token_ArrayList;
 
 Token_ArrayList Token_new(size_t capacity);
 

@@ -40,7 +40,7 @@ typedef enum DataType {
   VOID
 } DataType;
 
-typedef struct __attribute__((aligned(ALIGNED_16))) BinaryOperation {
+typedef struct __attribute__((aligned(16))) BinaryOperation {
   ASTNode *left;
   ASTNode *right;
 } BinaryOperation;
@@ -65,7 +65,7 @@ typedef struct ASTNode {
     Assign assign;
     Context ctx;
   };
-} __attribute__((packed)) __attribute__((aligned(128))) ASTNode;
+} __attribute__((aligned(128))) ASTNode;
 
 Symbol *create_symbol(DataType type, SymbolType kind);
 
