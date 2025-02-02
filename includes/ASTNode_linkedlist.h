@@ -8,6 +8,20 @@
 
 #define DEFAULT_CAP 10
 
+#define ASTNode_FOREACH(list, code) \
+    do { \
+        size_t _index = (list)->head; \
+        while (_index != (list)->tail) { \
+            ASTNode_Node *element = &((list)->elements[_index]); \
+            code; \
+            _index = (list)->elements[_index].next; \
+        } \
+        if ((list)->size > 0) { \
+            ASTNode_Node *element = &((list)->elements[_index]); \
+            code; \
+        } \
+    } while (0)
+
 typedef struct ASTNode ASTNode;
 
 typedef struct ASTNode_Node ASTNode_Node;

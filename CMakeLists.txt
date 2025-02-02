@@ -26,15 +26,18 @@ include_directories(${unity_SOURCE_DIR}/src includes tests)
 set(SOURCES
     src/ASTNode_linkedlist.c
     src/lexer.c
-    src/main.c
     src/parser.c
     src/token_arraylist.c
     src/utils.c
 )
 
-add_executable(ceeify ${SOURCES})
+add_executable(ceeify src/main.c
+    ${SOURCES})
 
-target_link_libraries(ceeify unity)
+# Add a test executable
+add_executable(test_ceeify tests/main.c ${SOURCES})
+
+target_link_libraries(test_ceeify unity)
 
 enable_testing()
-add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+add_test(NAME test_ceeify COMMAND test_ceeify)
