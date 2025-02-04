@@ -48,6 +48,39 @@ ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
   return node;
 }
 
+cJSON *serialize_program(ASTNode_LinkedList *program) {
+  cJSON *root = cJSON_CreateArray();
+
+  for (size_t current = program->head; current != SIZE_MAX;
+       current = program->elements[current].next) {
+    cJSON_AddItemToArray(root, serialize_node(program->elements[current].data));
+  }
+  return root;
+}
+
+cJSON *serialize_node(ASTNode *node) {
+  if (node == NULL)
+    return NULL;
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddStringToObject(root, "type", node_type_to_string(node->type));
+  cJSON_AddNumberToObject(root, "depth", node->depth);
+
+  switch (node->type) {
+  case ASSIGNMENT:
+    cJSON_AddItemToObject(root, "targets",
+                          serialize_program(&node->assign.targets));
+    cJSON_AddItemToObject(root, "value", serialize_node(node->assign.value));
+    break;
+  case VARIABLE:
+  case LITERAL:
+    cJSON_AddItemToObject(root, "token", serialize_token(node->token));
+    break;
+  default:
+    break;
+  }
+  return root;
+}
+
 ASTNode *bin_op_new(Parser *parser, Token *operation, ASTNode *left,
                     ASTNode *right) {
   ASTNode *node = node_new(parser, operation, BINARY_OPERATION);
@@ -189,14 +222,15 @@ Parser parse(Lexer *lexer) {
       ASTNode_add_last(&targets, var);
       Token *next = next_token(parser.lexer);
 
-      for (;next != NULL && next->type == COMMA; next = next_token(parser.lexer)) {        
+      for (; next != NULL && next->type == COMMA;
+           next = next_token(parser.lexer)) {
         if (token == NULL || token->type != IDENTIFIER) {
           trace_log(LOG_FATAL, "Syntax error: Expected identifier after comma");
         }
 
-        var = node_new(&parser, token, VARIABLE);
-        ASTNode_add_first(&targets, var);
         token = next_token(parser.lexer);
+        var = node_new(&parser, token, VARIABLE);
+        ASTNode_add_last(&targets, var);
       }
 
       if (next != NULL && strcmp(next->lexeme, "=") == 0) {

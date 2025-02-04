@@ -5,23 +5,35 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic -fsanitize=address \
-     -fdiagnostics-show-caret -Wunreachable-code -Wformat=2 -Wshadow")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address -static-libasan")
-endif()
-
 include(FetchContent)
 
+# Declare Unity
 FetchContent_Declare(
     unity
     GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
     GIT_TAG v2.6.1
 )
 
-FetchContent_MakeAvailable(unity)
+# Declare cJSON
+FetchContent_Declare(
+    cjson
+    GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
+    GIT_TAG v1.7.15
+)
 
-include_directories(${unity_SOURCE_DIR}/src includes tests)
+# Configure cJSON options
+set(ENABLE_CJSON_TEST OFF CACHE BOOL "Disable cJSON tests" FORCE)
+set(ENABLE_CJSON_UTILS OFF CACHE BOOL "Disable cJSON utils" FORCE)
+
+# Make dependencies available
+FetchContent_MakeAvailable(unity cjson)
+
+include_directories(
+    ${unity_SOURCE_DIR}/src 
+    ${cjson_SOURCE_DIR}
+    includes 
+    tests
+)
 
 set(SOURCES
     src/ASTNode_linkedlist.c
@@ -31,13 +43,24 @@ set(SOURCES
     src/utils.c
 )
 
-add_executable(ceeify src/main.c
-    ${SOURCES})
+# Main executable
+add_executable(ceeify src/main.c ${SOURCES})
+target_link_libraries(ceeify cjson)
 
-# Add a test executable
+# Test executable
 add_executable(test_ceeify tests/main.c ${SOURCES})
+target_link_libraries(test_ceeify unity cjson)
 
-target_link_libraries(test_ceeify unity)
+# Apply sanitizer flags to all targets after they're defined
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+    set(SANITIZER_FLAGS "-fsanitize=address")
+    foreach(target ceeify test_ceeify cjson)
+        target_compile_options(${target} PRIVATE 
+            -Wall -Wextra -Werror -pedantic ${SANITIZER_FLAGS}
+            -fdiagnostics-show-caret -Wunreachable-code -Wformat=2 -Wshadow)
+        target_link_options(${target} PRIVATE ${SANITIZER_FLAGS} -static-libasan)
+    endforeach()
+endif()
 
 enable_testing()
 add_test(NAME test_ceeify COMMAND test_ceeify)

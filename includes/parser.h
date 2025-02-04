@@ -73,4 +73,8 @@ Parser parse(Lexer *lexer);
 
 size_t precedence(const char *operation);
 
+cJSON *serialize_program(ASTNode_LinkedList *program);
+
+cJSON *serialize_node(ASTNode *node);
+
 #endif // PARSER_H_

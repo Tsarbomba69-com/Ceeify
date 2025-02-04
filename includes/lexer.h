@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cJSON.h>
 
 typedef struct Token_ArrayList Token_ArrayList;
 
@@ -48,5 +49,7 @@ typedef struct Lexer {
 Lexer tokenize(const char *source);
 
 Token *next_token(Lexer *lexer);
+
+cJSON *serialize_token(Token *token);
 
 #endif // !LEXER_H_

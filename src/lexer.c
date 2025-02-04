@@ -32,6 +32,45 @@ Token *create_keyword_token(Lexer *lexer, char character);
 
 Token *create_newline_token(Lexer *lexer);
 
+const char *token_type_to_string(TokenType type) {
+  switch (type) {
+  case KEYWORD:
+    return "KEYWORD";
+  case OPERATOR:
+    return "OPERATOR";
+  case STRING:
+    return "STRING";
+  case NUMBER:
+    return "NUMBER";
+  case IDENTIFIER:
+    return "IDENTIFIER";
+  case LPAR:
+    return "LPAR";
+  case RPAR:
+    return "RPAR";
+  case NEWLINE:
+    return "NEWLINE";
+  case ENDMARKER:
+    return "ENDMARKER";
+  case LSQB:
+    return "LSQB";
+  case RSQB:
+    return "RSQB";
+  default:
+    return "UNKNOWN";
+  }
+}
+
+cJSON *serialize_token(Token *token) {
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddStringToObject(root, "type", token_type_to_string(token->type));
+  cJSON_AddStringToObject(root, "lexeme", token->lexeme);
+  cJSON_AddNumberToObject(root, "line", token->line);
+  cJSON_AddNumberToObject(root, "col", token->col);
+  cJSON_AddNumberToObject(root, "ident", token->ident);
+  return root;
+}
+
 Lexer lexer_new(const char *source) {
   size_t len = strlen(source);
   return (Lexer){.source = source,
@@ -334,17 +373,17 @@ Token *create_keyword_token(Lexer *lexer, char character) {
 
     break;
   }
-  lexeme[lexeme_length] = '\0';
 
+  lexeme[lexeme_length] = '\0';
   Token *token = arena_alloc(&lexer->tokens.allocator, sizeof(Token));
-  
+
   if (token == NULL) {
     trace_log(LOG_ERROR, "Failed to allocate memory for token");
     return NULL;
   }
 
   token->lexeme = lexeme;
-  
+
   for (size_t i = 0; i < NUM_KEYWORDS; i++) {
     const char *substring = PYTHON_KEYWORD[i];
     if (strcmp(lexeme, substring) == 0) {
