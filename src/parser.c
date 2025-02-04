@@ -75,6 +75,11 @@ cJSON *serialize_node(ASTNode *node) {
   case LITERAL:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
     break;
+  case BINARY_OPERATION:
+    cJSON_AddItemToObject(root, "token", serialize_token(node->token));
+    cJSON_AddItemToObject(root, "left", serialize_node(node->bin_op.left));
+    cJSON_AddItemToObject(root, "right", serialize_node(node->bin_op.right));
+    break;
   default:
     break;
   }
@@ -177,6 +182,10 @@ ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
     case NUMBER: {
       ASTNode *literal = node_new(parser, token, LITERAL);
       ASTNode_add_last(&stack, literal);
+    } break;
+    case IDENTIFIER: {
+      ASTNode *var = node_new(parser, token, VARIABLE);
+      ASTNode_add_last(&stack, var);
     } break;
     case OPERATOR: {
       ASTNode *right = ASTNode_pop(&stack);
