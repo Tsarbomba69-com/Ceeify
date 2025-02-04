@@ -12,12 +12,17 @@ typedef struct Token_ArrayList Token_ArrayList;
 
 typedef enum TokenType {
   IDENTIFIER = 0,
-  TEXT,
-  NUMERIC,
+  STRING,
+  NUMBER,
   OPERATOR,
   KEYWORD,
-  DELIMITER,
+  COMMA,
+  COLON,
+  EQUAL,
+  EQEQUAL,
   NEWLINE,
+  LPAR,
+  RPAR,
   LSQB,
   RSQB,
   ENDMARKER

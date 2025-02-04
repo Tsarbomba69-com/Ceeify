@@ -9,8 +9,7 @@ ASTNode_LinkedList ASTNode_new(size_t capacity) {
   list.tail = SIZE_MAX;
   list.free = 0;
   list.size = 0;
-  list.elements = (ASTNode_Node *)arena_alloc(&list.allocator,
-                                              capacity * sizeof(ASTNode_Node));
+  list.elements = arena_alloc(&list.allocator, capacity * sizeof(ASTNode_Node));
 
   for (size_t i = 0; i < capacity - 1; i++) {
     list.elements[i].next = i + 1;
@@ -21,10 +20,32 @@ ASTNode_LinkedList ASTNode_new(size_t capacity) {
 }
 
 void expand(ASTNode_LinkedList *list) {
+  size_t old_cap = list->capacity;
   size_t new_cap = list->capacity * 2;
+
+  list->elements = arena_realloc(&list->allocator, list->elements,
+                                 list->size * sizeof(ASTNode_Node),
+                                 new_cap * sizeof(ASTNode_Node));
+
+  for (size_t i = old_cap; i < new_cap - 1; i++) {
+    list->elements[i].next = i + 1;
+  }
+
+  list->elements[new_cap - 1].next = SIZE_MAX;
+
+  if (list->free == SIZE_MAX) {
+    list->free = old_cap;
+  } else {
+    size_t current = list->free;
+
+    while (list->elements[current].next != SIZE_MAX) {
+      current = list->elements[current].next;
+    }
+    
+    list->elements[current].next = old_cap;
+  }
+
   list->capacity = new_cap;
-  list->elements =
-      arena_realloc(&list->allocator, list->elements, list->capacity, new_cap);
 }
 
 void ASTNode_add_first(ASTNode_LinkedList *list, ASTNode *data) {

@@ -82,18 +82,34 @@ Lexer tokenize(const char *source) {
       }
     }
 
-    for (size_t i = 0; i < ARRAYSIZE(DELIMITERS); i++) {
-      if (character == DELIMITERS[i]) {
-        token = create_token_from_char(&lexer, character, DELIMITER);
-        token->col = column;
-        token->line = line;
-        token->ident = ident;
-        Token_push(&lexer.tokens, token);
-        break;
-      }
+    switch (character) {
+    case '(':
+      token = create_token_from_char(&lexer, character, LPAR);
+      break;
+    case ')':
+      token = create_token_from_char(&lexer, character, RPAR);
+      break;
+    case ',':
+      token = create_token_from_char(&lexer, character, COMMA);
+      break;
+    case ':':
+      token = create_token_from_char(&lexer, character, COLON);
+      break;
+    case '[':
+      token = create_token_from_char(&lexer, character, LSQB);
+      break;
+    case ']':
+      token = create_token_from_char(&lexer, character, RSQB);
+      break;
+    default:
+      break;
     }
 
     if (token != NULL) {
+      token->col = column;
+      token->line = line;
+      token->ident = ident;
+      Token_push(&lexer.tokens, token);
       continue;
     }
 
@@ -127,24 +143,6 @@ Lexer tokenize(const char *source) {
 
     if (isalpha(character) || character == '_') {
       token = create_keyword_token(&lexer, character);
-      token->col = column;
-      token->line = line;
-      token->ident = ident;
-      Token_push(&lexer.tokens, token);
-      continue;
-    }
-
-    if (character == '[') {
-      token = create_token_from_char(&lexer, character, LSQB);
-      token->col = column;
-      token->line = line;
-      token->ident = ident;
-      Token_push(&lexer.tokens, token);
-      continue;
-    }
-
-    if (character == ']') {
-      token = create_token_from_char(&lexer, character, RSQB);
       token->col = column;
       token->line = line;
       token->ident = ident;
@@ -279,7 +277,7 @@ Token *create_number_token(Lexer *lexer, char character) {
     return NULL;
   }
 
-  token->type = NUMERIC;
+  token->type = NUMBER;
   token->lexeme = lexeme;
   return token;
 }
@@ -305,7 +303,7 @@ Token *create_string_token(Lexer *lexer, char character) {
   }
 
   lexer->position++;
-  token->type = TEXT;
+  token->type = STRING;
   token->lexeme = lexeme;
   return token;
 }
@@ -339,11 +337,14 @@ Token *create_keyword_token(Lexer *lexer, char character) {
   lexeme[lexeme_length] = '\0';
 
   Token *token = arena_alloc(&lexer->tokens.allocator, sizeof(Token));
+  
   if (token == NULL) {
     trace_log(LOG_ERROR, "Failed to allocate memory for token");
     return NULL;
   }
+
   token->lexeme = lexeme;
+  
   for (size_t i = 0; i < NUM_KEYWORDS; i++) {
     const char *substring = PYTHON_KEYWORD[i];
     if (strcmp(lexeme, substring) == 0) {

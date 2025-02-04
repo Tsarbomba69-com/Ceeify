@@ -8,20 +8,6 @@
 
 #define DEFAULT_CAP 10
 
-#define ASTNode_FOREACH(list, code) \
-    do { \
-        size_t _index = (list)->head; \
-        while (_index != (list)->tail) { \
-            ASTNode_Node *element = &((list)->elements[_index]); \
-            code; \
-            _index = (list)->elements[_index].next; \
-        } \
-        if ((list)->size > 0) { \
-            ASTNode_Node *element = &((list)->elements[_index]); \
-            code; \
-        } \
-    } while (0)
-
 typedef struct ASTNode ASTNode;
 
 typedef struct ASTNode_Node ASTNode_Node;
@@ -54,6 +40,11 @@ void ASTNode_add_last(ASTNode_LinkedList *list, ASTNode *data);
 
 // Get the last element and remove it
 ASTNode *ASTNode_pop(ASTNode_LinkedList *list);
+
+// Get the element stored at the index. Returns NULL if index is out-of-bounds
+static inline ASTNode *ASTNode_get(ASTNode_LinkedList const *list, size_t index) {
+  return index < list->size ? list->elements[index].data : NULL;
+}
 
 // Free linked list resources
 void ASTNode_free(ASTNode_LinkedList *list);

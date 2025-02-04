@@ -50,4 +50,26 @@ void test_parse_variable_assignment(void) {
   ASTNode_free(&parser.ast);
 }
 
+void test_parse_multiple_variable_assignment(void) {
+  Lexer lexer = tokenize("x, y, z = 42");
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+
+  for (size_t i = 0; i < node->assign.targets.size; i++) {
+    ASTNode *el = ASTNode_get(&node->assign.targets, i);
+    TEST_ASSERT_EQUAL_INT(VARIABLE, el->type);
+  }
+
+  ASTNode *target = ASTNode_pop(&node->assign.targets);
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, node->type);
+  TEST_ASSERT_EQUAL_INT(LITERAL, node->assign.value->type);
+  TEST_ASSERT_EQUAL_STRING("=", node->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("42", node->assign.value->token->lexeme);
+  Token_free(&lexer.tokens);
+  ASTNode_free(&node->assign.targets);
+  ASTNode_free(&parser.ast);
+}
+
 #endif

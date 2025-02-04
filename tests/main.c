@@ -29,5 +29,6 @@ int main(void) {
   RUN_TEST(test_parser_single_number);
   RUN_TEST(test_parse_arithmetic_expression);
   RUN_TEST(test_parse_variable_assignment);
+  RUN_TEST(test_parse_multiple_variable_assignment);
   return UNITY_END();
 }

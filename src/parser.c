@@ -93,7 +93,7 @@ Token_ArrayList infix_to_postfix(Token_ArrayList *tokens) {
   for (size_t i = 0; i < tokens->size; i++) {
     Token *token = Token_get(tokens, i);
 
-    if (token->type == IDENTIFIER || token->type == NUMERIC) {
+    if (token->type == IDENTIFIER || token->type == NUMBER) {
       Token_push(&postfix, token);
     } else if (strcmp(token->lexeme, "(") == 0) {
       Token_push(&stack, token);
@@ -140,8 +140,8 @@ ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
     Token *token = Token_get(tokens, i);
 
     switch (token->type) {
-    case TEXT:
-    case NUMERIC: {
+    case STRING:
+    case NUMBER: {
       ASTNode *literal = node_new(parser, token, LITERAL);
       ASTNode_add_last(&stack, literal);
     } break;
@@ -179,20 +179,31 @@ Parser parse(Lexer *lexer) {
 
   while ((token = next_token(parser.lexer)) != NULL) {
     switch (token->type) {
-    case NUMERIC: {
+    case NUMBER: {
       ASTNode *expr = parse_expression(&parser);
       ASTNode_add_last(&parser.ast, expr);
     } break;
     case IDENTIFIER: {
+      ASTNode_LinkedList targets = ASTNode_new(1);
+      ASTNode *var = node_new(&parser, token, VARIABLE);
+      ASTNode_add_last(&targets, var);
       Token *next = next_token(parser.lexer);
 
-      if (strcmp(next->lexeme, "=") == 0) {
+      for (;next != NULL && next->type == COMMA; next = next_token(parser.lexer)) {        
+        if (token == NULL || token->type != IDENTIFIER) {
+          trace_log(LOG_FATAL, "Syntax error: Expected identifier after comma");
+        }
+
+        var = node_new(&parser, token, VARIABLE);
+        ASTNode_add_first(&targets, var);
+        token = next_token(parser.lexer);
+      }
+
+      if (next != NULL && strcmp(next->lexeme, "=") == 0) {
         parser.lexer->token_idx++;
         ASTNode *node = node_new(&parser, next, ASSIGNMENT);
         ASTNode *expr = parse_expression(&parser);
-        node->assign = (Assign){.targets = ASTNode_new(1), .value = expr};
-        ASTNode *var = node_new(&parser, token, VARIABLE);
-        ASTNode_add_last(&node->assign.targets, var);
+        node->assign = (Assign){.targets = targets, .value = expr};
         ASTNode_add_last(&parser.ast, node);
         continue;
       }

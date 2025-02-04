@@ -57,9 +57,3 @@ gdb ./$my_program
 ```bash
 break $my_program.c:10
 ```
-
-#### Run debugger
-
-```bash
-gdb ./$my_program
-```

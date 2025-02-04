@@ -20,7 +20,7 @@ void test_lexer_numeric(void) {
   Lexer lexer = tokenize("123");
   Token *token = next_token(&lexer);
   // Assertions
-  TEST_ASSERT_EQUAL_INT(NUMERIC, token->type);
+  TEST_ASSERT_EQUAL_INT(NUMBER, token->type);
   TEST_ASSERT_EQUAL_STRING("123", token->lexeme);
   Token_free(&lexer.tokens);
 }
@@ -47,7 +47,7 @@ void test_lexer_delimiter(void) {
   Lexer lexer = tokenize("()");
   Token *token = next_token(&lexer);
   // Assertions
-  TEST_ASSERT_EQUAL_INT(DELIMITER, token->type);
+  TEST_ASSERT_EQUAL_INT(LPAR, token->type);
   TEST_ASSERT_EQUAL_STRING("(", token->lexeme);
   Token_free(&lexer.tokens);
 }
