@@ -64,6 +64,7 @@ typedef struct ASTNode {
     BinaryOperation bin_op;
     Assign assign;
     Context ctx;
+    ASTNode_LinkedList import;
   };
 } __attribute__((aligned(128))) ASTNode;
 

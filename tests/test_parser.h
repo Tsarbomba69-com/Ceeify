@@ -53,9 +53,6 @@ void test_parse_variable_assignment(void) {
 void test_parse_multiple_variable_assignment(void) {
   Lexer lexer = tokenize("x, y, z = 42");
   Parser parser = parse(&lexer);
-  cJSON *root = serialize_program(&parser.ast);
-  char *root_str = cJSON_Print(root);
-  trace_log(LOG_INFO, "%s", root_str);
   ASTNode *node = ASTNode_pop(&parser.ast);
 
   for (size_t current = node->assign.targets.head; current != SIZE_MAX;
@@ -71,6 +68,29 @@ void test_parse_multiple_variable_assignment(void) {
   TEST_ASSERT_EQUAL_STRING("=", node->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("z", target->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("42", node->assign.value->token->lexeme);
+  Token_free(&lexer.tokens);
+  ASTNode_free(&node->assign.targets);
+  ASTNode_free(&parser.ast);
+}
+
+void test_import_assignment(void) {
+  Lexer lexer = tokenize("import x,y,z");
+  Parser parser = parse(&lexer);
+  cJSON *root = serialize_program(&parser.ast);
+  char *root_str = cJSON_Print(root);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  trace_log(LOG_INFO, "%s", root_str);
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(IMPORT, node->type);
+
+  for (size_t current = node->assign.targets.head; current != SIZE_MAX;
+       current = node->assign.targets.elements[current].next) {
+    ASTNode *el = node->assign.targets.elements[current].data;
+    TEST_ASSERT_EQUAL_INT(VARIABLE, el->type);
+  }
+
+  ASTNode *name = ASTNode_pop(&node->import);
+  TEST_ASSERT_EQUAL_STRING("z", name->token->lexeme);
   free(root_str);
   cJSON_Delete(root);
   Token_free(&lexer.tokens);

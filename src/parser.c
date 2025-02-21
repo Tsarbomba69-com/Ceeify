@@ -80,6 +80,10 @@ cJSON *serialize_node(ASTNode *node) {
     cJSON_AddItemToObject(root, "left", serialize_node(node->bin_op.left));
     cJSON_AddItemToObject(root, "right", serialize_node(node->bin_op.right));
     break;
+  case IMPORT:
+    cJSON_AddItemToObject(root, "token", serialize_token(node->token));
+    cJSON_AddItemToObject(root, "names", serialize_program(&node->import));
+    break;
   default:
     break;
   }
@@ -122,6 +126,27 @@ Token_ArrayList collect_expression(Token_ArrayList const *tokens, size_t from) {
   }
 
   return expression;
+}
+
+ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token,
+                                         size_t capacity) {
+  ASTNode_LinkedList targets = ASTNode_new(capacity);
+  ASTNode *var = node_new(parser, token, VARIABLE);
+  ASTNode_add_last(&targets, var);
+  Token *next = next_token(parser->lexer);
+
+  for (; next != NULL && next->type == COMMA;
+       next = next_token(parser->lexer)) {
+    if (token == NULL || token->type != IDENTIFIER) {
+      trace_log(LOG_FATAL, "Syntax error: Expected identifier after comma");
+    }
+
+    token = next_token(parser->lexer);
+    var = node_new(parser, token, VARIABLE);
+    ASTNode_add_last(&targets, var);
+  }
+
+  return targets;
 }
 
 Token_ArrayList infix_to_postfix(Token_ArrayList *tokens) {
@@ -226,21 +251,9 @@ Parser parse(Lexer *lexer) {
       ASTNode_add_last(&parser.ast, expr);
     } break;
     case IDENTIFIER: {
-      ASTNode_LinkedList targets = ASTNode_new(1);
-      ASTNode *var = node_new(&parser, token, VARIABLE);
-      ASTNode_add_last(&targets, var);
-      Token *next = next_token(parser.lexer);
-
-      for (; next != NULL && next->type == COMMA;
-           next = next_token(parser.lexer)) {
-        if (token == NULL || token->type != IDENTIFIER) {
-          trace_log(LOG_FATAL, "Syntax error: Expected identifier after comma");
-        }
-
-        token = next_token(parser.lexer);
-        var = node_new(&parser, token, VARIABLE);
-        ASTNode_add_last(&targets, var);
-      }
+      ASTNode_LinkedList targets = parse_identifier_list(&parser, token, 1);
+      Token *next =
+          Token_get(&parser.lexer->tokens, parser.lexer->token_idx - 1);
 
       if (next != NULL && strcmp(next->lexeme, "=") == 0) {
         parser.lexer->token_idx++;
@@ -251,6 +264,14 @@ Parser parse(Lexer *lexer) {
         continue;
       }
 
+    } break;
+    case KEYWORD: {
+      if (strcmp(token->lexeme, "import") == 0) {
+        ASTNode *node = node_new(&parser, token, IMPORT);
+        token = next_token(parser.lexer);
+        node->import = parse_identifier_list(&parser, token, 5);
+        ASTNode_add_last(&parser.ast, node);
+      }
     } break;
     default:
       break;
