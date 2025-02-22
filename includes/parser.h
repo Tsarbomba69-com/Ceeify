@@ -40,16 +40,22 @@ typedef enum DataType {
   VOID
 } DataType;
 
-typedef struct __attribute__((aligned(16))) BinaryOperation {
+typedef struct __attribute__((aligned(16))) BinOp {
   ASTNode *left;
   ASTNode *right;
-} BinaryOperation;
+} BinOp;
 
 typedef struct Assign {
   ASTNode_LinkedList targets;
   ASTNode *value;
   char *type_comment;
 } __attribute__((aligned(128))) Assign;
+
+typedef struct Compare {
+  ASTNode *left;
+  Token_ArrayList ops;
+  ASTNode_LinkedList comparators;
+} Compare;
 
 typedef struct Parser {
   Lexer *lexer;
@@ -61,9 +67,10 @@ typedef struct ASTNode {
   size_t depth;
   Token *token;
   union {
-    BinaryOperation bin_op;
+    BinOp bin_op;
     Assign assign;
     Context ctx;
+    Compare compare;
     ASTNode_LinkedList import;
   };
 } __attribute__((aligned(128))) ASTNode;

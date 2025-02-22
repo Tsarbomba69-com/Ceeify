@@ -76,10 +76,7 @@ void test_parse_multiple_variable_assignment(void) {
 void test_import_assignment(void) {
   Lexer lexer = tokenize("import x,y,z");
   Parser parser = parse(&lexer);
-  cJSON *root = serialize_program(&parser.ast);
-  char *root_str = cJSON_Print(root);
   ASTNode *node = ASTNode_pop(&parser.ast);
-  trace_log(LOG_INFO, "%s", root_str);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(IMPORT, node->type);
 
@@ -91,10 +88,27 @@ void test_import_assignment(void) {
 
   ASTNode *name = ASTNode_pop(&node->import);
   TEST_ASSERT_EQUAL_STRING("z", name->token->lexeme);
+  Token_free(&lexer.tokens);
+  ASTNode_free(&node->assign.targets);
+  ASTNode_free(&parser.ast);
+}
+
+void test_compare_expression(void) {
+  Lexer lexer = tokenize("1 <= a < 10");
+  Parser parser = parse(&lexer);
+  cJSON *root = serialize_program(&parser.ast);
+  char *root_str = cJSON_Print(root);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  trace_log(LOG_INFO, "%s", root_str);
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(COMPARE, node->type);
+  // ASTNode *compare = ASTNode_pop(&node->compare.comparators);
+  // TEST_ASSERT_EQUAL_STRING("z", compare->token->lexeme);
   free(root_str);
   cJSON_Delete(root);
   Token_free(&lexer.tokens);
-  ASTNode_free(&node->assign.targets);
+  Token_free(&node->compare.ops);
+  ASTNode_free(&node->compare.comparators);
   ASTNode_free(&parser.ast);
 }
 

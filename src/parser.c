@@ -1,5 +1,7 @@
 #include "parser.h"
 
+const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
+
 static inline Parser parser_new(Lexer *lexer) {
   return (Parser){.lexer = lexer, .ast = ASTNode_new(DEFAULT_CAP)};
 }
@@ -23,7 +25,7 @@ const char *node_type_to_string(NodeType type) {
   case BINARY_OPERATION:
     return "BINARY OPERATION";
   case LIST_EXPR:
-    return "LIST_EXPR";
+    return "LIST EXPR";
   case IF:
     return "IF";
   case WHILE:
@@ -84,6 +86,17 @@ cJSON *serialize_node(ASTNode *node) {
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
     cJSON_AddItemToObject(root, "names", serialize_program(&node->import));
     break;
+  case COMPARE:
+    cJSON_AddItemToObject(root, "left", serialize_node(node->compare.left));
+    cJSON *ops = cJSON_CreateArray();
+    cJSON_AddItemToObject(root, "ops", ops);
+    cJSON_AddItemToObject(root, "comparators",
+                          serialize_program(&node->compare.comparators));
+    for (size_t i = 0; i < node->compare.ops.size; ++i) {
+      Token *token = Token_get(&node->compare.ops, i);
+      cJSON_AddItemToArray(ops, serialize_token(token));
+    }
+    break;
   default:
     break;
   }
@@ -93,7 +106,7 @@ cJSON *serialize_node(ASTNode *node) {
 ASTNode *bin_op_new(Parser *parser, Token *operation, ASTNode *left,
                     ASTNode *right) {
   ASTNode *node = node_new(parser, operation, BINARY_OPERATION);
-  node->bin_op = (BinaryOperation){.left = left, .right = right};
+  node->bin_op = (BinOp){.left = left, .right = right};
   return node;
 }
 
@@ -217,6 +230,28 @@ ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
       ASTNode *left = ASTNode_pop(&stack);
 
       if (right != NULL && left != NULL) {
+        bool exists = false;
+        ANY(COMPARISON_OPERATORS, ARRAYSIZE(COMPARISON_OPERATORS),
+            token->lexeme,
+            strcmp(COMPARISON_OPERATORS[index], token->lexeme) == 0, exists);
+        if (exists) {
+          ASTNode *comp = NULL;
+          if (left->type == COMPARE) {
+            ASTNode_add_first(&left->compare.comparators, right);
+            Token_push(&left->compare.ops, token);
+            comp = left;
+          } else {
+            comp = node_new(parser, NULL, COMPARE);
+            comp->compare.left = left;
+            comp->compare.comparators = ASTNode_new(3);
+            comp->compare.ops = Token_new(3);
+            ASTNode_add_first(&comp->compare.comparators, right);
+            Token_push(&comp->compare.ops, token);
+          }
+          ASTNode_add_first(&stack, comp);
+          continue;
+        }
+
         ASTNode *node = bin_op_new(parser, token, left, right);
         ASTNode_add_last(&stack, node);
         continue;

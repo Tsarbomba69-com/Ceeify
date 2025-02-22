@@ -7,7 +7,21 @@
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof((a)[0]))
 
-#define MAX_TRACELOG_MSG_LENGTH 256 // Max length of one trace-log message
+#define ANY(arr, size, el, cmp_expr, result)                                   \
+  {                                                                            \
+    result = false;                                                            \
+    for (size_t index = 0; index < (size); index++) {                          \
+      if (cmp_expr) {                                                          \
+        result = true;                                                         \
+        break;                                                                 \
+      }                                                                        \
+    }                                                                          \
+  }
+
+
+enum {
+  MAX_TRACELOG_MSG_LENGTH = 256 // Max length of one trace-log message
+};
 
 #include "arena.h"
 #include <stdio.h>
