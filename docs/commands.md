@@ -1,58 +1,60 @@
-#### Generate the build system
+# Commands
+
+## Generate the build system
 
 ```bash
 cmake . .
 ```
 
-#### Build the project
+## Build the project
 
 ```bash
 cmake --build .
 ```
 
-#### Run the tests
+## Run the tests
 
 ```bash
 ctest
 ```
 
-#### Run linter
+## Run linter
 
 ```bash
 clang-tidy $your_code.c --checks=*
 ```
 
-#### Reformat entire project
+## Reformat entire project
 
 ```bash
 find $dir -name "*.c" -o -name "*.h" | xargs clang-format -i
 ```
 
-#### Run linter for the entire dir
+## Run linter for the entire dir
 
 ```bash
 find $dir -name "*.c" -o -name "*.cpp" | xargs clang-tidy --checks=*
 ```
 
-#### Run Valgrind
+## Run Valgrind
 
 ```bash
 valgrind --leak-check=full ./your_program
 ```
 
-#### Run Valgrind for the entire dir
+## Run Valgrind for the entire dir
 
 ```bash
 find . -name "*.c" -o -name "*.cpp" | xargs valgrind --leak-check=full
 ```
 
-#### Run debugger
+## Run debugger
 
 ```bash
 gdb ./$my_program
 ```
 
-#### Set breakpoint
+## Set breakpoint
 
 ```bash
 break $my_program.c:10
