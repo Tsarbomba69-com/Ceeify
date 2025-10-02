@@ -46,7 +46,8 @@
     },
     "cmake.debugConfig": {
         "args": [
-            "-dump-ast", "${workspaceFolder}/tests/mock/data.py"
+            "-dump-ast", "${workspaceFolder}/tests/mock/data.py", 
+            "-o", "poop.json",
         ]
     }
 }

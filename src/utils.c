@@ -67,9 +67,9 @@ char *slice(Arena *allocator, const char *source, size_t start, size_t end) {
   return result;
 }
 
-void trace_log(TraceLogLevel logType, const char *text, ...) {
+void trace_log(TraceLogLevel level, const char *text, ...) {
   // Message has level below current threshold, don't emit
-  if (logType < min_log_level) {
+  if (level < min_log_level) {
     return;
   }
 
@@ -77,7 +77,7 @@ void trace_log(TraceLogLevel logType, const char *text, ...) {
   va_start(args, text);
   char buffer[MAX_TRACELOG_MSG_LENGTH] = {0};
 
-  switch (logType) {
+  switch (level) {
   case LOG_TRACE:
     strcpy(buffer, "TRACE: ");
     break;
@@ -110,6 +110,30 @@ void trace_log(TraceLogLevel logType, const char *text, ...) {
   fflush(stdout);
   va_end(args);
 
-  if (logType == LOG_FATAL)
+  if (level == LOG_FATAL)
     exit(EXIT_FAILURE); // If fatal logging, exit program
+}
+
+bool save_file_text(const char *filename, char *text) {
+    if (filename == NULL) {
+        trace_log(LOG_ERROR, "FILE: File name provided is not valid to save");
+        return false;
+    }
+
+    FILE *file = fopen(filename, "wt");
+    if (file == NULL) {
+        trace_log(LOG_ERROR, "FILE: [%s] Failed to open text file", filename);
+        return false;
+    }
+
+    int count = fprintf(file, "%s", text);
+    if (count == 0) {
+        trace_log(LOG_ERROR, "FILE: [%s] Failed to write text file", filename);
+        fclose(file);
+        return false;
+    }
+
+    trace_log(LOG_INFO, "SUCCESS: [%s] Text file saved successfully\n", filename);
+    fclose(file);
+    return true;
 }

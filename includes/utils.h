@@ -26,6 +26,7 @@ enum {
 #include "arena.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef enum {
   LOG_ALL = 0, // Display all logs
@@ -39,6 +40,8 @@ typedef enum {
 } TraceLogLevel;
 
 char *load_file_text(Arena *allocator, const char *filename);
+
+bool save_file_text(const char *filename, char *text);
 
 char *slice(Arena *allocator, const char *source, size_t start, size_t end);
 
