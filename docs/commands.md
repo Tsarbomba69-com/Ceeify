@@ -59,3 +59,9 @@ gdb ./$my_program
 ```bash
 break $my_program.c:10
 ```
+
+## Load source on terminal session
+
+```bash
+source ./path/to/source.sh
+```

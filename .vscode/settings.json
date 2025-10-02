@@ -43,5 +43,10 @@
         "system_error": "c",
         "typeinfo": "c",
         "utility": "c"
+    },
+    "cmake.debugConfig": {
+        "args": [
+            "-dump-ast", "${workspaceFolder}/tests/mock/data.py"
+        ]
     }
 }

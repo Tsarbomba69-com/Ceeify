@@ -45,9 +45,8 @@ void test_parse_variable_assignment(void) {
   TEST_ASSERT_EQUAL_STRING("=", node->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("42", node->assign.value->token->lexeme);
-  Token_free(&lexer.tokens);
-  ASTNode_free(&node->assign.targets);
-  ASTNode_free(&parser.ast);
+  astnode_free(node);
+  parser_free(&parser);
 }
 
 void test_parse_multiple_variable_assignment(void) {
@@ -68,9 +67,8 @@ void test_parse_multiple_variable_assignment(void) {
   TEST_ASSERT_EQUAL_STRING("=", node->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("z", target->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("42", node->assign.value->token->lexeme);
-  Token_free(&lexer.tokens);
-  ASTNode_free(&node->assign.targets);
-  ASTNode_free(&parser.ast);
+  astnode_free(node);
+  parser_free(&parser);
 }
 
 void test_import_assignment(void) {
@@ -88,9 +86,8 @@ void test_import_assignment(void) {
 
   ASTNode *name = ASTNode_pop(&node->import);
   TEST_ASSERT_EQUAL_STRING("z", name->token->lexeme);
-  Token_free(&lexer.tokens);
-  ASTNode_free(&node->assign.targets);
-  ASTNode_free(&parser.ast);
+  astnode_free(node);
+  parser_free(&parser);
 }
 
 void test_compare_expression(void) {
@@ -102,14 +99,13 @@ void test_compare_expression(void) {
   trace_log(LOG_INFO, "%s", root_str);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(COMPARE, node->type);
-  // ASTNode *compare = ASTNode_pop(&node->compare.comparators);
-  // TEST_ASSERT_EQUAL_STRING("z", compare->token->lexeme);
+  ASTNode *compare = ASTNode_pop(&node->compare.comparators);
+  TEST_ASSERT_EQUAL_STRING("a", compare->token->lexeme);
   free(root_str);
   cJSON_Delete(root);
-  Token_free(&lexer.tokens);
-  Token_free(&node->compare.ops);
-  ASTNode_free(&node->compare.comparators);
-  ASTNode_free(&parser.ast);
+  astnode_free(node);
+  astnode_free(compare);
+  parser_free(&parser);
 }
 
 #endif

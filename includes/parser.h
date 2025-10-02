@@ -79,6 +79,10 @@ Symbol *create_symbol(DataType type, SymbolType kind);
 
 Parser parse(Lexer *lexer);
 
+void astnode_free(ASTNode *node);
+
+void parser_free(Parser *parser);
+
 size_t precedence(const char *operation);
 
 cJSON *serialize_program(ASTNode_LinkedList *program);
