@@ -339,55 +339,58 @@ size_t precedence(const char *operator) {
 }
 
 void astnode_free(ASTNode *node) {
-    if (node == NULL) return;
+  if (node == NULL)
+    return;
 
-    switch (node->type) {
-    case ASSIGNMENT:
-        ASTNode_free(&node->assign.targets);
-        if (node->assign.value)
-            astnode_free(node->assign.value);
-        if (node->assign.type_comment)
-            free(node->assign.type_comment);
-        break;
+  switch (node->type) {
+  case ASSIGNMENT:
+    ASTNode_free(&node->assign.targets);
+    if (node->assign.value)
+      astnode_free(node->assign.value);
+    if (node->assign.type_comment)
+      free(node->assign.type_comment);
+    break;
 
-    case BINARY_OPERATION:
-        if (node->bin_op.left)  astnode_free(node->bin_op.left);
-        if (node->bin_op.right) astnode_free(node->bin_op.right);
-        break;
+  case BINARY_OPERATION:
+    if (node->bin_op.left)
+      astnode_free(node->bin_op.left);
+    if (node->bin_op.right)
+      astnode_free(node->bin_op.right);
+    break;
 
-    case COMPARE:
-        if (node->compare.left)
-            astnode_free(node->compare.left);
-        ASTNode_free(&node->compare.comparators);
-        Token_free(&node->compare.ops);
-        break;
+  case COMPARE:
+    if (node->compare.left)
+      astnode_free(node->compare.left);
+    ASTNode_free(&node->compare.comparators);
+    Token_free(&node->compare.ops);
+    break;
 
-    case IMPORT:
-        ASTNode_free(&node->import);
-        break;
+  case IMPORT:
+    ASTNode_free(&node->import);
+    break;
 
-    case VARIABLE:
-    case LITERAL:
-    case UNARY_OPERATION:
-    case IF:
-    case WHILE:
-    case FOR:
-    case LIST_EXPR:
-    case PROGRAM:
-    default:
-        break;
-    }
+  case VARIABLE:
+  case LITERAL:
+  case UNARY_OPERATION:
+  case IF:
+  case WHILE:
+  case FOR:
+  case LIST_EXPR:
+  case PROGRAM:
+  default:
+    break;
+  }
 }
 
 void parser_free(Parser *parser) {
-    if (!parser) return;
+  if (!parser)
+    return;
 
-    for (size_t i = 0; i < parser->ast.size; i++)
-    {
-      astnode_free(parser->ast.elements[i].data);
-    }
-    
-    ASTNode_free(&parser->ast);
-    Token_free(&parser->lexer->tokens);
-    parser->lexer = NULL;
+  for (size_t i = 0; i < parser->ast.size; i++) {
+    astnode_free(parser->ast.elements[i].data);
+  }
+
+  ASTNode_free(&parser->ast);
+  Token_free(&parser->lexer->tokens);
+  parser->lexer = NULL;
 }

@@ -115,25 +115,25 @@ void trace_log(TraceLogLevel level, const char *text, ...) {
 }
 
 bool save_file_text(const char *filename, char *text) {
-    if (filename == NULL) {
-        trace_log(LOG_ERROR, "FILE: File name provided is not valid to save");
-        return false;
-    }
+  if (filename == NULL) {
+    trace_log(LOG_ERROR, "FILE: File name provided is not valid to save");
+    return false;
+  }
 
-    FILE *file = fopen(filename, "wt");
-    if (file == NULL) {
-        trace_log(LOG_ERROR, "FILE: [%s] Failed to open text file", filename);
-        return false;
-    }
+  FILE *file = fopen(filename, "wt");
+  if (file == NULL) {
+    trace_log(LOG_ERROR, "FILE: [%s] Failed to open text file", filename);
+    return false;
+  }
 
-    int count = fprintf(file, "%s", text);
-    if (count == 0) {
-        trace_log(LOG_ERROR, "FILE: [%s] Failed to write text file", filename);
-        fclose(file);
-        return false;
-    }
-
-    trace_log(LOG_INFO, "SUCCESS: [%s] Text file saved successfully\n", filename);
+  int count = fprintf(file, "%s", text);
+  if (count == 0) {
+    trace_log(LOG_ERROR, "FILE: [%s] Failed to write text file", filename);
     fclose(file);
-    return true;
+    return false;
+  }
+
+  trace_log(LOG_INFO, "SUCCESS: [%s] Text file saved successfully\n", filename);
+  fclose(file);
+  return true;
 }

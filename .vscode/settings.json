@@ -42,12 +42,14 @@
         "stdexcept": "c",
         "system_error": "c",
         "typeinfo": "c",
-        "utility": "c"
+        "utility": "c",
+        "flag.h": "c"
     },
     "cmake.debugConfig": {
         "args": [
-            "-dump-ast", "${workspaceFolder}/tests/mock/data.py", 
+            "-dump-ast", 
             "-o", "poop.json",
+            "${workspaceFolder}/tests/mock/data.py",
         ]
     }
 }

@@ -41,7 +41,7 @@ void expand(ASTNode_LinkedList *list) {
     while (list->elements[current].next != SIZE_MAX) {
       current = list->elements[current].next;
     }
-    
+
     list->elements[current].next = old_cap;
   }
 
