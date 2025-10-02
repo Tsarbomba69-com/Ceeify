@@ -275,42 +275,47 @@ ASTNode *parse_expression(Parser *parser) {
   return shunting_yard(parser, &expression);
 }
 
+ASTNode *parse_statement(Parser *parser) {
+  Token *token = Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
+  switch (token->type) {
+  case NUMBER: {
+    return parse_expression(parser);
+  }
+  case IDENTIFIER: {
+    ASTNode_LinkedList targets = parse_identifier_list(parser, token, 1);
+    Token *next = Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
+
+    if (next != NULL && strcmp(next->lexeme, "=") == 0) {
+      parser->lexer->token_idx++;
+      ASTNode *node = node_new(parser, next, ASSIGNMENT);
+      ASTNode *expr = parse_expression(parser);
+      node->assign = (Assign){.targets = targets, .value = expr};
+      return node;
+    }
+
+  } break;
+  case KEYWORD: {
+    if (strcmp(token->lexeme, "import") == 0) {
+      ASTNode *node = node_new(parser, token, IMPORT);
+      token = next_token(parser->lexer);
+      node->import = parse_identifier_list(parser, token, 5);
+      return node;
+    }
+  } break;
+  default:
+    break;
+  }
+
+  return NULL;
+}
+
 Parser parse(Lexer *lexer) {
   Parser parser = parser_new(lexer);
   Token *token = NULL;
 
   while ((token = next_token(parser.lexer)) != NULL) {
-    switch (token->type) {
-    case NUMBER: {
-      ASTNode *expr = parse_expression(&parser);
-      ASTNode_add_last(&parser.ast, expr);
-    } break;
-    case IDENTIFIER: {
-      ASTNode_LinkedList targets = parse_identifier_list(&parser, token, 1);
-      Token *next =
-          Token_get(&parser.lexer->tokens, parser.lexer->token_idx - 1);
-
-      if (next != NULL && strcmp(next->lexeme, "=") == 0) {
-        parser.lexer->token_idx++;
-        ASTNode *node = node_new(&parser, next, ASSIGNMENT);
-        ASTNode *expr = parse_expression(&parser);
-        node->assign = (Assign){.targets = targets, .value = expr};
-        ASTNode_add_last(&parser.ast, node);
-        continue;
-      }
-
-    } break;
-    case KEYWORD: {
-      if (strcmp(token->lexeme, "import") == 0) {
-        ASTNode *node = node_new(&parser, token, IMPORT);
-        token = next_token(parser.lexer);
-        node->import = parse_identifier_list(&parser, token, 5);
-        ASTNode_add_last(&parser.ast, node);
-      }
-    } break;
-    default:
-      break;
-    }
+    ASTNode *stmt = parse_statement(&parser);
+    ASTNode_add_last(&parser.ast, stmt);
   }
 
   return parser;
