@@ -1,5 +1,9 @@
 #include "parser.h"
 
+ASTNode *parse_statement(Parser *parser);
+
+ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node);
+
 const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
 
 static inline Parser parser_new(Lexer *lexer) {
@@ -275,15 +279,37 @@ ASTNode *parse_expression(Parser *parser) {
   return shunting_yard(parser, &expression);
 }
 
+ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
+  ASTNode *condition = parse_expression(parser);
+  if_node->if_stmt.test = condition;
+  if_node->if_stmt.body = ASTNode_new(4);
+  if_node->if_stmt.orelse = ASTNode_new(4);
+  Token *token = next_token(parser->lexer);
+
+  while (((token = next_token(parser->lexer)) != NULL)) {
+    ASTNode *stmt = parse_statement(parser);
+    
+    if (stmt == NULL || stmt->type == END_BLOCK) {
+      break;
+    }
+
+    ASTNode_add_last(&if_node->if_stmt.body, stmt);
+  }
+
+  return if_node;
+}
+
 ASTNode *parse_statement(Parser *parser) {
-  Token *token = Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
+  Token *token =
+      Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
   switch (token->type) {
   case NUMBER: {
     return parse_expression(parser);
   }
   case IDENTIFIER: {
     ASTNode_LinkedList targets = parse_identifier_list(parser, token, 1);
-    Token *next = Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
+    Token *next =
+        Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
 
     if (next != NULL && strcmp(next->lexeme, "=") == 0) {
       parser->lexer->token_idx++;
@@ -300,6 +326,18 @@ ASTNode *parse_statement(Parser *parser) {
       token = next_token(parser->lexer);
       node->import = parse_identifier_list(parser, token, 5);
       return node;
+    }
+
+    if (strcmp(token->lexeme, "if") == 0) {
+      ASTNode *node = node_new(parser, token, IF);
+      return parse_if_statement(parser, node);
+    }
+  } break;
+  case NEWLINE: {
+    Token *next = Token_get(&parser->lexer->tokens, parser->lexer->token_idx);
+
+    if (next->ident != token->ident) {
+      return node_new(parser, token, END_BLOCK);
     }
   } break;
   default:
@@ -374,10 +412,15 @@ void astnode_free(ASTNode *node) {
     ASTNode_free(&node->import);
     break;
 
+  case IF:
+    astnode_free(node->if_stmt.test);
+    ASTNode_free(&node->if_stmt.body);
+    ASTNode_free(&node->if_stmt.orelse);
+    break;
+
   case VARIABLE:
   case LITERAL:
   case UNARY_OPERATION:
-  case IF:
   case WHILE:
   case FOR:
   case LIST_EXPR:

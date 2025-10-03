@@ -109,16 +109,14 @@ void test_compare_expression(void) {
 }
 
 void test_if_statement(void) {
-  // Example source: if x < 10 then y = 5 end
-  Lexer lexer = tokenize("if x < 10\n  y = 5\nend");
+  Lexer lexer = tokenize("if x < 10:\n  y = 5\n");
   Parser parser = parse(&lexer);
 
   ASTNode *node = ASTNode_pop(&parser.ast);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(IF, node->type);
-
-  // The condition of the if should be a compare expression
-  ASTNode *condition = node->if_stmt.test;  // assuming parser uses left for condition
+  // Type assert
+  ASTNode *condition = node->if_stmt.test;
   TEST_ASSERT_NOT_NULL(condition);
   TEST_ASSERT_EQUAL_INT(COMPARE, condition->type);
 
@@ -129,13 +127,14 @@ void test_if_statement(void) {
 
   // The body should be stored on the right
   ASTNode *body = ASTNode_pop(&node->if_stmt.body);
+  ASTNode *y = ASTNode_pop(&body->assign.targets);
   TEST_ASSERT_NOT_NULL(body);
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body->type);
-  TEST_ASSERT_EQUAL_STRING("y", ASTNode_pop(&body->assign.targets)->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("y", y->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("5", body->assign.value->token->lexeme);
-
+  // cleanup
+  astnode_free(body);
   astnode_free(node);
-  astnode_free(comp);
   parser_free(&parser);
 }
 
