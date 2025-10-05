@@ -19,7 +19,7 @@ typedef struct ASTNode_Node {
 } __attribute__((packed)) __attribute__((aligned(16))) ASTNode_Node;
 
 typedef struct ASTNode_LinkedList {
-  Arena allocator;
+  Allocator allocator;
   ASTNode_Node *elements; // Dynamic array of nodes
   size_t capacity;        // Current capacity of the array
   size_t size;            // Current number of elements in the list

@@ -42,7 +42,7 @@ const char *node_type_to_string(NodeType type) {
 }
 
 ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
-  ASTNode *node = arena_alloc(&parser->ast.allocator, sizeof(ASTNode));
+  ASTNode *node = allocator_alloc(&parser->ast.allocator, sizeof(ASTNode));
   if (node == NULL) {
     trace_log(LOG_ERROR, "Could not allocate memory for AST node");
     return NULL;
@@ -208,8 +208,8 @@ Token_ArrayList infix_to_postfix(Token_ArrayList *tokens) {
     Token_push(&postfix, Token_pop(&stack));
   }
 
-  arena_free(&stack.allocator);
-  arena_free(&tokens->allocator);
+  allocator_free(&stack.allocator);
+  allocator_free(&tokens->allocator);
   return postfix;
 }
 
@@ -265,7 +265,7 @@ ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
       break;
     }
   }
-  arena_free(&tokens->allocator);
+  allocator_free(&tokens->allocator);
   ASTNode *root = ASTNode_pop(&stack);
   ASTNode_free(&stack);
   return root;

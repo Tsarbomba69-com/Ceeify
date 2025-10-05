@@ -10,7 +10,7 @@ void cleanup_file(void *p) {
   }
 }
 
-char *load_file_text(Arena *allocator, const char *filename) {
+char *load_file_text(Allocator *allocator, const char *filename) {
   char *text = NULL;
 
   if (filename == NULL) {
@@ -33,7 +33,7 @@ char *load_file_text(Arena *allocator, const char *filename) {
     return NULL;
   }
 
-  text = (char *)arena_alloc(allocator, (size + 1) * sizeof(char));
+  text = (char *)allocator_alloc(allocator, (size + 1) * sizeof(char));
 
   if (text == NULL) {
     trace_log(LOG_FATAL, "[%s] Failed to allocate memory for file reading",
@@ -43,20 +43,20 @@ char *load_file_text(Arena *allocator, const char *filename) {
 
   size_t count = fread(text, sizeof(char), size, file);
   if (count < size)
-    text = (char *)arena_realloc(allocator, text, size, count + 1);
+    text = (char *)allocator_realloc(allocator, text, size, count + 1);
 
   text[count] = '\0';
   return text;
 }
 
-char *slice(Arena *allocator, const char *source, size_t start, size_t end) {
+char *slice(Allocator *allocator, const char *source, size_t start, size_t end) {
   size_t length = end - start;
   if (length <= 0) {
     trace_log(LOG_ERROR, "The length of the slice must be greater than zero");
     return NULL;
   }
 
-  char *result = arena_alloc(allocator, (length + 1) * sizeof(char));
+  char *result = allocator_alloc(allocator, (length + 1) * sizeof(char));
   if (result == NULL) {
     trace_log(LOG_ERROR, "Failed to allocate memory for string slice");
     return NULL;

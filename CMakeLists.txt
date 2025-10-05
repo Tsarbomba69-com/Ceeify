@@ -24,6 +24,7 @@ FetchContent_Declare(
 # Configure cJSON options
 set(ENABLE_CJSON_TEST OFF CACHE BOOL "Disable cJSON tests" FORCE)
 set(ENABLE_CJSON_UTILS OFF CACHE BOOL "Disable cJSON utils" FORCE)
+add_compile_definitions(ARENA_DEBUG)
 
 # Make dependencies available
 FetchContent_MakeAvailable(unity cjson)

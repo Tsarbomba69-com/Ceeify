@@ -15,8 +15,8 @@
 // TODO: Perhaps move argument parsing to its own module (for testing purposes)
 
 int dump_ast(const char *source_path, const char *out_file) {
-  Arena allocator = {0};
-  arena_alloc(&allocator, ONE_MB);
+  Allocator allocator = {0};
+  allocator_alloc(&allocator, ONE_MB);
   char *source = load_file_text(&allocator, source_path);
   Lexer lexer = tokenize(source);
   Parser parser = parse(&lexer);
@@ -32,7 +32,7 @@ int dump_ast(const char *source_path, const char *out_file) {
 
   cJSON_Delete(root);
   parser_free(&parser);
-  arena_free(&allocator);
+  allocator_free(&allocator);
   free(result);
   return EXIT_SUCCESS;
 }
@@ -84,6 +84,9 @@ static void reorder_args(int *argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+#if ARENA_DEBUG_MODE
+  atexit(allocator_global_report_leaks);
+#endif
   bool *help =
       flag_bool("help", false, "Print this help to stdout and exit with 0");
   bool *dump_flag = flag_bool("dump-ast", false,
@@ -106,14 +109,12 @@ int main(int argc, char **argv) {
 
   if (*help) {
     usage(stdout);
-    free(argv);
     return EXIT_SUCCESS;
   }
 
   if (argc < 1) {
     trace_log(LOG_ERROR, "missing input file");
     usage(stdout);
-    free(argv);
     return EXIT_FAILURE;
   }
 

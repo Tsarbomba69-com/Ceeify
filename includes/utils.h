@@ -23,7 +23,7 @@ enum {
   MAX_TRACELOG_MSG_LENGTH = 256 // Max length of one trace-log message
 };
 
-#include "arena.h"
+#include "allocator.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -39,11 +39,11 @@ typedef enum {
   LOG_NONE     // Disable logging
 } TraceLogLevel;
 
-char *load_file_text(Arena *allocator, const char *filename);
+char *load_file_text(Allocator *allocator, const char *filename);
 
 bool save_file_text(const char *filename, char *text);
 
-char *slice(Arena *allocator, const char *source, size_t start, size_t end);
+char *slice(Allocator *allocator, const char *source, size_t start, size_t end);
 
 void trace_log(TraceLogLevel logType, const char *text, ...);
 
