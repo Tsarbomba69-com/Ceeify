@@ -9,6 +9,7 @@ ASTNode_LinkedList ASTNode_new(size_t capacity) {
   list.tail = SIZE_MAX;
   list.free = 0;
   list.size = 0;
+  allocator_init(&list.allocator, "ASTNode_LinkedList");
   list.elements = allocator_alloc(&list.allocator, capacity * sizeof(ASTNode_Node));
 
   for (size_t i = 0; i < capacity - 1; i++) {

@@ -9,14 +9,15 @@
 #include "arena.h"
 #endif
 
-#define ONE_MB 1024 * 1024
+#define MIN_CAP 1024
 
 // TODO: Add support for multiple files
 // TODO: Perhaps move argument parsing to its own module (for testing purposes)
 
 int dump_ast(const char *source_path, const char *out_file) {
   Allocator allocator = {0};
-  allocator_alloc(&allocator, ONE_MB);
+  allocator_init(&allocator, "dump_ast");
+  allocator_alloc(&allocator, MIN_CAP);
   char *source = load_file_text(&allocator, source_path);
   Lexer lexer = tokenize(source);
   Parser parser = parse(&lexer);

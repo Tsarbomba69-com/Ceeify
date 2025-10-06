@@ -36,6 +36,8 @@ typedef struct Allocator {
 
 // ---- Global leak tracking ----
 #if ARENA_DEBUG_MODE
+#include <assert.h>
+#include <inttypes.h>
 #include <pthread.h>
 
 static struct {
@@ -59,16 +61,29 @@ static inline void global_stats_remove_allocator(void) {
   pthread_mutex_unlock(&g_arena_global_stats.lock);
 }
 
-static inline void global_stats_update(long diff) {
+static inline void global_stats_update(int64_t diff) {
   pthread_mutex_lock(&g_arena_global_stats.lock);
-  if (diff > 0)
-    g_arena_global_stats.total_allocated += diff;
-  else
-    g_arena_global_stats.total_freed += (size_t)(-diff);
-  g_arena_global_stats.current_usage += diff;
+
+  if (diff > 0) {
+    size_t add = (size_t)diff;
+    g_arena_global_stats.total_allocated += add;
+    g_arena_global_stats.current_usage += add;
+  } else if (diff < 0) {
+    size_t sub = (size_t)(-diff);
+    if (sub > g_arena_global_stats.current_usage) {
+      // Clamp to zero if mismatch occurs
+      g_arena_global_stats.total_freed += g_arena_global_stats.current_usage;
+      g_arena_global_stats.current_usage = 0;
+    } else {
+      g_arena_global_stats.total_freed += sub;
+      g_arena_global_stats.current_usage -= sub;
+    }
+  }
+
   pthread_mutex_unlock(&g_arena_global_stats.lock);
 }
 
+/* Leak report */
 static inline void allocator_global_report_leaks(void) {
   pthread_mutex_lock(&g_arena_global_stats.lock);
   if (g_arena_global_stats.current_usage != 0) {
@@ -91,7 +106,7 @@ static inline void allocator_global_report_leaks(void) {
   }
   pthread_mutex_unlock(&g_arena_global_stats.lock);
 }
-#endif
+#endif // ARENA_DEBUG_MODE
 
 // ---- Internal helpers ----
 static inline void allocator_stats_log(const Allocator *arena, const char *msg,
@@ -122,7 +137,7 @@ static inline void *allocator_alloc_dbg(Allocator *arena, size_t size,
     arena->stats.total_allocated += size;
     arena->stats.current_usage += size;
     arena->stats.allocation_count++;
-    global_stats_update((long)size);
+    global_stats_update((int64_t)size);
     allocator_stats_log(arena, "alloc", file, line);
   }
 #else
@@ -138,10 +153,15 @@ static inline void *allocator_realloc_dbg(Allocator *arena, void *old_ptr,
   void *ptr = arena_realloc(&arena->base, old_ptr, old_size, new_size);
 #if ARENA_DEBUG_MODE
   if (ptr) {
-    long diff = (long)new_size - (long)old_size;
+    int64_t diff = (int64_t)new_size - (int64_t)old_size;
     arena->stats.realloc_count++;
-    arena->stats.total_allocated += diff;
+    if (diff > 0)
+      arena->stats.total_allocated += (size_t)diff;
+    else
+      arena->stats.total_freed += (size_t)(-diff);
     arena->stats.current_usage += diff;
+    if ((int64_t)arena->stats.current_usage < 0)
+      arena->stats.current_usage = 0;
     global_stats_update(diff);
     allocator_stats_log(arena, "realloc", file, line);
   }
@@ -156,7 +176,7 @@ static inline void allocator_free_dbg(Allocator *arena, const char *file,
                                       int line) {
   arena_free(&arena->base);
 #if ARENA_DEBUG_MODE
-  global_stats_update(-(long)arena->stats.current_usage);
+  global_stats_update(-(int64_t)arena->stats.current_usage);
   arena->stats.free_count++;
   arena->stats.current_usage = 0;
   allocator_stats_log(arena, "free", file, line);
@@ -220,7 +240,7 @@ static inline void allocator_init(Allocator *allocator, const char *tag) {
 static inline void allocator_reset(Allocator *arena) {
   arena_free(&arena->base);
 #if ARENA_DEBUG_MODE
-  global_stats_update(-(size_t)arena->stats.current_usage);
+  global_stats_update(-(int64_t)arena->stats.current_usage);
   memset(&arena->stats, 0, sizeof(ArenaStats));
 #endif
 }
