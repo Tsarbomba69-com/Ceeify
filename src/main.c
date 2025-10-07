@@ -13,6 +13,7 @@
 
 // TODO: Add support for multiple files
 // TODO: Perhaps move argument parsing to its own module (for testing purposes)
+// TODO: Add test for else statement
 
 int dump_ast(const char *source_path, const char *out_file) {
   Allocator allocator = {0};
