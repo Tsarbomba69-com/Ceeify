@@ -17,6 +17,8 @@ typedef struct Token_ArrayList {
 
 Token_ArrayList Token_new(size_t capacity);
 
+Token_ArrayList Token_new_with_allocator(Allocator *allocator, size_t capacity);
+
 // Pushes an element to the end of the array list
 void Token_push(Token_ArrayList *list, Token *value);
 

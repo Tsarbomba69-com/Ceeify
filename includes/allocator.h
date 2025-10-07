@@ -1,14 +1,14 @@
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 
+#include "arena.h" // your real third-party arena
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "arena.h" // your real third-party arena
 
 // ---- Configuration ----
 #ifdef ARENA_DEBUG
@@ -83,6 +83,60 @@ static inline void global_stats_update(int64_t diff) {
   pthread_mutex_unlock(&g_arena_global_stats.lock);
 }
 
+typedef struct {
+  void *ptr;
+  size_t size;
+  const char *file;
+  int line;
+} AllocInfo;
+
+#define MAX_TRACKED_ALLOCS 2048
+static AllocInfo allocs[MAX_TRACKED_ALLOCS];
+static size_t alloc_count = 0;
+
+static void track_alloc(void *p, size_t s, const char *file, int line) {
+  if (!p)
+    return;
+
+  if (alloc_count >= MAX_TRACKED_ALLOCS) {
+    fprintf(stderr, "[ARENA DEBUG] Allocation tracker overflow!\n");
+    return;
+  }
+
+  allocs[alloc_count++] = (AllocInfo){p, s, file, line};
+}
+
+static void track_free(void *p, const char *file, int line) {
+  if (!p)
+    return;
+
+  for (size_t i = 0; i < alloc_count; ++i) {
+    if (allocs[i].ptr == p) {
+      // shift others down
+      memmove(&allocs[i], &allocs[i + 1],
+              (alloc_count - i - 1) * sizeof(AllocInfo));
+      alloc_count--;
+      return;
+    }
+  }
+
+  fprintf(stderr, "[ARENA DEBUG] Freeing untracked pointer %p at %s:%d\n", p,
+          file, line);
+}
+
+static inline void dump_allocs(void) {
+  if (alloc_count == 0) {
+    printf("[ARENA DEBUG] No outstanding allocations.\n");
+    return;
+  }
+
+  printf("[ARENA DEBUG] Outstanding allocations (%zu):\n", alloc_count);
+  for (size_t i = 0; i < alloc_count; ++i) {
+    printf("  #%zu ptr=%p size=%zu from %s:%d\n", i, allocs[i].ptr,
+           allocs[i].size, allocs[i].file, allocs[i].line);
+  }
+}
+
 /* Leak report */
 static inline void allocator_global_report_leaks(void) {
   pthread_mutex_lock(&g_arena_global_stats.lock);
@@ -134,6 +188,7 @@ static inline void *allocator_alloc_dbg(Allocator *arena, size_t size,
   void *ptr = arena_alloc(&arena->base, size);
 #if ARENA_DEBUG_MODE
   if (ptr) {
+    track_alloc(arena->base.begin, size, file, line);
     arena->stats.total_allocated += size;
     arena->stats.current_usage += size;
     arena->stats.allocation_count++;
@@ -176,6 +231,7 @@ static inline void allocator_free_dbg(Allocator *arena, const char *file,
                                       int line) {
   arena_free(&arena->base);
 #if ARENA_DEBUG_MODE
+  track_free(arena->base.begin, file, line);
   global_stats_update(-(int64_t)arena->stats.current_usage);
   arena->stats.free_count++;
   arena->stats.current_usage = 0;

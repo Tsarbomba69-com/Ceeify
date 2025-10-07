@@ -18,15 +18,14 @@
     }                                                                          \
   }
 
-
 enum {
   MAX_TRACELOG_MSG_LENGTH = 256 // Max length of one trace-log message
 };
 
 #include "allocator.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
 typedef enum {
   LOG_ALL = 0, // Display all logs

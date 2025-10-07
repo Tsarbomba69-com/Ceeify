@@ -10,7 +10,29 @@ ASTNode_LinkedList ASTNode_new(size_t capacity) {
   list.free = 0;
   list.size = 0;
   allocator_init(&list.allocator, "ASTNode_LinkedList");
-  list.elements = allocator_alloc(&list.allocator, capacity * sizeof(ASTNode_Node));
+  list.elements =
+      allocator_alloc(&list.allocator, capacity * sizeof(ASTNode_Node));
+
+  for (size_t i = 0; i < capacity - 1; i++) {
+    list.elements[i].next = i + 1;
+  }
+
+  list.elements[capacity - 1].next = SIZE_MAX;
+  return list;
+}
+
+ASTNode_LinkedList ASTNode_new_with_allocator(Allocator *allocator,
+                                              size_t capacity) {
+  assert(capacity > 0 && capacity <= SIZE_MAX);
+
+  ASTNode_LinkedList list = {0};
+  list.capacity = capacity;
+  list.head = SIZE_MAX;
+  list.tail = SIZE_MAX;
+  list.free = 0;
+  list.size = 0;
+  list.allocator = *allocator;
+  list.elements = allocator_alloc(allocator, capacity * sizeof(ASTNode_Node));
 
   for (size_t i = 0; i < capacity - 1; i++) {
     list.elements[i].next = i + 1;
@@ -25,8 +47,8 @@ void expand(ASTNode_LinkedList *list) {
   size_t new_cap = list->capacity * 2;
 
   list->elements = allocator_realloc(&list->allocator, list->elements,
-                                 list->size * sizeof(ASTNode_Node),
-                                 new_cap * sizeof(ASTNode_Node));
+                                     list->size * sizeof(ASTNode_Node),
+                                     new_cap * sizeof(ASTNode_Node));
 
   for (size_t i = old_cap; i < new_cap - 1; i++) {
     list->elements[i].next = i + 1;

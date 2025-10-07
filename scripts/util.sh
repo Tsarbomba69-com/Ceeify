@@ -5,17 +5,17 @@ gen() {
     cmake -S . -B ./build "$@"
 }
 
-# Build the project
+# Build the project 
 build() {
     cmake --build ./build "$@"
 }
 
-valgrind_all() {
-  valgrind --leak-check=full --show-leak-kinds=all ./build/ceeify
+valgrind_run() {
+  valgrind --leak-check=full --show-leak-kinds=all --show-reachable=yes --track-origins=yes --num-callers=20 --track-fds=yes ./build/ceeify "$@"
 }
 
 valgrind_test() {
-  valgrind --leak-check=full --show-leak-kinds=all ./build/test_ceeify
+  valgrind --leak-check=full --show-leak-kinds=all --show-reachable=yes --track-origins=yes --num-callers=20 --track-fds=yes ./build/test_ceeify
 }
 
 lint() {

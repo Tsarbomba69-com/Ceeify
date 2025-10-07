@@ -4,10 +4,10 @@
 
 #include "token_arraylist.h"
 #include "utils.h"
+#include <cJSON.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <cJSON.h>
 
 typedef struct Token_ArrayList Token_ArrayList;
 
@@ -29,8 +29,7 @@ typedef enum TokenType {
   ENDMARKER
 } TokenType;
 
-typedef struct __attribute__((packed))
-__attribute__((aligned(64))) Token {
+typedef struct __attribute__((packed)) __attribute__((aligned(64))) Token {
   TokenType type;
   char *lexeme;
   size_t line;
@@ -51,5 +50,9 @@ Lexer tokenize(const char *source);
 Token *next_token(Lexer *lexer);
 
 cJSON *serialize_token(Token *token);
+
+cJSON *serialize_tokens(Token_ArrayList *tokens);
+
+Token *peek_token(Lexer *lexer);
 
 #endif // !LEXER_H_

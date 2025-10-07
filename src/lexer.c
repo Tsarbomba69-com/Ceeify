@@ -56,6 +56,10 @@ const char *token_type_to_string(TokenType type) {
     return "LSQB";
   case RSQB:
     return "RSQB";
+  case COMMA:
+    return "COMMA";
+  case COLON:
+    return "COLON";
   default:
     return "UNKNOWN";
   }
@@ -251,7 +255,7 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
   }
 
   char *lexeme = allocator_alloc(&lexer->tokens.allocator,
-                             max_lexeme_length * sizeof(char) + 1);
+                                 max_lexeme_length * sizeof(char) + 1);
   if (lexeme == NULL) {
     trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
     return NULL;
@@ -285,7 +289,8 @@ Token *create_EOF_token(Lexer *lexer) {
 }
 
 Token *create_number_token(Lexer *lexer, char character) {
-  char *lexeme = allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
+  char *lexeme =
+      allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
   if (lexeme == NULL) {
     trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
     return NULL;
@@ -348,7 +353,8 @@ Token *create_string_token(Lexer *lexer, char character) {
 }
 
 Token *create_keyword_token(Lexer *lexer, char character) {
-  char *lexeme = allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
+  char *lexeme =
+      allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
 
   if (lexeme == NULL) {
     trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
@@ -406,4 +412,20 @@ Token *create_newline_token(Lexer *lexer) {
   token->type = NEWLINE;
   token->lexeme = arena_strdup(&lexer->tokens.allocator.base, "\\n");
   return token;
+}
+
+Token *peek_token(Lexer *lexer) {
+  if (!lexer || lexer->token_idx >= lexer->tokens.size) {
+    return NULL;
+  }
+  return lexer->tokens.elements[lexer->token_idx];
+}
+
+cJSON *serialize_tokens(Token_ArrayList *tokens) {
+  cJSON *root = cJSON_CreateArray();
+
+  for (size_t i = 0; i < tokens->size; i++) {
+    cJSON_AddItemToArray(root, serialize_token(tokens->elements[i]));
+  }
+  return root;
 }

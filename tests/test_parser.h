@@ -28,8 +28,7 @@ void test_parse_arithmetic_expression(void) {
                            result->bin_op.right->bin_op.left->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("2",
                            result->bin_op.right->bin_op.right->token->lexeme);
-  ASTNode_free(&parser.ast);
-  Token_free(&lexer.tokens);
+  parser_free(&parser);
 }
 
 // Test parsing a variable assignment
@@ -45,7 +44,6 @@ void test_parse_variable_assignment(void) {
   TEST_ASSERT_EQUAL_STRING("=", node->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("42", node->assign.value->token->lexeme);
-  astnode_free(node);
   parser_free(&parser);
 }
 
@@ -67,7 +65,6 @@ void test_parse_multiple_variable_assignment(void) {
   TEST_ASSERT_EQUAL_STRING("=", node->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("z", target->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("42", node->assign.value->token->lexeme);
-  astnode_free(node);
   parser_free(&parser);
 }
 
@@ -86,7 +83,6 @@ void test_import_assignment(void) {
 
   ASTNode *name = ASTNode_pop(&node->import);
   TEST_ASSERT_EQUAL_STRING("z", name->token->lexeme);
-  astnode_free(node);
   parser_free(&parser);
 }
 
@@ -103,13 +99,12 @@ void test_compare_expression(void) {
   TEST_ASSERT_EQUAL_STRING("a", compare->token->lexeme);
   free(root_str);
   cJSON_Delete(root);
-  astnode_free(node);
-  astnode_free(compare);
   parser_free(&parser);
 }
 
 void test_if_statement(void) {
-  Lexer lexer = tokenize("if x < 10:\n  y = 5\n");
+  Lexer lexer = tokenize("if x < 10:\n"
+                          "\ty = 5\n");
   Parser parser = parse(&lexer);
 
   ASTNode *node = ASTNode_pop(&parser.ast);
@@ -133,8 +128,64 @@ void test_if_statement(void) {
   TEST_ASSERT_EQUAL_STRING("y", y->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("5", body->assign.value->token->lexeme);
   // cleanup
-  astnode_free(body);
-  astnode_free(node);
+  parser_free(&parser);
+}
+
+void test_if_elif_statement(void) {
+  Lexer lexer = tokenize("if x < 10:\n"
+                         "  y = 5\n"
+                         "elif x < 20:\n"
+                         "  y = 15\n");
+
+  Parser parser = parse(&lexer);
+
+  // Pop the top-level node
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(IF, node->type);
+
+  //
+  // --- check main IF block ---
+  //
+  ASTNode *condition = node->if_stmt.test;
+  TEST_ASSERT_NOT_NULL(condition);
+  TEST_ASSERT_EQUAL_INT(COMPARE, condition->type);
+  TEST_ASSERT_EQUAL_STRING("x", condition->compare.left->token->lexeme);
+  ASTNode *comp = ASTNode_pop(&condition->compare.comparators);
+  TEST_ASSERT_EQUAL_STRING("10", comp->token->lexeme);
+
+  // check if-body: y = 5
+  ASTNode *body_stmt = ASTNode_pop(&node->if_stmt.body);
+  TEST_ASSERT_NOT_NULL(body_stmt);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
+  ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("y", target->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("5", body_stmt->assign.value->token->lexeme);
+
+  //
+  // --- check ELIF block (should appear in orelse list) ---
+  //
+  ASTNode *elif_node = ASTNode_pop(&node->if_stmt.orelse);
+  TEST_ASSERT_NOT_NULL(elif_node);
+  TEST_ASSERT_EQUAL_INT(IF, elif_node->type);
+
+  // condition: x < 20
+  ASTNode *elif_condition = elif_node->if_stmt.test;
+  TEST_ASSERT_NOT_NULL(elif_condition);
+  TEST_ASSERT_EQUAL_INT(COMPARE, elif_condition->type);
+  TEST_ASSERT_EQUAL_STRING("x", elif_condition->compare.left->token->lexeme);
+  ASTNode *elif_comp = ASTNode_pop(&elif_condition->compare.comparators);
+  TEST_ASSERT_EQUAL_STRING("20", elif_comp->token->lexeme);
+
+  // body: y = 15
+  ASTNode *elif_body_stmt = ASTNode_pop(&elif_node->if_stmt.body);
+  TEST_ASSERT_NOT_NULL(elif_body_stmt);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, elif_body_stmt->type);
+  ASTNode *elif_target = ASTNode_pop(&elif_body_stmt->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("y", elif_target->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("15", elif_body_stmt->assign.value->token->lexeme);
+
+  // cleanup
   parser_free(&parser);
 }
 

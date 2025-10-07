@@ -30,7 +30,6 @@ int dump_ast(const char *source_path, const char *out_file) {
   } else {
     trace_log(LOG_INFO, "%s", result);
   }
-
   cJSON_Delete(root);
   parser_free(&parser);
   allocator_free(&allocator);

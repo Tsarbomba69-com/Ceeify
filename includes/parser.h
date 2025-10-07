@@ -63,9 +63,9 @@ typedef struct Parser {
 } __attribute__((aligned(128))) Parser;
 
 typedef struct IfStatement {
-    ASTNode *test;
-    ASTNode_LinkedList body;
-    ASTNode_LinkedList orelse;
+  ASTNode *test;
+  ASTNode_LinkedList body;
+  ASTNode_LinkedList orelse;
 } IfStatement;
 
 typedef struct ASTNode {
@@ -85,8 +85,6 @@ typedef struct ASTNode {
 Symbol *create_symbol(DataType type, SymbolType kind);
 
 Parser parse(Lexer *lexer);
-
-void astnode_free(ASTNode *node);
 
 void parser_free(Parser *parser);
 

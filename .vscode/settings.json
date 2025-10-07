@@ -48,8 +48,8 @@
     "cmake.debugConfig": {
         "args": [
             "-dump-ast", 
-            "-o", "poop.json",
-            "${workspaceFolder}/tests/mock/data.py",
+            "-o", "output.json",
+            "${workspaceFolder}/tests/mock/if_elif.py",
         ]
     }
 }
