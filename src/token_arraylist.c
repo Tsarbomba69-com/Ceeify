@@ -1,9 +1,7 @@
 #include "token_arraylist.h"
 
 Token_ArrayList Token_new(size_t capacity) {
-  Token_ArrayList list = {0};
-  list.allocator = (Allocator){0}, list.size = 0;
-  list.capacity = capacity;
+  Token_ArrayList list = {.size = 0, .capacity = capacity, .allocator = (Allocator){0}};
   allocator_init(&list.allocator, "Token_ArrayList");
   list.elements = allocator_alloc(&list.allocator, capacity * sizeof(Token *));
 

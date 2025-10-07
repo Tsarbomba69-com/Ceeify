@@ -3,12 +3,11 @@
 ASTNode_LinkedList ASTNode_new(size_t capacity) {
   assert(capacity > 0 && capacity <= SIZE_MAX);
 
-  ASTNode_LinkedList list = {0};
-  list.capacity = capacity;
-  list.head = SIZE_MAX;
-  list.tail = SIZE_MAX;
-  list.free = 0;
-  list.size = 0;
+  ASTNode_LinkedList list = {.capacity = capacity,
+                             .head = SIZE_MAX,
+                             .tail = SIZE_MAX,
+                             .free = 0,
+                             .size = 0};
   allocator_init(&list.allocator, "ASTNode_LinkedList");
   list.elements =
       allocator_alloc(&list.allocator, capacity * sizeof(ASTNode_Node));

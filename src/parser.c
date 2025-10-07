@@ -139,7 +139,7 @@ bool blacklist_tokens(TokenType type, const TokenType blacklist[],
 Token_ArrayList collect_expression(Parser *parser, size_t from) {
   Token *token = Token_get(&parser->lexer->tokens, from);
   Token_ArrayList expression =
-      Token_new_with_allocator(&parser->ast.allocator, 20);
+      Token_new_with_allocator(&parser->ast.allocator, 1);
   TokenType blacklist[] = {NEWLINE, ENDMARKER, COLON};
   size_t scope = token->ident;
 
@@ -161,10 +161,9 @@ Token_ArrayList collect_expression(Parser *parser, size_t from) {
   return expression;
 }
 
-ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token,
-                                         size_t capacity) {
+ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token) {
   ASTNode_LinkedList targets =
-      ASTNode_new_with_allocator(&parser->ast.allocator, capacity);
+      ASTNode_new_with_allocator(&parser->ast.allocator, 1);
   ASTNode *var = node_new(parser, token, VARIABLE);
   ASTNode_add_last(&targets, var);
   Token *next = next_token(parser->lexer);
@@ -185,8 +184,8 @@ ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token,
 
 Token_ArrayList infix_to_postfix(Allocator *allocator,
                                  Token_ArrayList *tokens) {
-  Token_ArrayList stack = Token_new_with_allocator(allocator, 10);
-  Token_ArrayList postfix = Token_new_with_allocator(allocator, 10);
+  Token_ArrayList stack = Token_new_with_allocator(allocator, 1);
+  Token_ArrayList postfix = Token_new_with_allocator(allocator, 1);
 
   for (size_t i = 0; i < tokens->size; i++) {
     Token *token = Token_get(tokens, i);
@@ -371,7 +370,7 @@ ASTNode *parse_statement(Parser *parser) {
     return parse_expression(parser);
   }
   case IDENTIFIER: {
-    ASTNode_LinkedList targets = parse_identifier_list(parser, token, 1);
+    ASTNode_LinkedList targets = parse_identifier_list(parser, token);
     Token *next =
         Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
 
@@ -391,7 +390,7 @@ ASTNode *parse_statement(Parser *parser) {
     if (strcmp(token->lexeme, "import") == 0) {
       ASTNode *node = node_new(parser, token, IMPORT);
       token = next_token(parser->lexer);
-      node->import = parse_identifier_list(parser, token, 5);
+      node->import = parse_identifier_list(parser, token);
       return node;
     }
 
