@@ -7,7 +7,7 @@
 #include <unity.h>
 
 void test_parser_single_number(void) {
-  Lexer lexer = tokenize("123");
+  Lexer lexer = tokenize("123", "test_file.py");
   Parser parser = parse(&lexer);
   ASTNode *node = ASTNode_pop(&parser.ast);
   TEST_ASSERT_EQUAL_INT(LITERAL, node->type);
@@ -17,7 +17,7 @@ void test_parser_single_number(void) {
 }
 
 void test_parse_arithmetic_expression(void) {
-  Lexer lexer = tokenize("3 + 5 * 2");
+  Lexer lexer = tokenize("3 + 5 * 2", "test_file.py");
   Parser parser = parse(&lexer);
   ASTNode *result = ASTNode_pop(&parser.ast);
   TEST_ASSERT_NOT_NULL(result);
@@ -33,7 +33,7 @@ void test_parse_arithmetic_expression(void) {
 
 // Test parsing a variable assignment
 void test_parse_variable_assignment(void) {
-  Lexer lexer = tokenize("x = 42");
+  Lexer lexer = tokenize("x = 42", "test_file.py");
   Parser parser = parse(&lexer);
   ASTNode *node = ASTNode_pop(&parser.ast);
   ASTNode *target = ASTNode_pop(&node->assign.targets);
@@ -48,7 +48,7 @@ void test_parse_variable_assignment(void) {
 }
 
 void test_parse_multiple_variable_assignment(void) {
-  Lexer lexer = tokenize("x, y, z = 42");
+  Lexer lexer = tokenize("x, y, z = 42", "test_file.py");
   Parser parser = parse(&lexer);
   ASTNode *node = ASTNode_pop(&parser.ast);
 
@@ -69,7 +69,7 @@ void test_parse_multiple_variable_assignment(void) {
 }
 
 void test_import_assignment(void) {
-  Lexer lexer = tokenize("import x,y,z");
+  Lexer lexer = tokenize("import x,y,z", "test_file.py");
   Parser parser = parse(&lexer);
   ASTNode *node = ASTNode_pop(&parser.ast);
   TEST_ASSERT_NOT_NULL(node);
@@ -87,7 +87,7 @@ void test_import_assignment(void) {
 }
 
 void test_compare_expression(void) {
-  Lexer lexer = tokenize("1 <= a < 10");
+  Lexer lexer = tokenize("1 <= a < 10", "test_file.py");
   Parser parser = parse(&lexer);
   cJSON *root = serialize_program(&parser.ast);
   char *root_str = cJSON_Print(root);
@@ -104,7 +104,7 @@ void test_compare_expression(void) {
 
 void test_if_statement(void) {
   Lexer lexer = tokenize("if x < 10:\n"
-                          "\ty = 5\n");
+                          "\ty = 5\n", "test_file.py");
   Parser parser = parse(&lexer);
 
   ASTNode *node = ASTNode_pop(&parser.ast);
@@ -135,7 +135,7 @@ void test_if_elif_statement(void) {
   Lexer lexer = tokenize("if x < 10:\n"
                          "  y = 5\n"
                          "elif x < 20:\n"
-                         "  y = 15\n");
+                         "  y = 15\n", "test_file.py");
 
   Parser parser = parse(&lexer);
 
@@ -184,6 +184,57 @@ void test_if_elif_statement(void) {
   ASTNode *elif_target = ASTNode_pop(&elif_body_stmt->assign.targets);
   TEST_ASSERT_EQUAL_STRING("y", elif_target->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("15", elif_body_stmt->assign.value->token->lexeme);
+
+  // cleanup
+  parser_free(&parser);
+}
+
+void test_if_else_statement(void) {
+  Lexer lexer = tokenize("if x < 10:\n"
+                         "  y = 5\n"
+                         "else:\n"
+                         "  y = 100\n", "test_file.py");
+
+  Parser parser = parse(&lexer);
+
+  // Pop the top-level node
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(IF, node->type);
+
+  //
+  // --- check IF condition ---
+  //
+  ASTNode *condition = node->if_stmt.test;
+  TEST_ASSERT_NOT_NULL(condition);
+  TEST_ASSERT_EQUAL_INT(COMPARE, condition->type);
+  TEST_ASSERT_EQUAL_STRING("x", condition->compare.left->token->lexeme);
+  ASTNode *comp = ASTNode_pop(&condition->compare.comparators);
+  TEST_ASSERT_EQUAL_STRING("10", comp->token->lexeme);
+
+  //
+  // --- check IF body: y = 5 ---
+  //
+  ASTNode *body_stmt = ASTNode_pop(&node->if_stmt.body);
+  TEST_ASSERT_NOT_NULL(body_stmt);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
+  ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("y", target->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("5", body_stmt->assign.value->token->lexeme);
+
+  //
+  // --- check ELSE block ---
+  //
+  ASTNode *else_stmt = ASTNode_pop(&node->if_stmt.orelse);
+  TEST_ASSERT_NOT_NULL(else_stmt);
+
+  // `else` is NOT another IF node — it is a normal statement
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, else_stmt->type);
+
+  // expected: y = 100
+  ASTNode *else_target = ASTNode_pop(&else_stmt->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("y", else_target->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("100", else_stmt->assign.value->token->lexeme);
 
   // cleanup
   parser_free(&parser);

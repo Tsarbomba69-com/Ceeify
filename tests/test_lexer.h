@@ -7,7 +7,7 @@
 #include <unity.h>
 
 void test_lexer_identifier(void) {
-  Lexer lexer = tokenize("my_variable = 10");
+  Lexer lexer = tokenize("my_variable = 10", "test_file.py");
   Token *token = next_token(&lexer);
   TEST_ASSERT_EQUAL(IDENTIFIER, token->type);
   TEST_ASSERT_EQUAL_STRING("my_variable", token->lexeme);
@@ -17,7 +17,7 @@ void test_lexer_identifier(void) {
 }
 
 void test_lexer_numeric(void) {
-  Lexer lexer = tokenize("123");
+  Lexer lexer = tokenize("123", "test_file.py");
   Token *token = next_token(&lexer);
   // Assertions
   TEST_ASSERT_EQUAL_INT(NUMBER, token->type);
@@ -26,7 +26,7 @@ void test_lexer_numeric(void) {
 }
 
 void test_lexer_operator(void) {
-  Lexer lexer = tokenize("+");
+  Lexer lexer = tokenize("+", "test_file.py");
   Token *token = next_token(&lexer);
   // Assertions
   TEST_ASSERT_EQUAL_INT(OPERATOR, token->type);
@@ -35,7 +35,7 @@ void test_lexer_operator(void) {
 }
 
 void test_lexer_keyword(void) {
-  Lexer lexer = tokenize("class");
+  Lexer lexer = tokenize("class", "test_file.py");
   Token *token = next_token(&lexer);
   // Assertions
   TEST_ASSERT_EQUAL_INT(KEYWORD, token->type);
@@ -44,7 +44,7 @@ void test_lexer_keyword(void) {
 }
 
 void test_lexer_delimiter(void) {
-  Lexer lexer = tokenize("()");
+  Lexer lexer = tokenize("()", "test_file.py");
   Token *token = next_token(&lexer);
   // Assertions
   TEST_ASSERT_EQUAL_INT(LPAR, token->type);
@@ -53,7 +53,7 @@ void test_lexer_delimiter(void) {
 }
 
 void test_lexer_newline(void) {
-  Lexer lexer = tokenize("\n");
+  Lexer lexer = tokenize("\n", "test_file.py");
   Token *token = next_token(&lexer);
   // Assertions
   TEST_ASSERT_EQUAL_INT(NEWLINE, token->type);
@@ -62,7 +62,7 @@ void test_lexer_newline(void) {
 }
 
 void test_lexer_square_brackets(void) {
-  Lexer lexer = tokenize("[]");
+  Lexer lexer = tokenize("[]", "test_file.py");
   Token *token = next_token(&lexer);
   // Assertions
   TEST_ASSERT_EQUAL_INT(LSQB, token->type);
@@ -71,7 +71,7 @@ void test_lexer_square_brackets(void) {
 }
 
 void test_lexer_endmarker(void) {
-  Lexer lexer = tokenize("");
+  Lexer lexer = tokenize("", "test_file.py");
   Token *token = next_token(&lexer);
   // Assertions
   TEST_ASSERT_EQUAL_INT(ENDMARKER, token->type);

@@ -13,14 +13,13 @@
 
 // TODO: Add support for multiple files
 // TODO: Perhaps move argument parsing to its own module (for testing purposes)
-// TODO: Add test for else statement
 
 int dump_ast(const char *source_path, const char *out_file) {
   Allocator allocator = {0};
   allocator_init(&allocator, "dump_ast");
   allocator_alloc(&allocator, MIN_CAP);
   char *source = load_file_text(&allocator, source_path);
-  Lexer lexer = tokenize(source);
+  Lexer lexer = tokenize(source, source_path);
   Parser parser = parse(&lexer);
   cJSON *root = serialize_program(&parser.ast);
   char *result = cJSON_Print(root);

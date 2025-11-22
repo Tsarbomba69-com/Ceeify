@@ -41,9 +41,11 @@ const char *node_type_to_string(NodeType type) {
   }
 }
 
-void syntax_error(const char *message, Token *token) {
-  trace_log(LOG_FATAL, "SyntaxError: %s at line %d, near '%s'\n", message,
-            token ? token->line : 1, token ? token->lexeme : "EOF");
+void syntax_error(const char *message, const char *filename, Token *token) {
+  size_t line = token ? token->line : 1;
+  size_t col = token ? token->col : 1;
+  trace_log(LOG_FATAL, "%s:%d:%d SyntaxError: %s near '%s'. \n", filename, line,
+            col, message, token ? token->lexeme : "EOF");
 }
 
 ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
@@ -171,7 +173,8 @@ ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token) {
   for (; next != NULL && next->type == COMMA;
        next = next_token(parser->lexer)) {
     if (token == NULL || token->type != IDENTIFIER) {
-      syntax_error("expected identifier after comma", token);
+      syntax_error("expected identifier after comma", parser->lexer->filename,
+                   token);
     }
 
     token = next_token(parser->lexer);
@@ -306,14 +309,16 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
   // Expect a COLON after the expression
   Token *token = next_token(parser->lexer);
   if (token == NULL || token->type != COLON) {
-    syntax_error("expected ':' after 'if' condition", token);
+    syntax_error("expected ':' after 'if' condition", parser->lexer->filename,
+                 token);
     return NULL;
   }
 
   // Expect a NEWLINE immediately after the colon
   token = next_token(parser->lexer);
   if (token == NULL || token->type != NEWLINE) {
-    syntax_error("expected newline after ':' in 'if' statement", token);
+    syntax_error("expected newline after ':' in 'if' statement",
+                 parser->lexer->filename, token);
     return NULL;
   }
 
@@ -335,19 +340,19 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
     ASTNode_add_last(&if_node->if_stmt.orelse, parsed_elif);
   } else if (token && token->type == KEYWORD &&
              strcmp(token->lexeme, "else") == 0) {
-    next_token(parser->lexer); // consume 'else'
-
-    // Expect COLON
     token = next_token(parser->lexer);
+
     if (token == NULL || token->type != COLON) {
-      syntax_error("expected ':' after 'else'", token);
+      syntax_error("expected ':' after 'else'", parser->lexer->filename, token);
       return NULL;
     }
 
     // Expect NEWLINE
     token = next_token(parser->lexer);
+    
     if (token == NULL || token->type != NEWLINE) {
-      syntax_error("expected newline after ':' in 'else' statement", token);
+      syntax_error("expected newline after ':' in 'else' statement",
+                   parser->lexer->filename, token);
       return NULL;
     }
 

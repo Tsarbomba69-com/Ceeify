@@ -53,15 +53,15 @@ add_executable(test_ceeify tests/main.c ${SOURCES})
 target_link_libraries(test_ceeify unity cjson)
 
 # Apply sanitizer flags to all targets after they're defined
-# if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-#     set(SANITIZER_FLAGS "-fsanitize=address")
-#     foreach(target ceeify test_ceeify cjson)
-#         target_compile_options(${target} PRIVATE 
-#             -Wall -Wextra -Werror -pedantic ${SANITIZER_FLAGS}
-#             -fdiagnostics-show-caret -Wunreachable-code -Wformat=2 -Wshadow)
-#         target_link_options(${target} PRIVATE ${SANITIZER_FLAGS} -static-libasan)
-#     endforeach()
-# endif()
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+     set(SANITIZER_FLAGS "-fsanitize=address")
+     foreach(target ceeify test_ceeify cjson)
+         target_compile_options(${target} PRIVATE 
+             -Wall -Wextra -Werror -pedantic ${SANITIZER_FLAGS}
+             -fdiagnostics-show-caret -Wunreachable-code -Wformat=2 -Wshadow)
+         target_link_options(${target} PRIVATE ${SANITIZER_FLAGS} -static-libasan)
+     endforeach()
+ endif()
 
 enable_testing()
 add_test(NAME test_ceeify COMMAND test_ceeify)

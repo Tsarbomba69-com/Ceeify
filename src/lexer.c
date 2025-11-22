@@ -75,17 +75,18 @@ cJSON *serialize_token(Token *token) {
   return root;
 }
 
-Lexer lexer_new(const char *source) {
+Lexer lexer_new(const char *source, const char *filename) {
   size_t len = strlen(source);
   return (Lexer){.source = source,
+                 .filename = filename,
                  .position = 0,
                  .token_idx = 0,
                  .source_length = len,
                  .tokens = Token_new(100)};
 }
 
-Lexer tokenize(const char *source) {
-  Lexer lexer = lexer_new(source);
+Lexer tokenize(const char *source, const char *filename) {
+  Lexer lexer = lexer_new(source, filename);
   size_t line = 1;
   size_t column = 1;
   size_t ident = 0;
@@ -215,8 +216,9 @@ Lexer tokenize(const char *source) {
 }
 
 Token *next_token(Lexer *lexer) {
+  size_t i = lexer->token_idx;
   lexer->token_idx++;
-  return Token_get(&lexer->tokens, lexer->token_idx - 1);
+  return Token_get(&lexer->tokens, i);
 }
 
 Token *create_token_from_char(Lexer *lexer, char character, TokenType type) {
@@ -427,5 +429,16 @@ cJSON *serialize_tokens(Token_ArrayList *tokens) {
   for (size_t i = 0; i < tokens->size; i++) {
     cJSON_AddItemToArray(root, serialize_token(tokens->elements[i]));
   }
+  return root;
+}
+
+cJSON* serialize_lexer(Lexer *lexer) {
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddStringToObject(root, "filename", lexer->filename);
+  cJSON_AddNumberToObject(root, "position", lexer->position);
+  cJSON_AddNumberToObject(root, "token_idx", lexer->token_idx);
+  cJSON_AddNumberToObject(root, "source_length", lexer->source_length);
+  cJSON *tokens_json = serialize_tokens(&lexer->tokens);
+  cJSON_AddItemToObject(root, "tokens", tokens_json);
   return root;
 }

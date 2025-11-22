@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/hendrick-dias/projects/ceeify",
+    "cmake.sourceDirectory": "/home/hendrick/probe/Ceeify",
     "files.associations": {
         "stdio.h": "c",
         "stddef.h": "c",
