@@ -35,5 +35,6 @@ int main(void) {
   RUN_TEST(test_if_statement);
   RUN_TEST(test_if_elif_statement);
   RUN_TEST(test_if_else_statement);
+  RUN_TEST(test_while_statement);
   return UNITY_END();
 }

@@ -49,7 +49,7 @@
         "args": [
             "-dump-ast", 
             "-o", "output.json",
-            "${workspaceFolder}/tests/mock/if_elif.py",
+            "${workspaceFolder}/tests/mock/while.py",
         ]
     }
 }

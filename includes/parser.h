@@ -62,11 +62,11 @@ typedef struct Parser {
   ASTNode_LinkedList ast;
 } __attribute__((aligned(128))) Parser;
 
-typedef struct IfStatement {
+typedef struct ControlFlowStatement {
   ASTNode *test;
   ASTNode_LinkedList body;
   ASTNode_LinkedList orelse;
-} IfStatement;
+} ControlFlowStatement;
 
 typedef struct ASTNode {
   NodeType type;
@@ -78,7 +78,7 @@ typedef struct ASTNode {
     Context ctx;
     Compare compare;
     ASTNode_LinkedList import;
-    IfStatement if_stmt;
+    ControlFlowStatement ctrl_stmt;
   };
 } __attribute__((aligned(128))) ASTNode;
 

@@ -89,16 +89,11 @@ void test_import_assignment(void) {
 void test_compare_expression(void) {
   Lexer lexer = tokenize("1 <= a < 10", "test_file.py");
   Parser parser = parse(&lexer);
-  cJSON *root = serialize_program(&parser.ast);
-  char *root_str = cJSON_Print(root);
   ASTNode *node = ASTNode_pop(&parser.ast);
-  trace_log(LOG_INFO, "%s", root_str);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(COMPARE, node->type);
   ASTNode *compare = ASTNode_pop(&node->compare.comparators);
   TEST_ASSERT_EQUAL_STRING("a", compare->token->lexeme);
-  free(root_str);
-  cJSON_Delete(root);
   parser_free(&parser);
 }
 
@@ -111,7 +106,7 @@ void test_if_statement(void) {
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(IF, node->type);
   // Type assert
-  ASTNode *condition = node->if_stmt.test;
+  ASTNode *condition = node->ctrl_stmt.test;
   TEST_ASSERT_NOT_NULL(condition);
   TEST_ASSERT_EQUAL_INT(COMPARE, condition->type);
 
@@ -121,7 +116,7 @@ void test_if_statement(void) {
   TEST_ASSERT_EQUAL_STRING("10", comp->token->lexeme);
 
   // The body should be stored on the right
-  ASTNode *body = ASTNode_pop(&node->if_stmt.body);
+  ASTNode *body = ASTNode_pop(&node->ctrl_stmt.body);
   ASTNode *y = ASTNode_pop(&body->assign.targets);
   TEST_ASSERT_NOT_NULL(body);
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body->type);
@@ -147,7 +142,7 @@ void test_if_elif_statement(void) {
   //
   // --- check main IF block ---
   //
-  ASTNode *condition = node->if_stmt.test;
+  ASTNode *condition = node->ctrl_stmt.test;
   TEST_ASSERT_NOT_NULL(condition);
   TEST_ASSERT_EQUAL_INT(COMPARE, condition->type);
   TEST_ASSERT_EQUAL_STRING("x", condition->compare.left->token->lexeme);
@@ -155,7 +150,7 @@ void test_if_elif_statement(void) {
   TEST_ASSERT_EQUAL_STRING("10", comp->token->lexeme);
 
   // check if-body: y = 5
-  ASTNode *body_stmt = ASTNode_pop(&node->if_stmt.body);
+  ASTNode *body_stmt = ASTNode_pop(&node->ctrl_stmt.body);
   TEST_ASSERT_NOT_NULL(body_stmt);
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
   ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
@@ -165,12 +160,12 @@ void test_if_elif_statement(void) {
   //
   // --- check ELIF block (should appear in orelse list) ---
   //
-  ASTNode *elif_node = ASTNode_pop(&node->if_stmt.orelse);
+  ASTNode *elif_node = ASTNode_pop(&node->ctrl_stmt.orelse);
   TEST_ASSERT_NOT_NULL(elif_node);
   TEST_ASSERT_EQUAL_INT(IF, elif_node->type);
 
   // condition: x < 20
-  ASTNode *elif_condition = elif_node->if_stmt.test;
+  ASTNode *elif_condition = elif_node->ctrl_stmt.test;
   TEST_ASSERT_NOT_NULL(elif_condition);
   TEST_ASSERT_EQUAL_INT(COMPARE, elif_condition->type);
   TEST_ASSERT_EQUAL_STRING("x", elif_condition->compare.left->token->lexeme);
@@ -178,7 +173,7 @@ void test_if_elif_statement(void) {
   TEST_ASSERT_EQUAL_STRING("20", elif_comp->token->lexeme);
 
   // body: y = 15
-  ASTNode *elif_body_stmt = ASTNode_pop(&elif_node->if_stmt.body);
+  ASTNode *elif_body_stmt = ASTNode_pop(&elif_node->ctrl_stmt.body);
   TEST_ASSERT_NOT_NULL(elif_body_stmt);
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, elif_body_stmt->type);
   ASTNode *elif_target = ASTNode_pop(&elif_body_stmt->assign.targets);
@@ -205,7 +200,7 @@ void test_if_else_statement(void) {
   //
   // --- check IF condition ---
   //
-  ASTNode *condition = node->if_stmt.test;
+  ASTNode *condition = node->ctrl_stmt.test;
   TEST_ASSERT_NOT_NULL(condition);
   TEST_ASSERT_EQUAL_INT(COMPARE, condition->type);
   TEST_ASSERT_EQUAL_STRING("x", condition->compare.left->token->lexeme);
@@ -215,7 +210,7 @@ void test_if_else_statement(void) {
   //
   // --- check IF body: y = 5 ---
   //
-  ASTNode *body_stmt = ASTNode_pop(&node->if_stmt.body);
+  ASTNode *body_stmt = ASTNode_pop(&node->ctrl_stmt.body);
   TEST_ASSERT_NOT_NULL(body_stmt);
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
   ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
@@ -225,7 +220,7 @@ void test_if_else_statement(void) {
   //
   // --- check ELSE block ---
   //
-  ASTNode *else_stmt = ASTNode_pop(&node->if_stmt.orelse);
+  ASTNode *else_stmt = ASTNode_pop(&node->ctrl_stmt.orelse);
   TEST_ASSERT_NOT_NULL(else_stmt);
 
   // `else` is NOT another IF node — it is a normal statement
@@ -235,6 +230,36 @@ void test_if_else_statement(void) {
   ASTNode *else_target = ASTNode_pop(&else_stmt->assign.targets);
   TEST_ASSERT_EQUAL_STRING("y", else_target->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("100", else_stmt->assign.value->token->lexeme);
+
+  // cleanup
+  parser_free(&parser);
+}
+
+void test_while_statement(void) {
+  // Arrange
+  Lexer lexer = tokenize("while x < 10:\n"
+                         "  x = x + 1\n", "test_file.py");
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(WHILE, node->type);
+  // Assert
+  ASTNode *condition = node->ctrl_stmt.test;
+  TEST_ASSERT_NOT_NULL(condition);
+  TEST_ASSERT_EQUAL_INT(COMPARE, condition->type);
+  TEST_ASSERT_EQUAL_STRING("x", condition->compare.left->token->lexeme);
+  ASTNode *comp = ASTNode_pop(&condition->compare.comparators);
+  TEST_ASSERT_EQUAL_STRING("10", comp->token->lexeme);
+
+  //
+  // --- check WHILE body: x = x + 1 ---
+  //
+  ASTNode *body_stmt = ASTNode_pop(&node->ctrl_stmt.body);
+  TEST_ASSERT_NOT_NULL(body_stmt);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
+  ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("1", body_stmt->assign.value->bin_op.right->token->lexeme);
 
   // cleanup
   parser_free(&parser);

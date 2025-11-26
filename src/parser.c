@@ -109,11 +109,12 @@ cJSON *serialize_node(ASTNode *node) {
     }
     break;
   case IF:
+  case WHILE:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
-    cJSON_AddItemToObject(root, "test", serialize_node(node->if_stmt.test));
-    cJSON_AddItemToObject(root, "body", serialize_program(&node->if_stmt.body));
+    cJSON_AddItemToObject(root, "test", serialize_node(node->ctrl_stmt.test));
+    cJSON_AddItemToObject(root, "body", serialize_program(&node->ctrl_stmt.body));
     cJSON_AddItemToObject(root, "orelse",
-                          serialize_program(&node->if_stmt.orelse));
+                          serialize_program(&node->ctrl_stmt.orelse));
     break;
   default:
     break;
@@ -298,11 +299,48 @@ ASTNode *parse_expression(Parser *parser) {
   return shunting_yard(parser, &expression);
 }
 
+ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
+  ASTNode *condition = parse_expression(parser);
+  while_node->ctrl_stmt.test = condition;
+  while_node->ctrl_stmt.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  while_node->ctrl_stmt.orelse =
+      ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  parser->lexer->token_idx--;
+
+  // Expect a COLON after the expression
+  Token *token = next_token(parser->lexer);
+  if (token == NULL || token->type != COLON) {
+    syntax_error("expected ':' after 'while' condition", parser->lexer->filename,
+                 token);
+    return NULL;
+  }
+
+  // Expect a NEWLINE immediately after the colon
+  token = next_token(parser->lexer);
+  if (token == NULL || token->type != NEWLINE) {
+    syntax_error("expected newline after ':' in 'while' statement",
+                 parser->lexer->filename, token);
+    return NULL;
+  }
+
+  while (((token = next_token(parser->lexer)) != NULL)) {
+    ASTNode *stmt = parse_statement(parser);
+
+    if (stmt == NULL || stmt->type == END_BLOCK) {
+      break;
+    }
+
+    ASTNode_add_last(&while_node->ctrl_stmt.body, stmt);
+  }
+
+  return while_node;
+}
+
 ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
   ASTNode *condition = parse_expression(parser);
-  if_node->if_stmt.test = condition;
-  if_node->if_stmt.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
-  if_node->if_stmt.orelse =
+  if_node->ctrl_stmt.test = condition;
+  if_node->ctrl_stmt.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  if_node->ctrl_stmt.orelse =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
   parser->lexer->token_idx--;
 
@@ -329,7 +367,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
       break;
     }
 
-    ASTNode_add_last(&if_node->if_stmt.body, stmt);
+    ASTNode_add_last(&if_node->ctrl_stmt.body, stmt);
   }
 
   token = Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
@@ -337,7 +375,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
     // parser->lexer->token_idx--;
     ASTNode *elif_node = node_new(parser, token, IF);
     ASTNode *parsed_elif = parse_if_statement(parser, elif_node);
-    ASTNode_add_last(&if_node->if_stmt.orelse, parsed_elif);
+    ASTNode_add_last(&if_node->ctrl_stmt.orelse, parsed_elif);
   } else if (token && token->type == KEYWORD &&
              strcmp(token->lexeme, "else") == 0) {
     token = next_token(parser->lexer);
@@ -361,7 +399,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
       ASTNode *stmt = parse_statement(parser);
       if (stmt == NULL || stmt->type == END_BLOCK)
         break;
-      ASTNode_add_last(&if_node->if_stmt.orelse, stmt);
+      ASTNode_add_last(&if_node->ctrl_stmt.orelse, stmt);
     }
   }
   return if_node;
@@ -408,6 +446,11 @@ ASTNode *parse_statement(Parser *parser) {
         strcmp(token->lexeme, "else") == 0) {
       // Signal end of current block - elif/else should be handled by parent if
       return node_new(parser, token, END_BLOCK);
+    }
+
+    if (strcmp(token->lexeme, "while") == 0) {
+      ASTNode *node = node_new(parser, token, WHILE);
+      return parse_while_statement(parser, node);
     }
   } break;
   case NEWLINE: {
