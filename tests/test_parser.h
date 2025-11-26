@@ -265,4 +265,44 @@ void test_while_statement(void) {
   parser_free(&parser);
 }
 
+void test_while_else_statement(void) {
+  // Arrange
+  Lexer lexer = tokenize("while x < 10:\n"
+                        "  x = x + 1\n"
+                        "else:\n"
+                        "  y = 100\n", "test_file.py");
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(WHILE, node->type);
+
+  // Check WHILE condition
+  ASTNode *condition = node->ctrl_stmt.test;
+  TEST_ASSERT_NOT_NULL(condition);
+  TEST_ASSERT_EQUAL_INT(COMPARE, condition->type);
+  TEST_ASSERT_EQUAL_STRING("x", condition->compare.left->token->lexeme);
+  ASTNode *comp = ASTNode_pop(&condition->compare.comparators);
+  TEST_ASSERT_EQUAL_STRING("10", comp->token->lexeme);
+
+  // Check WHILE body: x = x + 1
+  ASTNode *body_stmt = ASTNode_pop(&node->ctrl_stmt.body);
+  TEST_ASSERT_NOT_NULL(body_stmt);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
+  ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("1", body_stmt->assign.value->bin_op.right->token->lexeme);
+
+  // Check ELSE block
+  ASTNode *else_stmt = ASTNode_pop(&node->ctrl_stmt.orelse);
+  TEST_ASSERT_NOT_NULL(else_stmt);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, else_stmt->type);
+
+  ASTNode *else_target = ASTNode_pop(&else_stmt->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("y", else_target->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("100", else_stmt->assign.value->token->lexeme);
+
+  // Cleanup
+  parser_free(&parser);
+}
+
 #endif

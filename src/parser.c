@@ -333,6 +333,33 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
     ASTNode_add_last(&while_node->ctrl_stmt.body, stmt);
   }
 
+  if (token && token->type == KEYWORD &&
+             strcmp(token->lexeme, "else") == 0) {
+    token = next_token(parser->lexer);
+
+    if (token == NULL || token->type != COLON) {
+      syntax_error("expected ':' after 'else'", parser->lexer->filename, token);
+      return NULL;
+    }
+
+    // Expect NEWLINE
+    token = next_token(parser->lexer);
+    
+    if (token == NULL || token->type != NEWLINE) {
+      syntax_error("expected newline after ':' in 'else' statement",
+                   parser->lexer->filename, token);
+      return NULL;
+    }
+
+    // Parse the 'else' block
+    while ((token = next_token(parser->lexer)) != NULL) {
+      ASTNode *stmt = parse_statement(parser);
+      if (stmt == NULL || stmt->type == END_BLOCK)
+        break;
+      ASTNode_add_last(&while_node->ctrl_stmt.orelse, stmt);
+    }
+  }
+
   return while_node;
 }
 
