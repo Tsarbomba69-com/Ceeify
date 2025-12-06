@@ -8,7 +8,6 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <slog.h>
 
 typedef struct Token_ArrayList Token_ArrayList;
 

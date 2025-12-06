@@ -8,8 +8,7 @@ Token_ArrayList Token_new(size_t capacity) {
   list.elements = allocator_alloc(&list.allocator, capacity * sizeof(Token *));
 
   if (list.elements == NULL) {
-    trace_log(LOG_ERROR,
-              "Could not allocate memory for \"Token*\" array list elements");
+    slog_error("Could not allocate memory for \"Token*\" array list elements");
   }
 
   return list;
@@ -33,7 +32,7 @@ void Token_push(Token_ArrayList *list, Token *value) {
                           list->size * sizeof(Token *), cap * sizeof(Token *));
 
     if (elements == NULL) {
-      trace_log(LOG_ERROR, "Failed to resize \"Token*\" array list");
+      slog_error("Failed to resize \"Token*\" array list");
       return;
     }
 

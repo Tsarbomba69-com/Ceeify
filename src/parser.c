@@ -44,14 +44,15 @@ const char *node_type_to_string(NodeType type) {
 void syntax_error(const char *message, const char *filename, Token *token) {
   size_t line = token ? token->line : 1;
   size_t col = token ? token->col : 1;
-  trace_log(LOG_FATAL, "%s:%d:%d SyntaxError: %s near '%s'. \n", filename, line,
-            col, message, token ? token->lexeme : "EOF");
+  slog_error("%s:%d:%d SyntaxError: %s near '%s'.\n", filename, line, col,
+             message, token ? token->lexeme : "EOF");
+  exit(EXIT_FAILURE);
 }
 
 ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
   ASTNode *node = allocator_alloc(&parser->ast.allocator, sizeof(ASTNode));
   if (node == NULL) {
-    trace_log(LOG_ERROR, "Could not allocate memory for AST node");
+    slog_error("Could not allocate memory for AST node");
     return NULL;
   }
 
@@ -112,7 +113,8 @@ cJSON *serialize_node(ASTNode *node) {
   case WHILE:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
     cJSON_AddItemToObject(root, "test", serialize_node(node->ctrl_stmt.test));
-    cJSON_AddItemToObject(root, "body", serialize_program(&node->ctrl_stmt.body));
+    cJSON_AddItemToObject(root, "body",
+                          serialize_program(&node->ctrl_stmt.body));
     cJSON_AddItemToObject(root, "orelse",
                           serialize_program(&node->ctrl_stmt.orelse));
     break;
@@ -302,7 +304,8 @@ ASTNode *parse_expression(Parser *parser) {
 ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
   ASTNode *condition = parse_expression(parser);
   while_node->ctrl_stmt.test = condition;
-  while_node->ctrl_stmt.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  while_node->ctrl_stmt.body =
+      ASTNode_new_with_allocator(&parser->ast.allocator, 4);
   while_node->ctrl_stmt.orelse =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
   parser->lexer->token_idx--;
@@ -310,8 +313,8 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
   // Expect a COLON after the expression
   Token *token = next_token(parser->lexer);
   if (token == NULL || token->type != COLON) {
-    syntax_error("expected ':' after 'while' condition", parser->lexer->filename,
-                 token);
+    syntax_error("expected ':' after 'while' condition",
+                 parser->lexer->filename, token);
     return NULL;
   }
 
@@ -333,8 +336,7 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
     ASTNode_add_last(&while_node->ctrl_stmt.body, stmt);
   }
 
-  if (token && token->type == KEYWORD &&
-             strcmp(token->lexeme, "else") == 0) {
+  if (token && token->type == KEYWORD && strcmp(token->lexeme, "else") == 0) {
     token = next_token(parser->lexer);
 
     if (token == NULL || token->type != COLON) {
@@ -344,7 +346,7 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
 
     // Expect NEWLINE
     token = next_token(parser->lexer);
-    
+
     if (token == NULL || token->type != NEWLINE) {
       syntax_error("expected newline after ':' in 'else' statement",
                    parser->lexer->filename, token);
@@ -366,7 +368,8 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
 ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
   ASTNode *condition = parse_expression(parser);
   if_node->ctrl_stmt.test = condition;
-  if_node->ctrl_stmt.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  if_node->ctrl_stmt.body =
+      ASTNode_new_with_allocator(&parser->ast.allocator, 4);
   if_node->ctrl_stmt.orelse =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
   parser->lexer->token_idx--;
@@ -414,7 +417,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
 
     // Expect NEWLINE
     token = next_token(parser->lexer);
-    
+
     if (token == NULL || token->type != NEWLINE) {
       syntax_error("expected newline after ':' in 'else' statement",
                    parser->lexer->filename, token);

@@ -224,13 +224,13 @@ Token *next_token(Lexer *lexer) {
 Token *create_token_from_char(Lexer *lexer, char character, TokenType type) {
   Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    trace_log(LOG_ERROR, "Could not allocate memory for token");
+    slog_error("Could not allocate memory for token");
     return NULL;
   }
 
   char *lexeme = allocator_alloc(&lexer->tokens.allocator, sizeof(char) * 2);
   if (lexeme == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
+    slog_error("Failed to allocate memory for lexeme");
     return NULL;
   }
 
@@ -259,7 +259,7 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
   char *lexeme = allocator_alloc(&lexer->tokens.allocator,
                                  max_lexeme_length * sizeof(char) + 1);
   if (lexeme == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
+    slog_error("Failed to allocate memory for lexeme");
     return NULL;
   }
 
@@ -269,7 +269,7 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
 
   Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for token");
+    slog_error("Failed to allocate memory for token");
     return NULL;
   }
 
@@ -281,7 +281,7 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
 Token *create_EOF_token(Lexer *lexer) {
   Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for EOF token");
+    slog_error("Failed to allocate memory for EOF token");
     return NULL;
   }
 
@@ -294,7 +294,7 @@ Token *create_number_token(Lexer *lexer, char character) {
   char *lexeme =
       allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
   if (lexeme == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
+    slog_error("Failed to allocate memory for lexeme");
     return NULL;
   }
   size_t lexeme_length = 0;
@@ -319,7 +319,7 @@ Token *create_number_token(Lexer *lexer, char character) {
   lexeme[lexeme_length] = '\0';
   Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for token");
+    slog_error("Failed to allocate memory for token");
     return NULL;
   }
 
@@ -344,7 +344,7 @@ Token *create_string_token(Lexer *lexer, char character) {
   Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
 
   if (token == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for token");
+    slog_error("Failed to allocate memory for token");
     return NULL;
   }
 
@@ -359,7 +359,7 @@ Token *create_keyword_token(Lexer *lexer, char character) {
       allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
 
   if (lexeme == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for lexeme");
+    slog_error("Failed to allocate memory for lexeme");
     return NULL;
   }
 
@@ -386,7 +386,7 @@ Token *create_keyword_token(Lexer *lexer, char character) {
   Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
 
   if (token == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for token");
+    slog_error("Failed to allocate memory for token");
     return NULL;
   }
 
@@ -407,7 +407,7 @@ Token *create_keyword_token(Lexer *lexer, char character) {
 Token *create_newline_token(Lexer *lexer) {
   Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {
-    trace_log(LOG_ERROR, "Failed to allocate memory for NEWLINE token");
+    slog_error("Failed to allocate memory for NEWLINE token");
     return NULL;
   }
 
@@ -432,7 +432,7 @@ cJSON *serialize_tokens(Token_ArrayList *tokens) {
   return root;
 }
 
-cJSON* serialize_lexer(Lexer *lexer) {
+cJSON *serialize_lexer(Lexer *lexer) {
   cJSON *root = cJSON_CreateObject();
   cJSON_AddStringToObject(root, "filename", lexer->filename);
   cJSON_AddNumberToObject(root, "position", lexer->position);

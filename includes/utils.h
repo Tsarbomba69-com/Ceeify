@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <slog.h>
+
 #define DEFER(fn) __attribute__((cleanup(fn)))
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof((a)[0]))
