@@ -101,6 +101,11 @@ static void reorder_args(int *argc, char **argv) {
 
 int main(int argc, char **argv) {
   slog_init("ceeify", SLOG_FLAGS_ALL, 0);
+  slog_config_t cfg;
+  slog_config_get(&cfg);
+  cfg.nTraceTid = true;
+  slog_config_set(&cfg);
+
 #if ARENA_DEBUG_MODE
   atexit(allocator_global_report_leaks);
 #endif
@@ -130,7 +135,7 @@ int main(int argc, char **argv) {
 
   if (argc < 1) {
     slog_error("missing input file");
-    usage(stdout);
+    usage(stderr);
     return EXIT_FAILURE;
   }
 

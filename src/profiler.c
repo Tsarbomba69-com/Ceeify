@@ -12,10 +12,9 @@ ResourceMetrics get_resource_metrics(void) {
 
   if (getrusage(RUSAGE_SELF, &usage) == 0) {
     metrics.max_rss_kb = usage.ru_maxrss;
-    metrics.cpu_us = (usage.ru_utime.tv_sec * 1000000 + 
-                      usage.ru_utime.tv_usec) +
-                     (usage.ru_stime.tv_sec * 1000000 + 
-                      usage.ru_stime.tv_usec);
+    metrics.cpu_us =
+        (usage.ru_utime.tv_sec * 1000000 + usage.ru_utime.tv_usec) +
+        (usage.ru_stime.tv_sec * 1000000 + usage.ru_stime.tv_usec);
   }
 
   // Try to read I/O stats from /proc (Linux specific)
@@ -35,10 +34,11 @@ ResourceMetrics get_resource_metrics(void) {
   return metrics;
 }
 
-TraceBuffer trace_buffer_create(Allocator* allocator, size_t initial_capacity) {
+TraceBuffer trace_buffer_create(Allocator *allocator, size_t initial_capacity) {
   TraceBuffer buffer = {0};
 
-  buffer.events = (TraceEvent*)allocator_alloc(allocator, initial_capacity * sizeof(TraceEvent));
+  buffer.events = (TraceEvent *)allocator_alloc(
+      allocator, initial_capacity * sizeof(TraceEvent));
   if (!buffer.events) {
     slog_error("Failed to allocate memory for trace events");
     return buffer;
@@ -51,9 +51,9 @@ TraceBuffer trace_buffer_create(Allocator* allocator, size_t initial_capacity) {
 }
 
 static void trace_buffer_resize(TraceBuffer *buffer, size_t new_capacity) {
-  TraceEvent *new_events = allocator_realloc(buffer->allocator, buffer->events,
-                                             buffer->capacity * sizeof(TraceEvent),
-                                    new_capacity * sizeof(TraceEvent));
+  TraceEvent *new_events = allocator_realloc(
+      buffer->allocator, buffer->events, buffer->capacity * sizeof(TraceEvent),
+      new_capacity * sizeof(TraceEvent));
   if (new_events) {
     buffer->events = new_events;
     buffer->capacity = new_capacity;
@@ -76,9 +76,9 @@ void trace_event_begin(TraceBuffer *buffer, const char *name) {
 void trace_event_end(TraceBuffer *buffer, const char *name) {
   // Find matching begin event
   for (int i = buffer->count - 1; i >= 0; i--) {
-    if (buffer->events[i].phase == 'B' && 
+    if (buffer->events[i].phase == 'B' &&
         strcmp(buffer->events[i].name, name) == 0) {
-      
+
       if (buffer->count >= buffer->capacity) {
         trace_buffer_resize(buffer, buffer->capacity * 2);
       }
@@ -88,8 +88,8 @@ void trace_event_end(TraceBuffer *buffer, const char *name) {
       end_event->phase = 'E';
       end_event->timestamp_us = get_timestamp_us();
       end_event->metrics = get_resource_metrics();
-      end_event->duration_us = end_event->timestamp_us - 
-                               buffer->events[i].timestamp_us;
+      end_event->duration_us =
+          end_event->timestamp_us - buffer->events[i].timestamp_us;
       return;
     }
   }
@@ -107,12 +107,11 @@ char *trace_buffer_to_json(TraceBuffer *buffer) {
   for (size_t i = 0; i < buffer->count; i++) {
     TraceEvent *event = &buffer->events[i];
     cJSON *obj = cJSON_CreateObject();
-    
+
     cJSON_AddStringToObject(obj, "name", event->name);
-    cJSON_AddStringToObject(obj, "ph", 
-                           event->phase == 'B' ? "B" : "E");
+    cJSON_AddStringToObject(obj, "ph", event->phase == 'B' ? "B" : "E");
     cJSON_AddNumberToObject(obj, "ts", event->timestamp_us);
-    
+
     if (event->phase == 'E') {
       cJSON_AddNumberToObject(obj, "dur", event->duration_us);
     }
@@ -134,6 +133,9 @@ char *trace_buffer_to_json(TraceBuffer *buffer) {
 }
 
 void trace_buffer_destroy(TraceBuffer *buffer) {
-  if (!buffer) return;
+  if (!buffer)
+    return;
   allocator_free(buffer->allocator);
+  buffer->events = NULL;
+  buffer->count = 0;
 }

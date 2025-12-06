@@ -54,7 +54,7 @@ cJSON *serialize_token(Token *token);
 
 cJSON *serialize_tokens(Token_ArrayList *tokens);
 
-cJSON* serialize_lexer(Lexer *lexer);
+cJSON *serialize_lexer(Lexer *lexer);
 
 Token *peek_token(Lexer *lexer);
 

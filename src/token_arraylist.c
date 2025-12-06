@@ -56,6 +56,5 @@ Token *Token_pop(Token_ArrayList *list) {
 void Token_free(Token_ArrayList *list) {
   allocator_free(&list->allocator);
   list->elements = NULL;
-  list->capacity = 0;
   list->size = 0;
 }
