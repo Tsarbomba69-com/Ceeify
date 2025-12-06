@@ -13,11 +13,11 @@ build() {
 }
 
 valgrind_run() {
-  valgrind --leak-check=full --show-leak-kinds=all --show-reachable=yes --track-origins=yes --num-callers=20 --track-fds=yes ./build/ceeify "$@"
+  valgrind --leak-check=full --show-leak-kinds=all --show-reachable=yes --track-origins=yes --num-callers=20 --track-fds=yes --verbose ./build/ceeify "$@"
 }
 
 valgrind_test() {
-  valgrind --leak-check=full --show-leak-kinds=all --show-reachable=yes --track-origins=yes --num-callers=20 --track-fds=yes ./build/test_ceeify
+  valgrind --leak-check=full --show-leak-kinds=all --show-reachable=yes --track-origins=yes --num-callers=20 --track-fds=yes --verbose ./build/test_ceeify
 }
 
 lint() {

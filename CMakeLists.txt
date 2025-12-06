@@ -21,13 +21,19 @@ FetchContent_Declare(
     GIT_TAG v1.7.15
 )
 
+FetchContent_Declare(
+    slog
+    GIT_REPOSITORY https://github.com/kala13x/slog.git
+    GIT_TAG v1.8.48
+)
+
 # Configure cJSON options
 set(ENABLE_CJSON_TEST OFF CACHE BOOL "Disable cJSON tests" FORCE)
 set(ENABLE_CJSON_UTILS OFF CACHE BOOL "Disable cJSON utils" FORCE)
 # add_compile_definitions(ARENA_DEBUG)
 
 # Make dependencies available
-FetchContent_MakeAvailable(unity cjson)
+FetchContent_MakeAvailable(unity cjson slog)
 
 include_directories(
     ${unity_SOURCE_DIR}/src 
@@ -46,11 +52,11 @@ set(SOURCES
 
 # Main executable
 add_executable(ceeify src/main.c ${SOURCES})
-target_link_libraries(ceeify cjson)
+target_link_libraries(ceeify cjson slog)
 
 # Test executable
 add_executable(test_ceeify tests/main.c ${SOURCES})
-target_link_libraries(test_ceeify unity cjson)
+target_link_libraries(test_ceeify unity cjson slog)
 
 # Apply sanitizer flags to all targets after they're defined
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")

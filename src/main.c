@@ -28,7 +28,7 @@ int dump_ast(const char *source_path, const char *out_file) {
     if (!save_file_text(out_file, result))
       return EXIT_FAILURE;
   } else {
-    trace_log(LOG_INFO, "%s", result);
+    slog_info("%s", result);
   }
   cJSON_Delete(root);
   parser_free(&parser);
@@ -38,8 +38,8 @@ int dump_ast(const char *source_path, const char *out_file) {
 }
 
 void usage(FILE *stream) {
-  trace_log(LOG_INFO, "Usage: ./ceeify [OPTIONS] <input-file>");
-  trace_log(LOG_INFO, "OPTIONS:");
+  slog_info("Usage: ./ceeify [OPTIONS] <input-file>");
+  slog_info("OPTIONS:");
   flag_print_options(stream);
 }
 
@@ -47,7 +47,7 @@ static void reorder_args(int *argc, char **argv) {
   char **flags_buf = malloc(*argc * sizeof(char *));
   char **pos_buf = malloc(*argc * sizeof(char *));
   if (!flags_buf || !pos_buf) {
-    fprintf(stderr, "allocation failure\n");
+    slog_error("allocation failure during argument reordering");
     exit(EXIT_FAILURE);
   }
 
@@ -84,6 +84,7 @@ static void reorder_args(int *argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+  slog_init("ceeify", SLOG_FLAGS_ALL, 0);
 #if ARENA_DEBUG_MODE
   atexit(allocator_global_report_leaks);
 #endif
@@ -99,7 +100,6 @@ int main(int argc, char **argv) {
   if (!flag_parse(argc, argv)) {
     usage(stderr);
     flag_print_error(stderr);
-    free(argv);
     return EXIT_FAILURE;
   }
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
   }
 
   if (argc < 1) {
-    trace_log(LOG_ERROR, "missing input file");
+    slog_error("missing input file");
     usage(stdout);
     return EXIT_FAILURE;
   }
