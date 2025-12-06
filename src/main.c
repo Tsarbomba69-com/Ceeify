@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "profiler.h"
 #ifndef FLAG_IMPLEMENTATION
 #define FLAG_IMPLEMENTATION
 #include "flag.h"
@@ -19,21 +20,36 @@ int dump_ast(const char *source_path, const char *out_file) {
   allocator_init(&allocator, "dump_ast");
   allocator_alloc(&allocator, MIN_CAP);
   char *source = load_file_text(&allocator, source_path);
+  TraceBuffer trace = trace_buffer_create(&allocator, 100);
+  trace_event_begin(&trace, "lex");
   Lexer lexer = tokenize(source, source_path);
+  trace_event_end(&trace, "lex");
+  trace_event_begin(&trace, "parse");
   Parser parser = parse(&lexer);
+  trace_event_end(&trace, "parse");
+  trace_event_begin(&trace, "serialize");
   cJSON *root = serialize_program(&parser.ast);
+  trace_event_end(&trace, "serialize");
+  trace_event_begin(&trace, "json_print");
   char *result = cJSON_Print(root);
+  trace_event_end(&trace, "json_print");
 
+  trace_event_begin(&trace, "json_export");
   if (out_file != NULL && strlen(out_file) > 0) {
     if (!save_file_text(out_file, result))
       return EXIT_FAILURE;
   } else {
     slog_info("%s", result);
   }
+  trace_event_end(&trace, "json_export");
+
   cJSON_Delete(root);
   parser_free(&parser);
-  allocator_free(&allocator);
   free(result);
+  char *json = trace_buffer_to_json(&trace);
+  save_file_text("trace.json", json);
+  free(json);
+  trace_buffer_destroy(&trace);
   return EXIT_SUCCESS;
 }
 

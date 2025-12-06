@@ -48,11 +48,14 @@ set(SOURCES
     src/parser.c
     src/token_arraylist.c
     src/utils.c
+    src/profiler.c
 )
+
 
 # Main executable
 add_executable(ceeify src/main.c ${SOURCES})
 target_link_libraries(ceeify cjson slog)
+target_compile_definitions(ceeify PRIVATE TRACE_USE_PTHREAD)
 
 # Test executable
 add_executable(test_ceeify tests/main.c ${SOURCES})
