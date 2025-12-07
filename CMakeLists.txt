@@ -36,7 +36,8 @@ set(ENABLE_CJSON_UTILS OFF CACHE BOOL "Disable cJSON utils" FORCE)
 FetchContent_MakeAvailable(unity cjson slog)
 
 include_directories(
-    ${unity_SOURCE_DIR}/src 
+    ${unity_SOURCE_DIR}/src
+    ${slog_SOURCE_DIR}/src 
     ${cjson_SOURCE_DIR}
     includes 
     tests

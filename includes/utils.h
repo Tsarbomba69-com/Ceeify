@@ -46,6 +46,12 @@ bool save_file_text(const char *filename, char *text);
 
 char *slice(Allocator *allocator, const char *source, size_t start, size_t end);
 
-void trace_log(TraceLogLevel logType, const char *text, ...);
+#define ASSERT(cond, msg)                                                      \
+  do {                                                                         \
+    if (!(cond)) {                                                             \
+      slog_error("\"%s\" %s failed at %s:%d", #cond, msg, __FILE__, __LINE__); \
+      abort();                                                                 \
+    }                                                                          \
+  } while (0)
 
 #endif

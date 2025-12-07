@@ -86,6 +86,7 @@ Lexer lexer_new(const char *source, const char *filename) {
 }
 
 Lexer tokenize(const char *source, const char *filename) {
+  ASSERT(source != NULL, "Source file was not provided");
   Lexer lexer = lexer_new(source, filename);
   size_t line = 1;
   size_t column = 1;

@@ -99,11 +99,19 @@ static void reorder_args(int *argc, char **argv) {
   free(pos_buf);
 }
 
+void cleanup(void *p) {
+  (void)p;
+  slog_destroy();
+}
+
 int main(int argc, char **argv) {
   slog_init("ceeify", SLOG_FLAGS_ALL, 0);
-  slog_config_t cfg;
+  DEFER(cleanup) slog_config_t cfg;
   slog_config_get(&cfg);
+  cfg.eDateControl = SLOG_DATE_FULL;
   cfg.nTraceTid = true;
+  cfg.nToFile = true;
+  cfg.nKeepOpen = true;
   slog_config_set(&cfg);
 
 #if ARENA_DEBUG_MODE
