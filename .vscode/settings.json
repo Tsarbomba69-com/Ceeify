@@ -49,7 +49,7 @@
         "args": [
             "-dump-ast", 
             "-o", "output.json",
-            "${workspaceFolder}/tests/mock/while.py",
+            "${workspaceFolder}/tests/mock/aug_assign.py",
         ]
     }
 }

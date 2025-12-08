@@ -79,4 +79,13 @@ void test_lexer_endmarker(void) {
   Token_free(&lexer.tokens);
 }
 
+void test_lexer_augassign(void) {
+  Lexer lexer = tokenize("+=", "test_file.py");
+  Token *token = next_token(&lexer);
+  // Assertions
+  TEST_ASSERT_EQUAL_INT(OPERATOR, token->type);
+  TEST_ASSERT_EQUAL_STRING("+=", token->lexeme);
+  Token_free(&lexer.tokens);
+}
+
 #endif

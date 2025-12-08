@@ -305,4 +305,29 @@ void test_while_else_statement(void) {
   parser_free(&parser);
 }
 
+void test_parse_augmented_assignment(void) {
+  // Arrange & Act
+    Lexer lexer = tokenize("a += 69", "test_file.py");
+    Parser parser = parse(&lexer);
+    ASTNode *node = ASTNode_pop(&parser.ast);
+    // Assert
+    TEST_ASSERT_NOT_NULL(node);
+    // Check node type: augmented assignment
+    TEST_ASSERT_EQUAL_INT(AUG_ASSIGNMENT, node->type);
+    TEST_ASSERT_NOT_NULL(node->token);
+    TEST_ASSERT_EQUAL_STRING("+=", node->token->lexeme);
+
+    // Check the target (left side)
+    ASTNode *target = node->aug_assign.target;
+    TEST_ASSERT_NOT_NULL(target);
+    TEST_ASSERT_EQUAL_INT(VARIABLE, target->type);
+    TEST_ASSERT_EQUAL_STRING("a", target->token->lexeme);
+
+    // Check the value (right side)
+    TEST_ASSERT_NOT_NULL(node->aug_assign.value);
+    TEST_ASSERT_EQUAL_INT(LITERAL, node->aug_assign.value->type);
+    TEST_ASSERT_EQUAL_STRING("69", node->aug_assign.value->token->lexeme);
+    parser_free(&parser);
+}
+
 #endif

@@ -6,8 +6,19 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node);
 
 const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
 
+const char *AUG_ASSIGN_OPS[] = {
+    "+=", "-=", "*=", "@=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", "**=", "//="};
+
 static inline Parser parser_new(Lexer *lexer) {
   return (Parser){.lexer = lexer, .ast = ASTNode_new(DEFAULT_CAP)};
+}
+
+static bool is_augassign_op(const char *lexeme) {
+    for (uint8_t i = 0; i < ARRAYSIZE(AUG_ASSIGN_OPS); i++) {
+        if (strcmp(lexeme, AUG_ASSIGN_OPS[i]) == 0)
+            return true;
+    }
+    return false;
 }
 
 const char *node_type_to_string(NodeType type) {
@@ -20,6 +31,8 @@ const char *node_type_to_string(NodeType type) {
     return "VARIABLE";
   case ASSIGNMENT:
     return "ASSIGNMENT";
+  case AUG_ASSIGNMENT:
+    return "AUGMENTED ASSIGNMENT";
   case LITERAL:
     return "LITERAL";
   case UNARY_OPERATION:
@@ -84,6 +97,13 @@ cJSON *serialize_node(ASTNode *node) {
     cJSON_AddItemToObject(root, "targets",
                           serialize_program(&node->assign.targets));
     cJSON_AddItemToObject(root, "value", serialize_node(node->assign.value));
+    break;
+  case AUG_ASSIGNMENT:
+    cJSON_AddItemToObject(root, "target",
+                          serialize_node(node->aug_assign.target));
+    cJSON_AddItemToObject(root, "op", serialize_token(node->aug_assign.op));
+    cJSON_AddItemToObject(root, "value",
+                          serialize_node(node->aug_assign.value));
     break;
   case VARIABLE:
   case LITERAL:
@@ -447,6 +467,16 @@ ASTNode *parse_statement(Parser *parser) {
     Token *next =
         Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
 
+    if (next != NULL && is_augassign_op(next->lexeme)) {
+      parser->lexer->token_idx++;
+      ASTNode *node = node_new(parser, next, AUG_ASSIGNMENT);
+      ASTNode *expr = parse_expression(parser);
+      ASTNode *target = ASTNode_pop(&targets);
+      node->aug_assign =
+          (AugAssign){.target = target, .op = next, .value = expr};
+      return node;
+    }
+
     if (next != NULL && strcmp(next->lexeme, "=") == 0) {
       parser->lexer->token_idx++;
       ASTNode *node = node_new(parser, next, ASSIGNMENT);
@@ -509,7 +539,7 @@ Parser parse(Lexer *lexer) {
   return parser;
 }
 
-size_t precedence(const char *operator) {
+uint8_t precedence(const char *operator) {
   if (strcmp(operator, "+") == 0 || strcmp(operator, "-") == 0) {
     return 1;
   }

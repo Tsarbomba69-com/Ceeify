@@ -14,7 +14,20 @@ void tearDown(void) {
   // This function is called after each test
 }
 
+void cleanup(void *p) {
+  (void)p;
+  slog_destroy();
+}
+
 int main(void) {
+    slog_init("ceeify", SLOG_FLAGS_ALL, 0);
+  DEFER(cleanup) slog_config_t cfg;
+  slog_config_get(&cfg);
+  cfg.eDateControl = SLOG_DATE_FULL;
+  cfg.nTraceTid = true;
+  cfg.nToFile = true;
+  cfg.nKeepOpen = true;
+  slog_config_set(&cfg);
   UNITY_BEGIN();
   // Lexer
   RUN_TEST(test_lexer_identifier);
@@ -25,6 +38,7 @@ int main(void) {
   RUN_TEST(test_lexer_newline);
   RUN_TEST(test_lexer_square_brackets);
   RUN_TEST(test_lexer_endmarker);
+  RUN_TEST(test_lexer_augassign);
   // Parser
   RUN_TEST(test_parser_single_number);
   RUN_TEST(test_parse_arithmetic_expression);
@@ -37,5 +51,6 @@ int main(void) {
   RUN_TEST(test_if_else_statement);
   RUN_TEST(test_while_statement);
   RUN_TEST(test_while_else_statement);
+  RUN_TEST(test_parse_augmented_assignment);
   return UNITY_END();
 }

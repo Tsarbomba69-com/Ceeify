@@ -10,6 +10,7 @@
 typedef enum NodeType {
   PROGRAM = 0,
   ASSIGNMENT,
+  AUG_ASSIGNMENT,
   IMPORT,
   BINARY_OPERATION,
   COMPARE,
@@ -51,6 +52,12 @@ typedef struct Assign {
   char *type_comment;
 } __attribute__((aligned(128))) Assign;
 
+typedef struct {
+    ASTNode *target;
+    Token   *op;       
+    ASTNode *value;
+} AugAssign;
+
 typedef struct Compare {
   ASTNode *left;
   Token_ArrayList ops;
@@ -75,6 +82,7 @@ typedef struct ASTNode {
   union {
     BinOp bin_op;
     Assign assign;
+    AugAssign aug_assign;
     Context ctx;
     Compare compare;
     ASTNode_LinkedList import;
@@ -88,7 +96,7 @@ Parser parse(Lexer *lexer);
 
 void parser_free(Parser *parser);
 
-size_t precedence(const char *operation);
+uint8_t precedence(const char *operation);
 
 cJSON *serialize_program(ASTNode_LinkedList *program);
 
