@@ -43,4 +43,19 @@ void test_semantic_undefined_variable(void) {
     parser_free(&parser);
 }
 
+void test_semantic_type_mismatch(void) {
+    // Arrange
+    Lexer lexer = tokenize("x = 1\n"
+                           "y = x + \"hello\"", "test.py");
+    Parser parser = parse(&lexer);
+    // Act
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
+    // Assert
+    TEST_ASSERT_TRUE(sa_has_error(&sa));
+    TEST_ASSERT_EQUAL(SEM_TYPE_MISMATCH, err.type);
+    // Cleanup
+    parser_free(&parser);
+}
+
 #endif // TEST_SEMANTIC_H_

@@ -34,7 +34,9 @@ typedef enum DataType {
   BOOL,
   LIST,
   OBJECT,
-  VOID
+  NONE,
+  VOID,
+  UNKNOWN
 } DataType;
 
 typedef struct __attribute__((aligned(16))) BinOp {
@@ -95,5 +97,9 @@ uint8_t precedence(const char *operation);
 cJSON *serialize_program(ASTNode_LinkedList *program);
 
 cJSON *serialize_node(ASTNode *node);
+
+char *dump_program(ASTNode_LinkedList *program);
+
+char *dump_node(ASTNode *node);
 
 #endif // PARSER_H_

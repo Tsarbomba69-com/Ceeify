@@ -144,6 +144,20 @@ cJSON *serialize_node(ASTNode *node) {
   return root;
 }
 
+char *dump_program(ASTNode_LinkedList *program) {
+  cJSON *json = serialize_program(program);
+  char *dump = cJSON_Print(json);
+  cJSON_Delete(json);
+  return dump;
+}
+
+char *dump_node(ASTNode *node) {
+  cJSON *json = serialize_node(node);
+  char *dump = cJSON_Print(json);
+  cJSON_Delete(json);
+  return dump;
+}
+
 ASTNode *bin_op_new(Parser *parser, Token *operation, ASTNode *left,
                     ASTNode *right) {
   ASTNode *node = node_new(parser, operation, BINARY_OPERATION);

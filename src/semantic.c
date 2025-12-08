@@ -1,8 +1,172 @@
 #include "semantic.h"
 
+const char *NUMERIC_OPS[] = {
+    "+", "-", "*", "/", "%", // arithmetic
+};
+
+DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
+
 static SymbolTable symbol_table_new(SymbolTable *parent, size_t depth) {
   SymbolTable st = {.depth = depth, .parent = parent, .entries = NULL};
   return st;
+}
+
+const char *datatype_to_string(DataType t) {
+  switch (t) {
+  case INT:
+    return "int";
+  case STR:
+    return "string";
+  case BOOL:
+    return "bool";
+  case FLOAT:
+    return "float";
+  case LIST:
+    return "list";
+  default:
+    return "<unknown>";
+  }
+}
+
+bool is_arithmetic_op(char *op) {
+  for (size_t i = 0; i < ARRAYSIZE(NUMERIC_OPS); i++) {
+    if (strcmp(NUMERIC_OPS[i], op) == 0)
+      return true;
+  }
+
+  return false;
+}
+
+static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
+  if (!node || node->type != BINARY_OPERATION)
+    return UNKNOWN;
+
+  ASTNode *L = node->bin_op.left;
+  ASTNode *R = node->bin_op.right;
+  DataType lt = sa_infer_type(sa, L);
+  DataType rt = sa_infer_type(sa, R);
+
+  if (lt == UNKNOWN || rt == UNKNOWN)
+    return UNKNOWN;
+
+  /* Arithmetic operators: allow INT/FLOAT mixing */
+  if (is_arithmetic_op(node->token->lexeme)) {
+    /* string concatenation special case for + */
+    if (strcmp(node->token->lexeme, "+") == 0 && lt == STR && rt == STR)
+      return STR;
+
+    if ((lt == INT || lt == FLOAT) && (rt == INT || rt == FLOAT)) {
+      return (lt == FLOAT || rt == FLOAT) ? FLOAT : INT;
+    }
+
+    sa_set_error(
+        sa, SEM_TYPE_MISMATCH, node->token,
+        "unsupported operand types for operator (arithmetic): '%s' and '%s'",
+        datatype_to_string(lt), datatype_to_string(rt));
+    return UNKNOWN;
+  }
+
+  /* Comparison operators -> bool (we allow comparing same-typed values) */
+  // if (op == OP_EQ || op == OP_NEQ || op == OP_LT || op == OP_GT ||
+  //     op == OP_LTE || op == OP_GTE) {
+  //   /* allow comparing same basic types (int/float interchangeable) */
+  //   if ((lt == INT || lt == FLOAT) && (rt == INT || rt == FLOAT))
+  //     return BOOL;
+  //   if (lt == rt)
+  //     return BOOL;
+
+  //   sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
+  //                "unsupported operand types for comparison: '%s' and '%s'",
+  //                datatype_to_string(lt), datatype_to_string(rt));
+  //   return UNKNOWN;
+  // }
+
+  // /* Logical operators (and/or) -> bool */
+  // if (op == OP_AND || op == OP_OR) {
+  //   if (lt == BOOL && rt == BOOL)
+  //     return BOOL;
+  //   sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
+  //                "logical operators require bool operands, got '%s' and
+  //                '%s'", datatype_to_string(lt), datatype_to_string(rt));
+  //   return UNKNOWN;
+  // }
+
+  /* Fallback: unknown operator */
+  sa_set_error(sa, SEM_UNKNOWN, node->token, "unknown binary operator");
+  return UNKNOWN;
+}
+
+DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
+  ASSERT(node != NULL, "Cannot infer type of NULL node");
+  switch (node->type) {
+  case LITERAL: {
+    Token *tok = node->token;
+    const char *lex = tok->lexeme;
+
+    if (!lex) {
+      sa_set_error(sa, SEM_UNKNOWN, tok, "Invalid literal with no lexeme");
+      return UNKNOWN;
+    }
+
+    if (strcmp(lex, "true") == 0 || strcmp(lex, "false") == 0) {
+      return BOOL;
+    }
+
+    if (strcmp(lex, "None") == 0) {
+      return NONE;
+    }
+
+    if (tok->type == STRING) {
+      return STR;
+    }
+
+    bool is_int = true;
+    bool is_float = false;
+
+    for (size_t i = 0; lex[i]; i++) {
+      if (lex[i] == '.') {
+        is_float = true;
+        is_int = false;
+      } else if (!isdigit((unsigned char)lex[i]) &&
+                 !(i == 0 && (lex[i] == '-' || lex[i] == '+'))) {
+        is_int = false;
+        is_float = false;
+        break;
+      }
+    }
+
+    if (is_int)
+      return INT;
+    if (is_float)
+      return FLOAT;
+
+    size_t n = strlen(lex);
+    if (lex[0] == '[' && lex[n - 1] == ']') {
+      return LIST;
+    }
+
+    sa_set_error(sa, SEM_UNKNOWN, tok, "cannot infer type of literal '%s'",
+                 lex);
+    return UNKNOWN;
+  } break;
+  case ASSIGNMENT: {
+    return sa_infer_type(sa, node->assign.value);
+  } break;
+  case BINARY_OPERATION:
+    return infer_binary_op(sa, node);
+  case VARIABLE: {
+    Symbol *sym = sa_lookup(sa, node->token->lexeme);
+    if (sym) {
+      return sym->dtype;
+    } else {
+      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->token,
+                   "name '%s' is not defined", node->token->lexeme);
+      return UNKNOWN;
+    }
+  } break;
+  default:
+    return VOID;
+  }
 }
 
 SemanticAnalyzer analyze_program(Parser *parser) {
@@ -12,16 +176,22 @@ SemanticAnalyzer analyze_program(Parser *parser) {
   sa.parser = parser;
   sa.last_error.type = SEM_OK;
 
+  if (parser != NULL && parser->ast.size == 0) {
+    slog_warn("No AST to analyze in analyze_program");
+    return sa;
+  }
+
   // Iterate over all top-level AST Nodes
   ASTNode_LinkedList *program = &parser->ast;
-  ASTNode *node = NULL;
-  do {
-    node = ASTNode_pop(program);
+  for (size_t current = program->head; current != SIZE_MAX;
+       current = program->elements[current].next) {
+    ASTNode *node = program->elements[current].data;
+    
     if (!analyze_node(&sa, node)) {
       // Stop immediately on first semantic error
       return sa;
     }
-  } while (node != NULL);
+  }
 
   return sa;
 }
@@ -50,6 +220,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
                    "name '%s' is not defined", node->token->lexeme);
       return false;
     }
+    sym->dtype = sa_infer_type(sa, node);
   } break;
   case BINARY_OPERATION: {
     if (!analyze_node(sa, node->bin_op.left))
@@ -66,10 +237,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       Symbol sym = {.name = arena_strdup(&sa->parser->ast.allocator.base,
                                          target->token->lexeme),
                     .kind = VAR,
-                    .dtype =
-                        node->assign.value->type == LITERAL
-                            ? INT
-                            : VOID, // TODO: Implement proper type inference
+                    .dtype = sa_infer_type(sa, node->assign.value),
                     .decl_node = node,
                     .scope_level = node->depth};
       sa_define_symbol(sa, sym);
