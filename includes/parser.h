@@ -24,8 +24,6 @@ typedef enum NodeType {
   END_BLOCK
 } NodeType;
 
-typedef struct Symbol Symbol;
-
 typedef enum Context { STORE, DEL, LOAD } Context;
 
 typedef enum DataType {

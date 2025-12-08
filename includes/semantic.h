@@ -57,7 +57,7 @@ typedef struct SymbolTable {
 typedef struct SemanticAnalyzer {
   SymbolTable *current_scope;
   SemanticError last_error;
-  Allocator *allocator;
+  Parser *parser;
 } SemanticAnalyzer;
 
 /* -----------------------------
@@ -75,14 +75,13 @@ void sa_define_symbol(SemanticAnalyzer *sa, Symbol sym);
 Symbol *sa_lookup(SemanticAnalyzer *sa, const char *name);
 
 /* Main entrypoint */
-SemanticAnalyzer analyze_program(ASTNode_LinkedList *program);
+SemanticAnalyzer analyze_program(Parser *parser);
 
 /* Analyze a single AST node */
 bool analyze_node(SemanticAnalyzer *sa, ASTNode *node);
 
 /* Error helpers */
-void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
-                  const char *message);
+void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok);
 
 bool sa_has_error(SemanticAnalyzer *sa);
 

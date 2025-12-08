@@ -6,11 +6,12 @@
 
 void test_semantic_empty_program(void) {
     // Arrange
-    ASTNode_LinkedList *program = NULL; // no nodes
+    Parser parser = {0};
     // Act
-    SemanticAnalyzer sa = analyze_program(program);
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
     // Assert
-    TEST_ASSERT_EQUAL(SEM_OK, sa.last_error.type);
+    TEST_ASSERT_EQUAL(SEM_OK, err.type);
     TEST_ASSERT_FALSE(sa_has_error(&sa));
 }
 
@@ -19,9 +20,10 @@ void test_semantic_simple_assignment(void) {
     Lexer lexer = tokenize("x = 5", "test.py");
     Parser parser = parse(&lexer);
     // Act
-    SemanticAnalyzer sa = analyze_program(&parser.ast);
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
     // Assert
-    TEST_ASSERT_EQUAL(SEM_OK, sa.last_error.type);
+    TEST_ASSERT_EQUAL(SEM_OK, err.type);
     TEST_ASSERT_FALSE(sa_has_error(&sa));
     // Cleanup
     parser_free(&parser);
@@ -32,7 +34,7 @@ void test_semantic_undefined_variable(void) {
     Lexer lexer = tokenize("z = x + 1", "test.py");
     Parser parser = parse(&lexer);
     // Act
-    SemanticAnalyzer sa = analyze_program(&parser.ast);
+    SemanticAnalyzer sa = analyze_program(&parser);
     SemanticError err = sa_get_error(&sa);
     // Assert
     TEST_ASSERT_TRUE(sa_has_error(&sa));
