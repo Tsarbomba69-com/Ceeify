@@ -46,7 +46,8 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
   case VARIABLE: {
     Symbol *sym = sa_lookup(sa, node->token->lexeme);
     if (!sym) {
-      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->token);
+      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->token,
+                   "name '%s' is not defined", node->token->lexeme);
       return false;
     }
   } break;
@@ -175,21 +176,29 @@ frame_done:;
            "  File \"%s\", line %zu, in %s\n"
            "    %s\n"
            "    %s\n"
-           "%s: name '%s' is not defined",
+           "%s: %s",
            filename, line_number, frame, line_content, highlight, error_name,
-           tok->lexeme);
+           sa->last_error.detail);
   free(line_content);
   free(highlight);
   return msg;
 }
 
-void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok) {
+void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
+                  const char *fmt, ...) {
   if (!sa) {
     slog_error("SemanticAnalyzer pointer is NULL in sa_set_error");
     return;
   }
+
+  char buf[256];
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, args);
+  va_end(args);
   sa->last_error.type = type;
   sa->last_error.token = tok;
+  sa->last_error.detail = arena_strdup(&sa->parser->ast.allocator.base, buf);
   sa->last_error.message = sa_format_error(sa);
 }
 

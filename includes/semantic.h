@@ -23,8 +23,9 @@ typedef enum SemanticErrorType {
 
 typedef struct SemanticError {
   SemanticErrorType type;
-  const char *message;
-  Token *token; // where the error occurred
+  char *detail;  // new: dynamic message body ("name 'x' is not defined")
+  char *message; // final formatted traceback (Python-like)
+  Token *token;  // where the error occurred
 } SemanticError;
 
 /* -----------------------------
@@ -81,7 +82,8 @@ SemanticAnalyzer analyze_program(Parser *parser);
 bool analyze_node(SemanticAnalyzer *sa, ASTNode *node);
 
 /* Error helpers */
-void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok);
+void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
+                  const char *fmt, ...);
 
 bool sa_has_error(SemanticAnalyzer *sa);
 
