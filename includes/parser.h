@@ -26,8 +26,6 @@ typedef enum NodeType {
 
 typedef struct Symbol Symbol;
 
-typedef enum SymbolType { CLASS, MODULE, FUNCTION, BLOCK, VAR } SymbolType;
-
 typedef enum Context { STORE, DEL, LOAD } Context;
 
 typedef enum DataType {
@@ -53,9 +51,9 @@ typedef struct Assign {
 } __attribute__((aligned(128))) Assign;
 
 typedef struct {
-    ASTNode *target;
-    Token   *op;       
-    ASTNode *value;
+  ASTNode *target;
+  Token *op;
+  ASTNode *value;
 } AugAssign;
 
 typedef struct Compare {
@@ -89,8 +87,6 @@ typedef struct ASTNode {
     ControlFlowStatement ctrl_stmt;
   };
 } __attribute__((aligned(128))) ASTNode;
-
-Symbol *create_symbol(DataType type, SymbolType kind);
 
 Parser parse(Lexer *lexer);
 

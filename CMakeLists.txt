@@ -50,6 +50,7 @@ set(SOURCES
     src/token_arraylist.c
     src/utils.c
     src/profiler.c
+    src/semantic.c
 )
 
 

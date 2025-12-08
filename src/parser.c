@@ -6,19 +6,19 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node);
 
 const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
 
-const char *AUG_ASSIGN_OPS[] = {
-    "+=", "-=", "*=", "@=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", "**=", "//="};
+const char *AUG_ASSIGN_OPS[] = {"+=", "-=", "*=",  "@=",  "/=",  "%=", "&=",
+                                "|=", "^=", "<<=", ">>=", "**=", "//="};
 
 static inline Parser parser_new(Lexer *lexer) {
   return (Parser){.lexer = lexer, .ast = ASTNode_new(DEFAULT_CAP)};
 }
 
 static bool is_augassign_op(const char *lexeme) {
-    for (uint8_t i = 0; i < ARRAYSIZE(AUG_ASSIGN_OPS); i++) {
-        if (strcmp(lexeme, AUG_ASSIGN_OPS[i]) == 0)
-            return true;
-    }
-    return false;
+  for (uint8_t i = 0; i < ARRAYSIZE(AUG_ASSIGN_OPS); i++) {
+    if (strcmp(lexeme, AUG_ASSIGN_OPS[i]) == 0)
+      return true;
+  }
+  return false;
 }
 
 const char *node_type_to_string(NodeType type) {

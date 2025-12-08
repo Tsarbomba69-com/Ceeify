@@ -1,5 +1,6 @@
 #include "test_lexer.h"
 #include "test_parser.h"
+#include "test_semantic.h"
 #ifndef ARENA_IMPLEMENTATION
 #define ARENA_IMPLEMENTATION
 #include "arena.h"
@@ -52,5 +53,9 @@ int main(void) {
   RUN_TEST(test_while_statement);
   RUN_TEST(test_while_else_statement);
   RUN_TEST(test_parse_augmented_assignment);
+  // Semantic
+  RUN_TEST(test_semantic_empty_program);
+  RUN_TEST(test_semantic_simple_assignment);
+  RUN_TEST(test_semantic_undefined_variable);
   return UNITY_END();
 }

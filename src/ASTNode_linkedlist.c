@@ -109,7 +109,8 @@ void ASTNode_add_last(ASTNode_LinkedList *list, ASTNode *data) {
 }
 
 ASTNode *ASTNode_pop(ASTNode_LinkedList *list) {
-  if (list->size == 0) {
+  if (list == NULL || list->size == 0) {
+    slog_warn("Attempted to pop from an empty ASTNode_LinkedList");
     return NULL;
   }
 
