@@ -92,7 +92,7 @@ Parser parse(Lexer *lexer);
 
 void parser_free(Parser *parser);
 
-uint8_t precedence(const char *operation);
+int8_t precedence(const char *op);
 
 cJSON *serialize_program(ASTNode_LinkedList *program);
 
@@ -101,5 +101,10 @@ cJSON *serialize_node(ASTNode *node);
 char *dump_program(ASTNode_LinkedList *program);
 
 char *dump_node(ASTNode *node);
+
+static inline bool is_boolean_operator(Token *t) {
+  return strcmp(t->lexeme, "and") == 0 || strcmp(t->lexeme, "or") == 0 ||
+         strcmp(t->lexeme, "not") == 0;
+}
 
 #endif // PARSER_H_

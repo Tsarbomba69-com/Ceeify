@@ -230,7 +230,8 @@ Token_ArrayList infix_to_postfix(Allocator *allocator,
   for (size_t i = 0; i < tokens->size; i++) {
     Token *token = Token_get(tokens, i);
 
-    if (token->type == IDENTIFIER || token->type == NUMBER) {
+    if (token->type == IDENTIFIER || token->type == NUMBER ||
+        token->type == STRING) {
       Token_push(&postfix, token);
     } else if (strcmp(token->lexeme, "(") == 0) {
       Token_push(&stack, token);
@@ -284,7 +285,10 @@ ASTNode *shunting_yard(Parser *parser, Token_ArrayList *tokens) {
       ASTNode *var = node_new(parser, token, VARIABLE);
       ASTNode_add_last(&stack, var);
     } break;
-    case OPERATOR: {
+    case OPERATOR:
+    case KEYWORD: {
+      if (token->type == KEYWORD && !is_boolean_operator(token))
+        break;
       ASTNode *right = ASTNode_pop(&stack);
       ASTNode *left = ASTNode_pop(&stack);
 
@@ -553,26 +557,35 @@ Parser parse(Lexer *lexer) {
   return parser;
 }
 
-uint8_t precedence(const char *operator) {
-  if (strcmp(operator, "+") == 0 || strcmp(operator, "-") == 0) {
-    return 1;
-  }
+int8_t precedence(const char *op) {
+  // Unary operators
+  if (strcmp(op, "not") == 0)
+    return 5;
 
-  if (strcmp(operator, "*") == 0 || strcmp(operator, "/") == 0) {
-    return 2;
-  }
+  // Exponentiation
+  if (strcmp(op, "^") == 0)
+    return 4;
 
-  if (strcmp(operator, "^") == 0) {
+  // Multiplicative
+  if (strcmp(op, "*") == 0 || strcmp(op, "/") == 0)
     return 3;
-  }
 
-  if (strcmp(operator, "<") == 0 || strcmp(operator, ">") == 0 ||
-      strcmp(operator, "<=") == 0 || strcmp(operator, ">=") == 0 ||
-      strcmp(operator, "==") == 0 || strcmp(operator, "!=") == 0) {
+  // Additive
+  if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0)
+    return 2;
+
+  // Comparisons
+  if (strcmp(op, "<") == 0 || strcmp(op, ">") == 0 || strcmp(op, "<=") == 0 ||
+      strcmp(op, ">=") == 0 || strcmp(op, "==") == 0 || strcmp(op, "!=") == 0)
+    return 1;
+
+  // Logical AND / OR
+  if (strcmp(op, "and") == 0)
     return 0;
-  }
+  if (strcmp(op, "or") == 0)
+    return -1;
 
-  return -1;
+  return -99; // Unknown operator
 }
 
 void parser_free(Parser *parser) {

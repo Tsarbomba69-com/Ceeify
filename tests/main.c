@@ -58,5 +58,6 @@ int main(void) {
   RUN_TEST(test_semantic_simple_assignment);
   RUN_TEST(test_semantic_undefined_variable);
   RUN_TEST(test_semantic_type_mismatch);
+  RUN_TEST(test_semantic_invalid_operation);
   return UNITY_END();
 }

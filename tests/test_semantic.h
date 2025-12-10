@@ -58,4 +58,24 @@ void test_semantic_type_mismatch(void) {
     parser_free(&parser);
 }
 
+void test_semantic_invalid_operation(void) {
+    // Arrange
+    Lexer lexer = tokenize(
+        "x = 5\n"
+        "y = x and 10", 
+        "test.py"
+    );
+    Parser parser = parse(&lexer);
+
+    // Act
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
+
+    // Assert
+    TEST_ASSERT_TRUE(sa_has_error(&sa));
+    TEST_ASSERT_EQUAL(SEM_TYPE_MISMATCH, err.type);
+
+    parser_free(&parser);
+}
+
 #endif // TEST_SEMANTIC_H_

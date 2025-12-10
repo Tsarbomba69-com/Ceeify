@@ -1,7 +1,11 @@
 #include "semantic.h"
 
-const char *NUMERIC_OPS[] = {
+const char *ARITHMETIC_OPS[] = {
     "+", "-", "*", "/", "%", // arithmetic
+};
+
+const char *COMPARISON_OPS[] = {
+    "==", "!=", "<", ">", "<=", ">=", // comparison
 };
 
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
@@ -29,8 +33,17 @@ const char *datatype_to_string(DataType t) {
 }
 
 bool is_arithmetic_op(char *op) {
-  for (size_t i = 0; i < ARRAYSIZE(NUMERIC_OPS); i++) {
-    if (strcmp(NUMERIC_OPS[i], op) == 0)
+  for (size_t i = 0; i < ARRAYSIZE(ARITHMETIC_OPS); i++) {
+    if (strcmp(ARITHMETIC_OPS[i], op) == 0)
+      return true;
+  }
+
+  return false;
+}
+
+bool is_comparison_op(char *op) {
+  for (size_t i = 0; i < ARRAYSIZE(COMPARISON_OPS); i++) {
+    if (strcmp(COMPARISON_OPS[i], op) == 0)
       return true;
   }
 
@@ -67,29 +80,28 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
   }
 
   /* Comparison operators -> bool (we allow comparing same-typed values) */
-  // if (op == OP_EQ || op == OP_NEQ || op == OP_LT || op == OP_GT ||
-  //     op == OP_LTE || op == OP_GTE) {
-  //   /* allow comparing same basic types (int/float interchangeable) */
-  //   if ((lt == INT || lt == FLOAT) && (rt == INT || rt == FLOAT))
-  //     return BOOL;
-  //   if (lt == rt)
-  //     return BOOL;
+  if (is_comparison_op(node->token->lexeme)) {
+    /* allow comparing same basic types (int/float interchangeable) */
+    if ((lt == INT || lt == FLOAT) && (rt == INT || rt == FLOAT))
+      return BOOL;
+    if (lt == rt)
+      return BOOL;
 
-  //   sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
-  //                "unsupported operand types for comparison: '%s' and '%s'",
-  //                datatype_to_string(lt), datatype_to_string(rt));
-  //   return UNKNOWN;
-  // }
+    sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
+                 "unsupported operand types for comparison: '%s' and '%s'",
+                 datatype_to_string(lt), datatype_to_string(rt));
+    return UNKNOWN;
+  }
 
   // /* Logical operators (and/or) -> bool */
-  // if (op == OP_AND || op == OP_OR) {
-  //   if (lt == BOOL && rt == BOOL)
-  //     return BOOL;
-  //   sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
-  //                "logical operators require bool operands, got '%s' and
-  //                '%s'", datatype_to_string(lt), datatype_to_string(rt));
-  //   return UNKNOWN;
-  // }
+  if (is_boolean_operator(node->token)) {
+    if (lt == BOOL && rt == BOOL)
+      return BOOL;
+    sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
+                 "logical operators require bool operands, got '%s' and '%s'",
+                 datatype_to_string(lt), datatype_to_string(rt));
+    return UNKNOWN;
+  }
 
   /* Fallback: unknown operator */
   sa_set_error(sa, SEM_UNKNOWN, node->token, "unknown binary operator");
@@ -120,25 +132,27 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
       return STR;
     }
 
-    bool is_int = true;
-    bool is_float = false;
+    if (tok->type == NUMBER) {
+      bool is_int = true;
+      bool is_float = false;
 
-    for (size_t i = 0; lex[i]; i++) {
-      if (lex[i] == '.') {
-        is_float = true;
-        is_int = false;
-      } else if (!isdigit((unsigned char)lex[i]) &&
-                 !(i == 0 && (lex[i] == '-' || lex[i] == '+'))) {
-        is_int = false;
-        is_float = false;
-        break;
+      for (size_t i = 0; lex[i]; i++) {
+        if (lex[i] == '.') {
+          is_float = true;
+          is_int = false;
+        } else if (!isdigit((unsigned char)lex[i]) &&
+                   !(i == 0 && (lex[i] == '-' || lex[i] == '+'))) {
+          is_int = false;
+          is_float = false;
+          break;
+        }
       }
-    }
 
-    if (is_int)
-      return INT;
-    if (is_float)
-      return FLOAT;
+      if (is_int)
+        return INT;
+      if (is_float)
+        return FLOAT;
+    }
 
     size_t n = strlen(lex);
     if (lex[0] == '[' && lex[n - 1] == ']') {
@@ -186,7 +200,7 @@ SemanticAnalyzer analyze_program(Parser *parser) {
   for (size_t current = program->head; current != SIZE_MAX;
        current = program->elements[current].next) {
     ASTNode *node = program->elements[current].data;
-    
+
     if (!analyze_node(&sa, node)) {
       // Stop immediately on first semantic error
       return sa;
