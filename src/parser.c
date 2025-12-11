@@ -49,6 +49,10 @@ const char *node_type_to_string(NodeType type) {
     return "WHILE";
   case FOR:
     return "FOR";
+  case FUNCTION_DEF:
+    return "FUNCTION DEF";
+  case RETURN:
+    return "RETURN";
   default:
     return "UNKNOWN";
   }
@@ -137,6 +141,17 @@ cJSON *serialize_node(ASTNode *node) {
                           serialize_program(&node->ctrl_stmt.body));
     cJSON_AddItemToObject(root, "orelse",
                           serialize_program(&node->ctrl_stmt.orelse));
+    break;
+  case FUNCTION_DEF:
+    cJSON_AddItemToObject(root, "name", serialize_node(node->funcdef.name));
+    cJSON_AddItemToObject(root, "params",
+                          serialize_program(&node->funcdef.params));
+    cJSON_AddItemToObject(root, "body",
+                          serialize_program(&node->funcdef.body));
+    break;
+  case RETURN:
+    cJSON_AddItemToObject(root, "token", serialize_token(node->token));
+    cJSON_AddItemToObject(root, "ret", serialize_node(node->ret));
     break;
   default:
     break;

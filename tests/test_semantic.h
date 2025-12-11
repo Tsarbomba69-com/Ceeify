@@ -6,13 +6,16 @@
 
 void test_semantic_empty_program(void) {
     // Arrange
-    Parser parser = {0};
+    Lexer lexer = tokenize("", "test.py");
+    Parser parser = parse(&lexer);
     // Act
     SemanticAnalyzer sa = analyze_program(&parser);
     SemanticError err = sa_get_error(&sa);
     // Assert
     TEST_ASSERT_EQUAL(SEM_OK, err.type);
     TEST_ASSERT_FALSE(sa_has_error(&sa));
+    // Cleanup
+    parser_free(&parser);
 }
 
 void test_semantic_simple_assignment(void) {
@@ -80,7 +83,7 @@ void test_semantic_invalid_operation(void) {
 
 void test_semantic_function_declaration(void) {
     // Arrange
-    Lexer lexer = tokenize(
+        Lexer lexer = tokenize(
         "def add(x, y):\n"
         "    return x + y\n",
         "test_file.py"
@@ -95,7 +98,7 @@ void test_semantic_function_declaration(void) {
     TEST_ASSERT_NOT_NULL(fn);
     TEST_ASSERT_EQUAL(FUNCTION, fn->kind);
     TEST_ASSERT_NOT_NULL(fn->decl_node);
-    sa_enter_scope(&sa);
+    sa.current_scope = fn->scope;
     Symbol *px = sa_lookup(&sa, "x");
     Symbol *py = sa_lookup(&sa, "y");
     TEST_ASSERT_NOT_NULL(px);

@@ -10,8 +10,13 @@ const char *COMPARISON_OPS[] = {
 
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
 
-static SymbolTable symbol_table_new(SymbolTable *parent, size_t depth) {
-  SymbolTable st = {.depth = depth, .parent = parent, .entries = NULL};
+static SymbolTable *symbol_table_new(Allocator *allocator, SymbolTable *parent,
+                                     size_t depth) {
+  ASSERT(allocator != NULL, "Allocator cannot be NULL in symbol_table_new");
+  SymbolTable *st = allocator_alloc(allocator, sizeof(SymbolTable));
+  st->entries = NULL;
+  st->parent = parent;
+  st->depth = depth;
   return st;
 }
 
@@ -185,8 +190,8 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
 
 SemanticAnalyzer analyze_program(Parser *parser) {
   SemanticAnalyzer sa = {0};
-  SymbolTable global_scope = symbol_table_new(NULL, 0);
-  sa.current_scope = &global_scope;
+  SymbolTable *global_scope = symbol_table_new(&parser->ast.allocator, NULL, 0);
+  sa.current_scope = global_scope;
   sa.parser = parser;
   sa.last_error.type = SEM_OK;
 
@@ -214,8 +219,8 @@ Symbol *sa_lookup(SemanticAnalyzer *sa, const char *name) {
   SymbolTable *scope = sa->current_scope;
   while (scope) {
     for (SymbolTableEntry *e = scope->entries; e; e = e->next) {
-      if (strcmp(e->symbol.name, name) == 0)
-        return &e->symbol;
+      if (strcmp(e->symbol->name, name) == 0)
+        return e->symbol;
     }
     scope = scope->parent;
   }
@@ -248,19 +253,59 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     for (size_t cur = node->assign.targets.head; cur != SIZE_MAX;
          cur = node->assign.targets.elements[cur].next) {
       ASTNode *target = node->assign.targets.elements[cur].data;
-      Symbol sym = {.name = arena_strdup(&sa->parser->ast.allocator.base,
-                                         target->token->lexeme),
-                    .kind = VAR,
-                    .dtype = sa_infer_type(sa, node->assign.value),
-                    .decl_node = node,
-                    .scope_level = node->depth};
+      Symbol *sym = allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
+      sym->name =
+          arena_strdup(&sa->parser->ast.allocator.base, target->token->lexeme);
+      sym->kind = VAR;
+      sym->dtype = sa_infer_type(sa, node->assign.value);
+      sym->decl_node = node;
+      sym->scope_level = node->depth;
+      sym->scope = sa->current_scope;
       sa_define_symbol(sa, sym);
     }
     // Analyze value
     return analyze_node(sa, node->assign.value);
   }
   case FUNCTION_DEF: {
-    UNREACHABLE("Function definitions not yet implemented in semantic analyzer");
+    Symbol *sym = allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
+    sym->name = arena_strdup(&sa->parser->ast.allocator.base,
+                                       node->funcdef.name->token->lexeme);
+                  sym->kind = FUNCTION;
+                  sym->dtype = sa_infer_type(sa, node);
+                  sym->decl_node = node;
+                  sym->scope_level = node->depth;
+    sa_define_symbol(sa, sym);
+    sa_enter_scope(sa);
+    sym->scope = sa->current_scope;
+    for (size_t cur = node->funcdef.params.head; cur != SIZE_MAX;
+         cur = node->funcdef.params.elements[cur].next) {
+      ASTNode *param = node->funcdef.params.elements[cur].data;
+      Symbol *param_sym =
+          allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
+      param_sym->name =
+          arena_strdup(&sa->parser->ast.allocator.base, param->token->lexeme);
+      param_sym->kind = VAR;
+      param_sym->dtype = UNKNOWN;
+      param_sym->decl_node = param;
+      param_sym->scope_level = sa->current_scope->depth;
+      sa_define_symbol(sa, param_sym);
+      param_sym->dtype = sa_infer_type(sa, param);
+    }
+
+    for (size_t cur = node->funcdef.body.head; cur != SIZE_MAX;
+         cur = node->funcdef.body.elements[cur].next) {
+      ASTNode *body_node = node->funcdef.body.elements[cur].data;
+      if (!analyze_node(sa, body_node)) {
+        return false;
+      }
+    }
+
+    sa_exit_scope(sa);
+  } break;
+  case RETURN: {
+    if (node->ret) {
+      return analyze_node(sa, node->ret);
+    }
   } break;
   default:
     break;
@@ -269,7 +314,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
   return true;
 }
 
-void sa_define_symbol(SemanticAnalyzer *sa, Symbol sym) {
+void sa_define_symbol(SemanticAnalyzer *sa, Symbol *sym) {
   if (!sa || !sa->current_scope) {
     slog_error("SemanticAnalyzer or current scope is NULL in sa_define_symbol");
     return;
@@ -280,6 +325,14 @@ void sa_define_symbol(SemanticAnalyzer *sa, Symbol sym) {
   entry->symbol = sym;
   entry->next = sa->current_scope->entries;
   sa->current_scope->entries = entry;
+}
+
+void sa_exit_scope(SemanticAnalyzer *sa) {
+  if (!sa->current_scope)
+    return;
+
+  SymbolTable *old_scope = sa->current_scope;
+  sa->current_scope = old_scope->parent;
 }
 
 bool sa_has_error(SemanticAnalyzer *sa) {
@@ -310,8 +363,8 @@ char *sa_format_error(SemanticAnalyzer *sa) {
   while (st) {
     SymbolTableEntry *e = st->entries;
     while (e) {
-      if (e->symbol.kind == FUNCTION) {
-        frame = e->symbol.name;
+      if (e->symbol->kind == FUNCTION) {
+        frame = e->symbol->name;
         goto frame_done; // break both loops
       }
       e = e->next;
@@ -369,17 +422,13 @@ frame_done:;
 }
 
 void sa_enter_scope(SemanticAnalyzer *sa) {
+  ASSERT(sa != NULL, "SemanticAnalyzer pointer is NULL in sa_enter_scope");
   SymbolTable *new_scope =
-      allocator_alloc(&sa->parser->ast.allocator, sizeof(SymbolTable));
+      symbol_table_new(&sa->parser->ast.allocator, sa->current_scope,
+                       sa->current_scope ? sa->current_scope->depth + 1 : 0);
   ASSERT(new_scope != NULL, "Failed to allocate memory for new scope");
   new_scope->entries = NULL;
   new_scope->parent = sa->current_scope;
-
-  if (sa->current_scope)
-    new_scope->depth = sa->current_scope->depth + 1;
-  else
-    new_scope->depth = 0;
-
   sa->current_scope = new_scope;
 }
 

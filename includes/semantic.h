@@ -37,10 +37,11 @@ typedef struct Symbol {
   DataType dtype;     // INT, STR, BOOL, LIST, etc.
   ASTNode *decl_node; // node where it was declared
   size_t scope_level; // lexical depth / nesting
+  struct SymbolTable *scope; // for FUNCTION, CLASS, MODULE
 } Symbol;
 
 typedef struct SymbolTableEntry {
-  Symbol symbol;
+  Symbol *symbol;
   struct SymbolTableEntry *next;
 } SymbolTableEntry;
 
@@ -71,7 +72,7 @@ void sa_enter_scope(SemanticAnalyzer *sa);
 void sa_exit_scope(SemanticAnalyzer *sa);
 
 /* Symbol table operations */
-void sa_define_symbol(SemanticAnalyzer *sa, Symbol sym);
+void sa_define_symbol(SemanticAnalyzer *sa, Symbol *sym);
 Symbol *sa_lookup(SemanticAnalyzer *sa, const char *name);
 
 /* Main entrypoint */
