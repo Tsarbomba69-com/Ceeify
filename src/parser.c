@@ -473,6 +473,72 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
   return if_node;
 }
 
+ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
+  Token *token = next_token(parser->lexer);
+  if (token == NULL || token->type != IDENTIFIER) {
+    syntax_error("expected function name after 'def'", parser->lexer->filename,
+                 token);
+    return NULL;
+  }
+
+  ASTNode *name_node = node_new(parser, token, VARIABLE);
+  func_node->funcdef.name = name_node;
+
+  // Expect opening parenthesis
+  token = next_token(parser->lexer);
+  if (token == NULL || token->type != LPAR) {
+    syntax_error("expected '(' after function name", parser->lexer->filename,
+                 token);
+    return NULL;
+  }
+
+  func_node->funcdef.params =
+      ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+
+  // Parse parameters
+  token = next_token(parser->lexer);
+  while (token != NULL && token->type != RPAR) {
+    if (token->type == IDENTIFIER) {
+      ASTNode *param_node = node_new(parser, token, VARIABLE);
+      ASTNode_add_last(&func_node->funcdef.params, param_node);
+    } else if (token->type != COMMA) {
+      syntax_error("expected parameter name or ','", parser->lexer->filename,
+                   token);
+      return NULL;
+    }
+    token = next_token(parser->lexer);
+  }
+
+  // Expect colon
+  token = next_token(parser->lexer);
+  if (token == NULL || token->type != COLON) {
+    syntax_error("expected ':' after function parameters",
+                 parser->lexer->filename, token);
+    return NULL;
+  }
+
+  // Expect NEWLINE
+  token = next_token(parser->lexer);
+  if (token == NULL || token->type != NEWLINE) {
+    syntax_error("expected newline after ':' in function declaration",
+                 parser->lexer->filename, token);
+    return NULL;
+  }
+
+  func_node->funcdef.body =
+      ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+
+  // Parse function body
+  while ((token = next_token(parser->lexer)) != NULL) {
+    ASTNode *stmt = parse_statement(parser);
+    if (stmt == NULL || stmt->type == END_BLOCK)
+      break;
+    ASTNode_add_last(&func_node->funcdef.body, stmt);
+  }
+
+  return func_node;
+}
+
 ASTNode *parse_statement(Parser *parser) {
   Token *token =
       Token_get(&parser->lexer->tokens, parser->lexer->token_idx - 1);
@@ -529,6 +595,23 @@ ASTNode *parse_statement(Parser *parser) {
     if (strcmp(token->lexeme, "while") == 0) {
       ASTNode *node = node_new(parser, token, WHILE);
       return parse_while_statement(parser, node);
+    }
+
+    if (strcmp(token->lexeme, "def") == 0) {
+      ASTNode *node = node_new(parser, token, FUNCTION_DEF);
+      return parse_function_declaration(parser, node);
+    }
+
+    if (strcmp(token->lexeme, "return") == 0) {
+      ASTNode *node = node_new(parser, token, RETURN);
+
+      Token *next = peek_token(parser->lexer);
+      if (next != NULL && next->type != NEWLINE) {
+        node->ret = parse_expression(parser);
+      } else {
+        node->ret = NULL;
+      }
+      return node;
     }
   } break;
   case NEWLINE: {

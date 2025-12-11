@@ -21,6 +21,9 @@ typedef enum NodeType {
   LIST_EXPR,
   WHILE,
   FOR,
+  FUNCTION_DEF,
+  RETURN,
+  CALL,
   END_BLOCK
 } NodeType;
 
@@ -73,6 +76,12 @@ typedef struct ControlFlowStatement {
   ASTNode_LinkedList orelse;
 } ControlFlowStatement;
 
+typedef struct {
+  ASTNode *name;
+  ASTNode_LinkedList params;
+  ASTNode_LinkedList body;
+} FunctionDef;
+
 typedef struct ASTNode {
   NodeType type;
   size_t depth;
@@ -81,6 +90,8 @@ typedef struct ASTNode {
     BinOp bin_op;
     Assign assign;
     AugAssign aug_assign;
+    FunctionDef funcdef;
+    ASTNode* ret;
     Context ctx;
     Compare compare;
     ASTNode_LinkedList import;

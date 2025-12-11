@@ -292,7 +292,6 @@ char *sa_format_error(SemanticAnalyzer *sa) {
   Token *tok = sa->last_error.token;
   SemanticErrorType type = sa->last_error.type;
   const char *error_name = (type == SEM_UNDEFINED_VARIABLE)  ? "NameError"
-                           : (type == SEM_REDEFINITION)      ? "SemanticError"
                            : (type == SEM_TYPE_MISMATCH)     ? "TypeError"
                            : (type == SEM_INVALID_OPERATION) ? "TypeError"
                                                              : "SemanticError";

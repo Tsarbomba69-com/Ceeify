@@ -99,7 +99,8 @@ void test_compare_expression(void) {
 
 void test_if_statement(void) {
   Lexer lexer = tokenize("if x < 10:\n"
-                          "\ty = 5\n", "test_file.py");
+                         "\ty = 5\n",
+                         "test_file.py");
   Parser parser = parse(&lexer);
 
   ASTNode *node = ASTNode_pop(&parser.ast);
@@ -130,7 +131,8 @@ void test_if_elif_statement(void) {
   Lexer lexer = tokenize("if x < 10:\n"
                          "  y = 5\n"
                          "elif x < 20:\n"
-                         "  y = 15\n", "test_file.py");
+                         "  y = 15\n",
+                         "test_file.py");
 
   Parser parser = parse(&lexer);
 
@@ -188,7 +190,8 @@ void test_if_else_statement(void) {
   Lexer lexer = tokenize("if x < 10:\n"
                          "  y = 5\n"
                          "else:\n"
-                         "  y = 100\n", "test_file.py");
+                         "  y = 100\n",
+                         "test_file.py");
 
   Parser parser = parse(&lexer);
 
@@ -238,7 +241,8 @@ void test_if_else_statement(void) {
 void test_while_statement(void) {
   // Arrange
   Lexer lexer = tokenize("while x < 10:\n"
-                         "  x = x + 1\n", "test_file.py");
+                         "  x = x + 1\n",
+                         "test_file.py");
   Parser parser = parse(&lexer);
   ASTNode *node = ASTNode_pop(&parser.ast);
   TEST_ASSERT_NOT_NULL(node);
@@ -259,7 +263,8 @@ void test_while_statement(void) {
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
   ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
   TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
-  TEST_ASSERT_EQUAL_STRING("1", body_stmt->assign.value->bin_op.right->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING(
+      "1", body_stmt->assign.value->bin_op.right->token->lexeme);
 
   // cleanup
   parser_free(&parser);
@@ -268,9 +273,10 @@ void test_while_statement(void) {
 void test_while_else_statement(void) {
   // Arrange
   Lexer lexer = tokenize("while x < 10:\n"
-                        "  x = x + 1\n"
-                        "else:\n"
-                        "  y = 100\n", "test_file.py");
+                         "  x = x + 1\n"
+                         "else:\n"
+                         "  y = 100\n",
+                         "test_file.py");
   Parser parser = parse(&lexer);
   ASTNode *node = ASTNode_pop(&parser.ast);
   TEST_ASSERT_NOT_NULL(node);
@@ -290,7 +296,8 @@ void test_while_else_statement(void) {
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
   ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
   TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
-  TEST_ASSERT_EQUAL_STRING("1", body_stmt->assign.value->bin_op.right->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING(
+      "1", body_stmt->assign.value->bin_op.right->token->lexeme);
 
   // Check ELSE block
   ASTNode *else_stmt = ASTNode_pop(&node->ctrl_stmt.orelse);
@@ -307,27 +314,72 @@ void test_while_else_statement(void) {
 
 void test_parse_augmented_assignment(void) {
   // Arrange & Act
-    Lexer lexer = tokenize("a += 69", "test_file.py");
-    Parser parser = parse(&lexer);
-    ASTNode *node = ASTNode_pop(&parser.ast);
-    // Assert
-    TEST_ASSERT_NOT_NULL(node);
-    // Check node type: augmented assignment
-    TEST_ASSERT_EQUAL_INT(AUG_ASSIGNMENT, node->type);
-    TEST_ASSERT_NOT_NULL(node->token);
-    TEST_ASSERT_EQUAL_STRING("+=", node->token->lexeme);
+  Lexer lexer = tokenize("a += 69", "test_file.py");
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  // Assert
+  TEST_ASSERT_NOT_NULL(node);
+  // Check node type: augmented assignment
+  TEST_ASSERT_EQUAL_INT(AUG_ASSIGNMENT, node->type);
+  TEST_ASSERT_NOT_NULL(node->token);
+  TEST_ASSERT_EQUAL_STRING("+=", node->token->lexeme);
 
-    // Check the target (left side)
-    ASTNode *target = node->aug_assign.target;
-    TEST_ASSERT_NOT_NULL(target);
-    TEST_ASSERT_EQUAL_INT(VARIABLE, target->type);
-    TEST_ASSERT_EQUAL_STRING("a", target->token->lexeme);
+  // Check the target (left side)
+  ASTNode *target = node->aug_assign.target;
+  TEST_ASSERT_NOT_NULL(target);
+  TEST_ASSERT_EQUAL_INT(VARIABLE, target->type);
+  TEST_ASSERT_EQUAL_STRING("a", target->token->lexeme);
 
-    // Check the value (right side)
-    TEST_ASSERT_NOT_NULL(node->aug_assign.value);
-    TEST_ASSERT_EQUAL_INT(LITERAL, node->aug_assign.value->type);
-    TEST_ASSERT_EQUAL_STRING("69", node->aug_assign.value->token->lexeme);
-    parser_free(&parser);
+  // Check the value (right side)
+  TEST_ASSERT_NOT_NULL(node->aug_assign.value);
+  TEST_ASSERT_EQUAL_INT(LITERAL, node->aug_assign.value->type);
+  TEST_ASSERT_EQUAL_STRING("69", node->aug_assign.value->token->lexeme);
+  parser_free(&parser);
+}
+
+void test_parse_function_declaration(void) {
+  // Arrange
+  Lexer lexer = tokenize("def add(x, y):\n"
+                         "    return x + y\n",
+                         "test_file.py");
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  // Assert
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(FUNCTION_DEF, node->type);
+  // Function name
+  TEST_ASSERT_NOT_NULL(node->token);
+  TEST_ASSERT_EQUAL_STRING("add", node->funcdef.name->token->lexeme);
+  //
+  // ---- PARAMETERS ----
+  //
+  ASTNode *param_y = ASTNode_pop(&node->funcdef.params);
+  TEST_ASSERT_NOT_NULL(param_y);
+  TEST_ASSERT_EQUAL_INT(VARIABLE, param_y->type);
+  TEST_ASSERT_EQUAL_STRING("y", param_y->token->lexeme);
+  ASTNode *param_x = ASTNode_pop(&node->funcdef.params);
+  TEST_ASSERT_NOT_NULL(param_x);
+  TEST_ASSERT_EQUAL_INT(VARIABLE, param_x->type);
+  TEST_ASSERT_EQUAL_STRING("x", param_x->token->lexeme);
+  //
+  // ---- BODY ----
+  //
+  ASTNode *body_stmt = ASTNode_pop(&node->funcdef.body);
+  TEST_ASSERT_NOT_NULL(body_stmt);
+  // Body should begin with a return statement
+  TEST_ASSERT_EQUAL_INT(RETURN, body_stmt->type);
+  TEST_ASSERT_NOT_NULL(body_stmt->token); // "return"
+  //
+  // return expression: x + y
+  //
+  ASTNode *ret_expr = body_stmt->bin_op.left; // or body_stmt->return.value
+  TEST_ASSERT_NOT_NULL(ret_expr);
+  TEST_ASSERT_EQUAL_INT(BINARY_OPERATION, ret_expr->type);
+  TEST_ASSERT_EQUAL_STRING("+", ret_expr->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("x", ret_expr->bin_op.left->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("y", ret_expr->bin_op.right->token->lexeme);
+  parser_free(&parser);
 }
 
 #endif

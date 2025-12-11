@@ -53,6 +53,7 @@ int main(void) {
   RUN_TEST(test_while_statement);
   RUN_TEST(test_while_else_statement);
   RUN_TEST(test_parse_augmented_assignment);
+  RUN_TEST(test_parse_function_declaration);
   // Semantic
   RUN_TEST(test_semantic_empty_program);
   RUN_TEST(test_semantic_simple_assignment);
