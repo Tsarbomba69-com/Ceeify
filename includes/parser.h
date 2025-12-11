@@ -91,7 +91,7 @@ typedef struct ASTNode {
     Assign assign;
     AugAssign aug_assign;
     FunctionDef funcdef;
-    ASTNode* ret;
+    ASTNode *ret;
     Context ctx;
     Compare compare;
     ASTNode_LinkedList import;

@@ -54,4 +54,31 @@ char *slice(Allocator *allocator, const char *source, size_t start, size_t end);
     }                                                                          \
   } while (0)
 
+#if defined(_MSC_VER)
+/* MSVC: __assume is a hint to the optimizer, does not terminate execution */
+#define UNREACHABLE(msg)                                                       \
+  do {                                                                         \
+    slog_fatal("UNREACHABLE: %s", (msg));                                      \
+    __assume(0);                                                               \
+    abort();                                                                   \
+  } while (0)
+#elif defined(__clang__) || defined(__GNUC__)
+/* GCC / Clang have builtin_unreachable() and __builtin_unreachable() is a hint
+ */
+#define UNREACHABLE(msg)                                                       \
+  do {                                                                         \
+    slog_fatal("UNREACHABLE: %s", (msg));                                      \
+                                                                               \
+    __builtin_unreachable();                                                   \
+    abort();                                                                   \
+  } while (0)
+#else
+/* Fallback: no compiler hint available, just print and abort */
+#define UNREACHABLE(msg)                                                       \
+  do {                                                                         \
+    slog_fatal("UNREACHABLE: %s", (msg));                                      \
+    abort();                                                                   \
+  } while (0)
+#endif
+
 #endif

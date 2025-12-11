@@ -78,4 +78,33 @@ void test_semantic_invalid_operation(void) {
     parser_free(&parser);
 }
 
+void test_semantic_function_declaration(void) {
+    // Arrange
+    Lexer lexer = tokenize(
+        "def add(x, y):\n"
+        "    return x + y\n",
+        "test_file.py"
+    );
+    Parser parser = parse(&lexer);
+    // Act
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
+    TEST_ASSERT_FALSE(sa_has_error(&sa));
+    TEST_ASSERT_EQUAL(SEM_OK, err.type);
+    Symbol *fn = sa_lookup(&sa, "add");
+    TEST_ASSERT_NOT_NULL(fn);
+    TEST_ASSERT_EQUAL(FUNCTION, fn->kind);
+    TEST_ASSERT_NOT_NULL(fn->decl_node);
+    sa_enter_scope(&sa);
+    Symbol *px = sa_lookup(&sa, "x");
+    Symbol *py = sa_lookup(&sa, "y");
+    TEST_ASSERT_NOT_NULL(px);
+    TEST_ASSERT_NOT_NULL(py);
+    TEST_ASSERT_EQUAL(VAR, px->kind);
+    TEST_ASSERT_EQUAL(VAR, py->kind);
+    // Cleanup
+    parser_free(&parser);
+}
+
+
 #endif // TEST_SEMANTIC_H_

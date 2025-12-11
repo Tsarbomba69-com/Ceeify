@@ -259,6 +259,9 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     // Analyze value
     return analyze_node(sa, node->assign.value);
   }
+  case FUNCTION_DEF: {
+    UNREACHABLE("Function definitions not yet implemented in semantic analyzer");
+  } break;
   default:
     break;
   }
@@ -363,6 +366,21 @@ frame_done:;
   free(line_content);
   free(highlight);
   return msg;
+}
+
+void sa_enter_scope(SemanticAnalyzer *sa) {
+  SymbolTable *new_scope =
+      allocator_alloc(&sa->parser->ast.allocator, sizeof(SymbolTable));
+  ASSERT(new_scope != NULL, "Failed to allocate memory for new scope");
+  new_scope->entries = NULL;
+  new_scope->parent = sa->current_scope;
+
+  if (sa->current_scope)
+    new_scope->depth = sa->current_scope->depth + 1;
+  else
+    new_scope->depth = 0;
+
+  sa->current_scope = new_scope;
 }
 
 void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
