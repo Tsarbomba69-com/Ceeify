@@ -417,6 +417,13 @@ Token *create_newline_token(Lexer *lexer) {
   return token;
 }
 
+char *dump_tokens(Token_ArrayList *tokens) {
+  cJSON *json = serialize_tokens(tokens);
+  char *dump = cJSON_Print(json);
+  cJSON_Delete(json);
+  return dump;
+}
+
 Token *peek_token(Lexer *lexer) {
   if (!lexer || lexer->token_idx >= lexer->tokens.size) {
     return NULL;

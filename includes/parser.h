@@ -82,6 +82,11 @@ typedef struct {
   ASTNode_LinkedList body;
 } FunctionDef;
 
+typedef struct {
+  ASTNode *func;
+  ASTNode_LinkedList args;
+} CallExpr;
+
 typedef struct ASTNode {
   NodeType type;
   size_t depth;
@@ -91,6 +96,7 @@ typedef struct ASTNode {
     Assign assign;
     AugAssign aug_assign;
     FunctionDef funcdef;
+    CallExpr call;
     ASTNode *ret;
     Context ctx;
     Compare compare;
@@ -102,6 +108,8 @@ typedef struct ASTNode {
 Parser parse(Lexer *lexer);
 
 void parser_free(Parser *parser);
+
+Token *consume(Parser *parser, TokenType expected_type);
 
 int8_t precedence(const char *op);
 

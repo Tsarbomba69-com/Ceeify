@@ -269,11 +269,11 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
   case FUNCTION_DEF: {
     Symbol *sym = allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
     sym->name = arena_strdup(&sa->parser->ast.allocator.base,
-                                       node->funcdef.name->token->lexeme);
-                  sym->kind = FUNCTION;
-                  sym->dtype = sa_infer_type(sa, node);
-                  sym->decl_node = node;
-                  sym->scope_level = node->depth;
+                             node->funcdef.name->token->lexeme);
+    sym->kind = FUNCTION;
+    sym->dtype = sa_infer_type(sa, node);
+    sym->decl_node = node;
+    sym->scope_level = node->depth;
     sa_define_symbol(sa, sym);
     sa_enter_scope(sa);
     sym->scope = sa->current_scope;

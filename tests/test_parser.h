@@ -382,4 +382,86 @@ void test_parse_function_declaration(void) {
   parser_free(&parser);
 }
 
+void test_parse_function_call(void) {
+  // Arrange
+  Lexer lexer = tokenize("add(1, 2)", "test_file.py");
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  // Assert: CALL node
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(CALL, node->type);
+  // Callee name
+  TEST_ASSERT_NOT_NULL(node->token);
+  TEST_ASSERT_EQUAL_STRING("add", node->token->lexeme);
+  ASTNode *arg2 = ASTNode_pop(&node->call.args);
+  ASTNode *arg1 = ASTNode_pop(&node->call.args);
+  // Check arguments
+  TEST_ASSERT_NOT_NULL(arg1);
+  TEST_ASSERT_NOT_NULL(arg2);
+  TEST_ASSERT_EQUAL_INT(LITERAL, arg1->type);
+  TEST_ASSERT_EQUAL_STRING("1", arg1->token->lexeme);
+  TEST_ASSERT_EQUAL_INT(LITERAL, arg2->type);
+  TEST_ASSERT_EQUAL_STRING("2", arg2->token->lexeme);
+  // Cleanup
+  parser_free(&parser);
+}
+
+void test_parse_function_call_no_args(void) {
+  // Arrange
+  Lexer lexer = tokenize("foo()", "test_file.py");
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  // Assert
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(CALL, node->type);
+  // function name
+  TEST_ASSERT_EQUAL_STRING("foo", node->call.func->token->lexeme);
+  // args should be empty
+  TEST_ASSERT_EQUAL_INT(SIZE_MAX, node->call.args.head);
+  // Cleanup
+  parser_free(&parser);
+}
+
+void test_parse_nested_function_call(void) {
+  // Arrange
+  Lexer lexer = tokenize("foo(bar(1))", "test_file.py");
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  // Assert
+  TEST_ASSERT_EQUAL_INT(CALL, node->type);
+  TEST_ASSERT_EQUAL_STRING("foo", node->call.func->token->lexeme);
+  ASTNode *inner = ASTNode_pop(&node->call.args);
+  TEST_ASSERT_NOT_NULL(inner);
+  TEST_ASSERT_EQUAL_INT(CALL, inner->type);
+  TEST_ASSERT_EQUAL_STRING("bar", inner->call.func->token->lexeme);
+  ASTNode *inner_arg = ASTNode_pop(&inner->call.args);
+  TEST_ASSERT_EQUAL_STRING("1", inner_arg->token->lexeme);
+  parser_free(&parser);
+}
+
+void test_parse_call_inside_expression(void) {
+  Lexer lexer = tokenize("x = foo(1) + 2", "test_file.py");
+  Parser parser = parse(&lexer);
+
+  ASTNode *assign = ASTNode_pop(&parser.ast);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, assign->type);
+
+  ASTNode *expr = assign->assign.value;
+  TEST_ASSERT_EQUAL_INT(BINARY_OPERATION, expr->type);
+  TEST_ASSERT_EQUAL_STRING("+", expr->token->lexeme);
+
+  ASTNode *call = expr->bin_op.left;
+  TEST_ASSERT_EQUAL_INT(CALL, call->type);
+  TEST_ASSERT_EQUAL_STRING("foo", call->call.func->token->lexeme);
+
+  ASTNode *arg = ASTNode_pop(&call->call.args);
+  TEST_ASSERT_EQUAL_STRING("1", arg->token->lexeme);
+
+  parser_free(&parser);
+}
+
+
 #endif

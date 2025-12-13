@@ -21,7 +21,7 @@ void cleanup(void *p) {
 }
 
 int main(void) {
-    slog_init("ceeify", SLOG_FLAGS_ALL, 0);
+  slog_init("ceeify", SLOG_FLAGS_ALL, 0);
   DEFER(cleanup) slog_config_t cfg;
   slog_config_get(&cfg);
   cfg.eDateControl = SLOG_DATE_FULL;
@@ -54,6 +54,10 @@ int main(void) {
   RUN_TEST(test_while_else_statement);
   RUN_TEST(test_parse_augmented_assignment);
   RUN_TEST(test_parse_function_declaration);
+  RUN_TEST(test_parse_function_call);
+  RUN_TEST(test_parse_function_call_no_args);
+  RUN_TEST(test_parse_nested_function_call);
+  RUN_TEST(test_parse_call_inside_expression);
   // Semantic
   RUN_TEST(test_semantic_empty_program);
   RUN_TEST(test_semantic_simple_assignment);
@@ -61,5 +65,19 @@ int main(void) {
   RUN_TEST(test_semantic_type_mismatch);
   RUN_TEST(test_semantic_invalid_operation);
   RUN_TEST(test_semantic_function_declaration);
+  return UNITY_END();
+}
+
+int _main(void) {
+  slog_init("ceeify", SLOG_FLAGS_ALL, 0);
+  DEFER(cleanup) slog_config_t cfg;
+  slog_config_get(&cfg);
+  cfg.eDateControl = SLOG_DATE_FULL;
+  cfg.nTraceTid = true;
+  cfg.nToFile = true;
+  cfg.nKeepOpen = true;
+  slog_config_set(&cfg);
+  UNITY_BEGIN();
+  RUN_TEST(test_parse_function_call);
   return UNITY_END();
 }

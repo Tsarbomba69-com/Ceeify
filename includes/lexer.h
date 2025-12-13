@@ -58,4 +58,6 @@ cJSON *serialize_lexer(Lexer *lexer);
 
 Token *peek_token(Lexer *lexer);
 
+char *dump_tokens(Token_ArrayList *tokens);
+
 #endif // !LEXER_H_
