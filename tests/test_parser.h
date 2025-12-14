@@ -87,12 +87,17 @@ void test_import_assignment(void) {
 }
 
 void test_compare_expression(void) {
+  // Arrange
   Lexer lexer = tokenize("1 <= a < 10", "test_file.py");
+  // Act
   Parser parser = parse(&lexer);
   ASTNode *node = ASTNode_pop(&parser.ast);
+  // Assert
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(COMPARE, node->type);
   ASTNode *compare = ASTNode_pop(&node->compare.comparators);
+  TEST_ASSERT_EQUAL_STRING("10", compare->token->lexeme);
+  compare = ASTNode_pop(&node->compare.comparators);
   TEST_ASSERT_EQUAL_STRING("a", compare->token->lexeme);
   parser_free(&parser);
 }

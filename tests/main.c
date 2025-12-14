@@ -78,6 +78,6 @@ int _main(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_parse_function_call);
+  RUN_TEST(test_parse_call_inside_expression);
   return UNITY_END();
 }

@@ -67,8 +67,10 @@ typedef struct Compare {
 
 typedef struct Parser {
   Lexer *lexer;
+  Token* current;
+  Token* next;
   ASTNode_LinkedList ast;
-} __attribute__((aligned(128))) Parser;
+} Parser;
 
 typedef struct ControlFlowStatement {
   ASTNode *test;
@@ -103,11 +105,13 @@ typedef struct ASTNode {
     ASTNode_LinkedList import;
     ControlFlowStatement ctrl_stmt;
   };
-} __attribute__((aligned(128))) ASTNode;
+} ASTNode;
 
 Parser parse(Lexer *lexer);
 
 void parser_free(Parser *parser);
+
+Token *next_token(Parser *parser);
 
 Token *consume(Parser *parser, TokenType expected_type);
 

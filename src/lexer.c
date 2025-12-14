@@ -216,12 +216,6 @@ Lexer tokenize(const char *source, const char *filename) {
   return lexer;
 }
 
-Token *next_token(Lexer *lexer) {
-  size_t i = lexer->token_idx;
-  lexer->token_idx++;
-  return Token_get(&lexer->tokens, i);
-}
-
 Token *create_token_from_char(Lexer *lexer, char character, TokenType type) {
   Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
   if (token == NULL) {

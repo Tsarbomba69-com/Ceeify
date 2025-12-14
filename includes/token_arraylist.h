@@ -25,6 +25,8 @@ void Token_push(Token_ArrayList *list, Token *value);
 // Get the last element and remove it
 Token *Token_pop(Token_ArrayList *list);
 
+size_t Token_index_of(Token_ArrayList const *list, Token const *value);
+
 // Get the element stored at the index. Returns NULL if index is out-of-bounds
 static inline Token *Token_get(Token_ArrayList const *arrayList, size_t index) {
   return index < arrayList->size ? arrayList->elements[index] : NULL;

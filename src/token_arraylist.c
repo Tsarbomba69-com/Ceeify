@@ -58,3 +58,17 @@ void Token_free(Token_ArrayList *list) {
   list->elements = NULL;
   list->size = 0;
 }
+
+size_t Token_index_of(Token_ArrayList const *list, Token const *value) {
+  if (!list || !value) {
+    return SIZE_MAX;
+  }
+
+  for (size_t i = 0; i < list->size; ++i) {
+    if (list->elements[i] == value) {
+      return i;
+    }
+  }
+
+  return SIZE_MAX;
+}

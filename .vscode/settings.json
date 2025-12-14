@@ -49,7 +49,7 @@
         "args": [
             "-dump-ast", 
             "-o", "output.json",
-            "${workspaceFolder}/tests/mock/nested_function_call.py",
+            "${workspaceFolder}/tests/mock/compare_expression.py",
         ]
     }
 }

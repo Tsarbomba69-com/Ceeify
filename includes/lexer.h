@@ -44,11 +44,9 @@ typedef struct Lexer {
   size_t token_idx;
   size_t source_length;
   Token_ArrayList tokens;
-} __attribute__((aligned(128))) Lexer;
+} Lexer;
 
 Lexer tokenize(const char *source, const char *filename);
-
-Token *next_token(Lexer *lexer);
 
 cJSON *serialize_token(Token *token);
 
