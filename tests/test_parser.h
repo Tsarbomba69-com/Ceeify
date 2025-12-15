@@ -7,19 +7,25 @@
 #include <unity.h>
 
 void test_parser_single_number(void) {
+  // Arrane
   Lexer lexer = tokenize("123", "test_file.py");
+  // Act
   Parser parser = parse(&lexer);
   ASTNode *node = ASTNode_pop(&parser.ast);
+  // Assert
   TEST_ASSERT_EQUAL_INT(LITERAL, node->type);
   TEST_ASSERT_EQUAL_STRING("123", node->token->lexeme);
-  ASTNode_free(&parser.ast);
-  Token_free(&lexer.tokens);
+  // Cleanup
+  parser_free(&parser);
 }
 
 void test_parse_arithmetic_expression(void) {
+  // Arrange
   Lexer lexer = tokenize("3 + 5 * 2", "test_file.py");
+  // Act
   Parser parser = parse(&lexer);
   ASTNode *result = ASTNode_pop(&parser.ast);
+  // Assert
   TEST_ASSERT_NOT_NULL(result);
   TEST_ASSERT_EQUAL_STRING("+", result->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("3", result->bin_op.left->token->lexeme);
@@ -28,6 +34,7 @@ void test_parse_arithmetic_expression(void) {
                            result->bin_op.right->bin_op.left->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("2",
                            result->bin_op.right->bin_op.right->token->lexeme);
+  // Cleanup
   parser_free(&parser);
 }
 
@@ -467,6 +474,5 @@ void test_parse_call_inside_expression(void) {
 
   parser_free(&parser);
 }
-
 
 #endif
