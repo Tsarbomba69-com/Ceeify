@@ -286,13 +286,15 @@ ASTNode *parse_prefix(Parser *parser, Token *token) {
     return node_new(parser, token, VARIABLE);
 
   case LPAR: {
+    next_token(parser);
     ASTNode *expr = parse_expression(parser, 0);
 
-    // Consume ')'
     if (parser->current == NULL || parser->current->type != RPAR) {
       syntax_error("expected ')' to close parenthesis", parser->lexer->filename,
                    parser->current);
     }
+
+    next_token(parser);
     return expr;
   }
 
