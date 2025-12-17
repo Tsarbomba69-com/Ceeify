@@ -43,6 +43,7 @@ int main(void) {
   // Parser
   RUN_TEST(test_parser_single_number);
   RUN_TEST(test_parse_arithmetic_expression);
+  RUN_TEST(test_expression_parentheses_override_precedence);
   RUN_TEST(test_parse_variable_assignment);
   RUN_TEST(test_parse_multiple_variable_assignment);
   RUN_TEST(test_import_assignment);
@@ -78,6 +79,6 @@ int _main(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_parse_nested_function_call);
+  RUN_TEST(test_parse_call_inside_expression);
   return UNITY_END();
 }

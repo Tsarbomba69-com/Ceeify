@@ -30,7 +30,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node);
 
 ASTNode *parse_expression(Parser *parser, int8_t min_precedence);
 
-ASTNode *parse_call(Parser *parser, Token *ident);
+ASTNode *parse_call(Parser *parser, ASTNode *callee);
 
 bool blacklist_tokens(TokenType type, const TokenType blacklist[], size_t size);
 
@@ -247,6 +247,9 @@ int8_t get_infix_precedence(const char *op) {
   if (strcmp(op, "**") == 0)
     return 50;
 
+  if (strcmp(op, "(") == 0)
+    return 70;
+
   return 0;
 }
 
@@ -273,38 +276,43 @@ static inline bool is_prefix_operator(Token *t) {
   return t->type == KEYWORD && strcmp(t->lexeme, "not") == 0;
 }
 
+static inline bool is_comparison_operator(Token *t) {
+  for (size_t j = 0; j < ARRAYSIZE(COMPARISON_OPERATORS); j++) {
+    if (strcmp(COMPARISON_OPERATORS[j], t->lexeme) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 ASTNode_LinkedList parse_argument_list(Parser *parser);
 
 // NUD (Null Denotation) - Parses a token that starts an expression
-ASTNode *parse_prefix(Parser *parser, Token *token) {
+ASTNode *nud(Parser *parser) {
+  Token *token = parser->current;
   switch (token->type) {
   case NUMBER:
   case STRING:
     return node_new(parser, token, LITERAL);
 
   case IDENTIFIER:
+    if (parser->next->type == LPAR) {
+      ASTNode *callee = node_new(parser, token, VARIABLE);
+      return parse_call(parser, callee);
+    }
     return node_new(parser, token, VARIABLE);
-
   case LPAR: {
     next_token(parser);
     ASTNode *expr = parse_expression(parser, 0);
-
-    if (parser->current == NULL || parser->current->type != RPAR) {
-      syntax_error("expected ')' to close parenthesis", parser->lexer->filename,
-                   parser->current);
-    }
-
     next_token(parser);
     return expr;
   }
-
   case KEYWORD:
   case OPERATOR:
     if (is_prefix_operator(token)) {
       ASTNode *node = node_new(parser, token, UNARY_OPERATION);
-
       int8_t rbp = get_prefix_precedence(token->lexeme);
-
       node->bin_op.right = parse_expression(parser, rbp);
       return node;
     }
@@ -320,9 +328,10 @@ ASTNode *parse_prefix(Parser *parser, Token *token) {
   return NULL;
 }
 
-ASTNode *parse_infix(Parser *parser, ASTNode *left, Token *op_token) {
+ASTNode *led(Parser *parser, ASTNode *left) {
+  Token *op_token = parser->current;
   if (op_token->type == LPAR) {
-    return parse_call(parser, left->token);
+    return parse_call(parser, left);
   }
 
   int8_t lbp = get_infix_precedence(op_token->lexeme);
@@ -330,16 +339,7 @@ ASTNode *parse_infix(Parser *parser, ASTNode *left, Token *op_token) {
   // Right-associativity for Exponentiation (e.g., a ** b ** c -> a ** (b ** c))
   int8_t rbp = (strcmp(op_token->lexeme, "**") == 0) ? lbp - 1 : lbp;
 
-  // Comparison Chain
-  bool is_compare_op = false;
-  for (size_t j = 0; j < ARRAYSIZE(COMPARISON_OPERATORS); j++) {
-    if (strcmp(COMPARISON_OPERATORS[j], op_token->lexeme) == 0) {
-      is_compare_op = true;
-      break;
-    }
-  }
-
-  if (is_compare_op) {
+  if (is_comparison_operator(op_token)) {
     ASTNode *comp = NULL;
 
     if (left->type == COMPARE) {
@@ -352,55 +352,30 @@ ASTNode *parse_infix(Parser *parser, ASTNode *left, Token *op_token) {
       comp->compare.ops = Token_new_with_allocator(&parser->ast.allocator, 3);
     }
 
+    next_token(parser);
     right = parse_expression(parser, lbp + 1);
     ASTNode_add_last(&comp->compare.comparators, right);
     Token_push(&comp->compare.ops, op_token);
     return comp;
-
-  } else {
-    // Regular binary operation
-    right = parse_expression(parser, rbp);
-    ASTNode *node = bin_op_new(parser, op_token, left, right);
-    return node;
   }
+  // Regular binary operation
+  next_token(parser);
+  right = parse_expression(parser, rbp);
+  ASTNode *node = bin_op_new(parser, op_token, left, right);
+  return node;
 }
 
-ASTNode *parse_expression(Parser *parser, int8_t min_precedence) {
-  const TokenType DEFAULT_BLACKLIST[] = {NEWLINE, ENDMARKER, COLON};
-  ASTNode *left = parse_prefix(parser, parser->current);
-  next_token(parser);
+ASTNode *parse_expression(Parser *parser, int8_t rbp) {
+  ASTNode *left = nud(parser);
 
-  while (parser->current != NULL) {
-    Token *op_token = parser->current;
-
-    if (blacklist_tokens(op_token->type, DEFAULT_BLACKLIST,
-                         ARRAYSIZE(DEFAULT_BLACKLIST))) {
-      break;
-    }
-
-    if (op_token->type == LPAR) {
-      int8_t call_precedence = 99;
-      if (call_precedence < min_precedence)
-        break;
-
-      next_token(parser); // Consume LPAR
-      left = parse_infix(parser, left, op_token);
-
-      if (parser->current == NULL || parser->current->type != RPAR) {
-        syntax_error("expected ')' after call arguments",
-                     parser->lexer->filename, parser->current);
-      }
-      next_token(parser); // Consume RPAR
-      continue;
-    }
-
-    int8_t lbp = get_infix_precedence(op_token->lexeme);
-    if (lbp == 0 || lbp < min_precedence) {
+  while (parser->next && parser->next->type == OPERATOR &&
+         rbp < get_infix_precedence(parser->next->lexeme)) {
+    if (left->type == COMPARE && !is_comparison_operator(parser->next)) {
       break;
     }
 
     next_token(parser);
-    left = parse_infix(parser, left, op_token);
+    left = led(parser, left);
   }
 
   return left;
@@ -411,13 +386,16 @@ ASTNode_LinkedList parse_argument_list(Parser *parser) {
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
 
   // Check for empty argument list: f()
-  if (parser->current && parser->current->type == RPAR) {
+  if (parser->next && parser->next->type == RPAR) {
     return args;
   }
+
+  next_token(parser);
 
   do {
     ASTNode *arg = parse_expression(parser, 0);
     ASTNode_add_last(&args, arg);
+    next_token(parser);
 
     // Check the token immediately after the expression
     if (parser->current == NULL)
@@ -425,11 +403,11 @@ ASTNode_LinkedList parse_argument_list(Parser *parser) {
 
     if (parser->current->type == COMMA) {
       next_token(parser); // Consume COMMA
-    } else if (parser->current->type == RPAR) {
+    } else if (parser->current->type == RPAR ||
+               parser->current->type == ENDMARKER) {
       break; // Done with arguments
     } else {
-      syntax_error("expected ',' or ')' in argument list",
-                   parser->lexer->filename, parser->current);
+      continue;
     }
   } while (parser->current && parser->current->type != RPAR);
 
@@ -452,7 +430,6 @@ bool blacklist_tokens(TokenType type, const TokenType blacklist[],
   }
   return false;
 }
-
 
 ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token) {
   ASTNode_LinkedList targets =
@@ -483,10 +460,12 @@ Token *consume(Parser *parser, TokenType expected) {
   return token;
 }
 
-ASTNode *parse_call(Parser *parser, Token *ident) {
-  ASTNode *node = node_new(parser, ident, CALL);
-  node->call.func = node_new(parser, ident, VARIABLE);
+ASTNode *parse_call(Parser *parser, ASTNode *callee) {
+  ASTNode *node = node_new(parser, callee->token, CALL);
+  node->call.func = callee;
+  next_token(parser);
   node->call.args = parse_argument_list(parser);
+  // next_token(parser);
   return node;
 }
 
@@ -497,6 +476,7 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
   while_node->ctrl_stmt.orelse =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  next_token(parser);
 
   if (parser->next == NULL || parser->next->type != NEWLINE) {
     syntax_error("expected newline after ':' in 'while' statement",
@@ -515,6 +495,7 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
     ASTNode_add_last(&while_node->ctrl_stmt.body, stmt);
   }
 
+  next_token(parser);
   if (parser->current && parser->current->type == KEYWORD &&
       strcmp(parser->current->lexeme, "else") == 0) {
     next_token(parser);
@@ -550,8 +531,10 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
   if_node->ctrl_stmt.orelse =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  next_token(parser);
 
-  if (parser->next == NULL || parser->next->type != NEWLINE) {
+  if (!parser->current || !parser->next || parser->current->type != COLON ||
+      parser->next->type != NEWLINE) {
     syntax_error("expected newline after ':' in 'if' statement",
                  parser->lexer->filename, parser->next);
     return NULL;
@@ -568,6 +551,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
     ASTNode_add_last(&if_node->ctrl_stmt.body, stmt);
   }
 
+  next_token(parser);
   if (parser->current && parser->current->type == KEYWORD &&
       strcmp(parser->current->lexeme, "elif") == 0) {
     next_token(parser);
@@ -678,9 +662,9 @@ ASTNode *parse_statement(Parser *parser) {
     return parse_expression(parser, 0);
   }
   case IDENTIFIER: {
-    ASTNode_LinkedList targets = parse_identifier_list(parser, token);
 
-    if (parser->current != NULL && is_augassign_op(parser->current->lexeme)) {
+    if (parser->next && is_augassign_op(parser->next->lexeme)) {
+      ASTNode_LinkedList targets = parse_identifier_list(parser, token);
       ASTNode *node = node_new(parser, parser->current, AUG_ASSIGNMENT);
       next_token(parser);
       ASTNode *expr = parse_expression(parser, 0);
@@ -690,19 +674,14 @@ ASTNode *parse_statement(Parser *parser) {
       return node;
     }
 
-    if (parser->current != NULL && strcmp(parser->current->lexeme, "=") == 0) {
+    if (parser->next && (strcmp(parser->next->lexeme, "=") == 0 ||
+                         strcmp(parser->next->lexeme, ",") == 0)) {
+      ASTNode_LinkedList targets = parse_identifier_list(parser, token);
       ASTNode *node = node_new(parser, parser->current, ASSIGNMENT);
       next_token(parser);
       ASTNode *expr = parse_expression(parser, 0);
       node->assign = (Assign){.targets = targets, .value = expr};
       return node;
-    }
-
-    if (targets.size == 1 && parser->current != NULL &&
-        parser->current->type == LPAR) {
-      ASTNode *func_name = ASTNode_pop(&targets);
-      next_token(parser);
-      return parse_call(parser, func_name->token);
     }
 
     return parse_expression(parser, 0);
@@ -757,6 +736,8 @@ ASTNode *parse_statement(Parser *parser) {
       return node_new(parser, token, END_BLOCK);
     }
   } break;
+  case LPAR:
+    return parse_expression(parser, 0);
   default:
     break;
   }

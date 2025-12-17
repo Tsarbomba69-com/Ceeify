@@ -38,6 +38,27 @@ void test_parse_arithmetic_expression(void) {
   parser_free(&parser);
 }
 
+void test_expression_parentheses_override_precedence(void) {
+  Lexer lexer = tokenize("(3 + 5) * 2", "test_file.py");
+  Parser parser = parse(&lexer);
+
+  ASTNode *expr = ASTNode_pop(&parser.ast);
+  TEST_ASSERT_EQUAL_INT(BINARY_OPERATION, expr->type);
+  TEST_ASSERT_EQUAL_STRING("*", expr->token->lexeme);
+
+  // left: (3 + 5)
+  ASTNode *left = expr->bin_op.left;
+  TEST_ASSERT_EQUAL_STRING("+", left->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("3", left->bin_op.left->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("5", left->bin_op.right->token->lexeme);
+
+  // right: 2
+  TEST_ASSERT_EQUAL_STRING("2", expr->bin_op.right->token->lexeme);
+
+  parser_free(&parser);
+}
+
+
 // Test parsing a variable assignment
 void test_parse_variable_assignment(void) {
   Lexer lexer = tokenize("x = 42", "test_file.py");

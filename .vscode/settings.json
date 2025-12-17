@@ -49,7 +49,7 @@
         "args": [
             "-dump-ast", 
             "-o", "output.json",
-            "${workspaceFolder}/tests/mock/compare_expression.py",
+            "${workspaceFolder}/tests/mock/expression_parentheses_override_precedence.py",
         ]
     }
 }
