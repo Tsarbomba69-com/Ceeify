@@ -79,6 +79,6 @@ int _main(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_parse_call_inside_expression);
+  RUN_TEST(test_semantic_invalid_operation);
   return UNITY_END();
 }

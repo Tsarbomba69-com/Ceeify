@@ -69,7 +69,6 @@ void test_semantic_invalid_operation(void) {
         "test.py"
     );
     Parser parser = parse(&lexer);
-
     // Act
     SemanticAnalyzer sa = analyze_program(&parser);
     SemanticError err = sa_get_error(&sa);

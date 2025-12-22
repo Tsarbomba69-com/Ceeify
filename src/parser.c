@@ -368,7 +368,7 @@ ASTNode *led(Parser *parser, ASTNode *left) {
 ASTNode *parse_expression(Parser *parser, int8_t rbp) {
   ASTNode *left = nud(parser);
 
-  while (parser->next && parser->next->type == OPERATOR &&
+  while (parser->next && (parser->next->type == OPERATOR || parser->next->type == KEYWORD) &&
          rbp < get_infix_precedence(parser->next->lexeme)) {
     if (left->type == COMPARE && !is_comparison_operator(parser->next)) {
       break;
@@ -735,6 +735,9 @@ ASTNode *parse_statement(Parser *parser) {
     if (next->ident != token->ident) {
       return node_new(parser, token, END_BLOCK);
     }
+
+    next_token(parser);
+    return parse_statement(parser);
   } break;
   case LPAR:
     return parse_expression(parser, 0);
