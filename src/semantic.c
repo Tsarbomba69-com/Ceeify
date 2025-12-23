@@ -342,6 +342,58 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       return analyze_node(sa, node->ret);
     }
   } break;
+  case CALL: {
+    Symbol *sym = sa_lookup(sa, node->call.func->token->lexeme);
+    if (!sym) {
+      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->call.func->token,
+                   "name '%s' is not defined", node->call.func->token->lexeme);
+      return false;
+    }
+    if (sym->kind != FUNCTION) {
+      sa_set_error(sa, SEM_INVALID_OPERATION, node->call.func->token,
+                   "'%s' is not a function", sym->name);
+      return false;
+    }
+
+    size_t num_args = node->call.args.size;
+    size_t num_params = sym->decl_node->funcdef.params.size;
+
+    if (num_args != num_params) {
+      sa_set_error(sa, SEM_ARITY_MISMATCH, node->call.func->token,
+                   "function '%s' expects %zu arguments but got %zu", sym->name,
+                   num_params, num_args);
+      return false;
+    }
+
+    // Validate argument types match parameter types
+    for (size_t i = 0; i < num_args; i++) {
+      ASTNode *arg_node =
+          node->call.args.elements[node->call.args.head + i].data;
+      ASTNode *param_node =
+          sym->decl_node->funcdef.params
+              .elements[sym->decl_node->funcdef.params.head + i]
+              .data;
+      DataType arg_type = sa_infer_type(sa, arg_node);
+      DataType param_type = sa_infer_type(sa, param_node);
+
+      if (!types_compatible(param_type, arg_type)) {
+        sa_set_error(
+            sa, SEM_TYPE_MISMATCH, node->call.func->token,
+            "argument %zu to '%s' has type '%s' but parameter expects '%s'",
+            i + 1, sym->name, datatype_to_string(arg_type),
+            datatype_to_string(param_type));
+        return false;
+      }
+    }
+
+    for (size_t cur = node->call.args.head; cur != SIZE_MAX;
+         cur = node->call.args.elements[cur].next) {
+      ASTNode *arg_node = node->call.args.elements[cur].data;
+      if (!analyze_node(sa, arg_node)) {
+        return false;
+      }
+    }
+  } break;
   default:
     break;
   }

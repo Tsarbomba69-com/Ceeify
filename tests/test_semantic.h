@@ -139,4 +139,43 @@ void test_semantic_reassignment_type_mismatch(void) {
     parser_free(&parser);
 }
 
+void test_semantic_function_call_arity_mismatch(void) {
+    // Arrange
+    Lexer lexer = tokenize(
+        "def add(x, y):\n"
+        "    return x + y\n"
+        "add(1)\n",
+        "test.py"
+    );
+    Parser parser = parse(&lexer);
+    // Act
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
+    // Assert
+    TEST_ASSERT_TRUE(sa_has_error(&sa));
+    TEST_ASSERT_EQUAL(SEM_ARITY_MISMATCH, err.type);
+    // Cleanup
+    parser_free(&parser);
+}
+
+void test_semantic_function_call_type_mismatch(void) {
+    // Arrange
+    Lexer lexer = tokenize(
+        "def add(x, y):\n"
+        "    return x + y\n"
+        "add(1, \"hello\")\n",
+        "test.py"
+    );
+    Parser parser = parse(&lexer);
+    // Act
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
+    // Assert
+    TEST_ASSERT_TRUE(sa_has_error(&sa));
+    TEST_ASSERT_EQUAL(SEM_TYPE_MISMATCH, err.type);
+    slog_error("Error message: %s", err.message);
+    // Cleanup
+    parser_free(&parser);
+}
+
 #endif // TEST_SEMANTIC_H_

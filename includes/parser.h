@@ -2,6 +2,9 @@
 #define PARSER_H_
 #pragma once
 
+// TODO: Implement error handling in the parser (e.g., unexpected tokens)
+// TODO: Add support for type annotation in assignments and function definitions 
+
 #include "ASTNode_linkedlist.h"
 #include "lexer.h"
 #include "utils.h"

@@ -17,6 +17,7 @@ typedef enum SemanticErrorType {
   SEM_INVALID_OPERATION,
   SEM_ASSIGN_TO_READONLY,
   SEM_UNSUPPORTED_FEATURE,
+  SEM_ARITY_MISMATCH,
   SEM_UNKNOWN
 } SemanticErrorType;
 

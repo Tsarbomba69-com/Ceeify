@@ -68,6 +68,8 @@ int main(void) {
   RUN_TEST(test_semantic_function_declaration);
   RUN_TEST(test_semantic_undefined_variable_in_function);
   RUN_TEST(test_semantic_reassignment_type_mismatch);
+  RUN_TEST(test_semantic_function_call_arity_mismatch);
+  RUN_TEST(test_semantic_function_call_type_mismatch);
   return UNITY_END();
 }
 
