@@ -66,6 +66,8 @@ int main(void) {
   RUN_TEST(test_semantic_type_mismatch);
   RUN_TEST(test_semantic_invalid_operation);
   RUN_TEST(test_semantic_function_declaration);
+  RUN_TEST(test_semantic_undefined_variable_in_function);
+  RUN_TEST(test_semantic_reassignment_type_mismatch);
   return UNITY_END();
 }
 
@@ -79,6 +81,6 @@ int _main(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_semantic_invalid_operation);
+  RUN_TEST(test_semantic_undefined_variable_in_function);
   return UNITY_END();
 }

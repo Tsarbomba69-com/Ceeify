@@ -67,8 +67,8 @@ typedef struct Compare {
 
 typedef struct Parser {
   Lexer *lexer;
-  Token* current;
-  Token* next;
+  Token *current;
+  Token *next;
   ASTNode_LinkedList ast;
 } Parser;
 

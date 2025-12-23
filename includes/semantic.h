@@ -33,10 +33,10 @@ typedef struct SemanticError {
 
 typedef struct Symbol {
   char *name;
-  SymbolType kind;    // VAR, FUNCTION, MODULE, CLASS, BLOCK
-  DataType dtype;     // INT, STR, BOOL, LIST, etc.
-  ASTNode *decl_node; // node where it was declared
-  size_t scope_level; // lexical depth / nesting
+  SymbolType kind;           // VAR, FUNCTION, MODULE, CLASS, BLOCK
+  DataType dtype;            // INT, STR, BOOL, LIST, etc.
+  ASTNode *decl_node;        // node where it was declared
+  size_t scope_level;        // lexical depth / nesting
   struct SymbolTable *scope; // for FUNCTION, CLASS, MODULE
 } Symbol;
 

@@ -20,6 +20,26 @@ static SymbolTable *symbol_table_new(Allocator *allocator, SymbolTable *parent,
   return st;
 }
 
+bool types_compatible(DataType lhs, DataType rhs) {
+  // Unknown types are never safe
+  if (lhs == UNKNOWN || rhs == UNKNOWN) {
+    return false;
+  }
+
+  // Exact match
+  if (lhs == rhs) {
+    return true;
+  }
+
+  // Widening numeric conversions
+  if (lhs == FLOAT && rhs == INT) {
+    return true;
+  }
+
+  // Everything else is illegal
+  return false;
+}
+
 const char *datatype_to_string(DataType t) {
   switch (t) {
   case INT:
@@ -253,15 +273,30 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     for (size_t cur = node->assign.targets.head; cur != SIZE_MAX;
          cur = node->assign.targets.elements[cur].next) {
       ASTNode *target = node->assign.targets.elements[cur].data;
-      Symbol *sym = allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
-      sym->name =
-          arena_strdup(&sa->parser->ast.allocator.base, target->token->lexeme);
-      sym->kind = VAR;
-      sym->dtype = sa_infer_type(sa, node->assign.value);
-      sym->decl_node = node;
-      sym->scope_level = node->depth;
-      sym->scope = sa->current_scope;
-      sa_define_symbol(sa, sym);
+      Symbol *sym = sa_lookup(sa, target->token->lexeme);
+      DataType rhs_type = sa_infer_type(sa, node->assign.value);
+
+      if (!sym) {
+        sym = allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
+        sym->name = arena_strdup(&sa->parser->ast.allocator.base,
+                                 target->token->lexeme);
+        sym->kind = VAR;
+        sym->dtype = rhs_type;
+        sym->decl_node = node;
+        sym->scope_level = node->depth;
+        sym->scope = sa->current_scope;
+        sa_define_symbol(sa, sym);
+      } else {
+        // assignment to existing variable
+        if (!types_compatible(sym->dtype, rhs_type)) {
+          sa_set_error(
+              sa, SEM_TYPE_MISMATCH, sym->decl_node->token,
+              "cannot assign value of type '%s' to variable '%s' of type '%s'",
+              datatype_to_string(rhs_type), sym->name,
+              datatype_to_string(sym->dtype));
+          return false;
+        }
+      }
     }
     // Analyze value
     return analyze_node(sa, node->assign.value);

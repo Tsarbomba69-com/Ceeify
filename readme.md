@@ -22,12 +22,12 @@ The project serves as an exploration of **compiler and transpiler design**, feat
 
 ## ⚙️ Building Ceefiy
 
-All build operations are handled by the `build.sh` script at the scripts folder.
+All build operations are handled by the `tasks.sh` script at the scripts folder.
 
 ### 🔧 Generate Build Files
 
 ```bash
-./scripts/build.sh gen
+./scripts/tasks.sh gen
 ```
 
 This runs CMake to generate project files under the `build/` directory.
@@ -35,7 +35,7 @@ This runs CMake to generate project files under the `build/` directory.
 ### 🏗️ Build the Project
 
 ```bash
-./scripts/build.sh build
+./scripts/tasks.sh build
 ```
 
 This compiles the source and produces an executable (e.g. `ceeify`) under `./build`.
@@ -53,13 +53,13 @@ This compiles the source and produces an executable (e.g. `ceeify`) under `./bui
 Or, to run tests under **Valgrind** (for memory debugging):
 
 ```bash
-./build.sh valgrind_test
+./tasks.sh valgrind_test
 ```
 
 ### 🔍 Run Ceefiy Under Valgrind
 
 ```bash
-./build.sh valgrind_run path/to/script.py
+./tasks.sh valgrind_run path/to/script.py
 ```
 
 Valgrind is configured with:
@@ -75,8 +75,8 @@ Valgrind is configured with:
 To automatically format all `.c` and `.h` files using `clang-format`:
 
 ```bash
-./build.sh lint src
-./build.sh lint includes
+./tasks.sh lint src
+./tasks.sh lint includes
 ```
 
 This enforces your `.clang-format` style across the codebase.
