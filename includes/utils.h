@@ -11,10 +11,10 @@
 
 #define ANY(arr, size, el, cmp_expr, result)                                   \
   {                                                                            \
-    result = false;                                                            \
+    (result) = false;                                                          \
     for (size_t index = 0; index < (size); index++) {                          \
       if (cmp_expr) {                                                          \
-        result = true;                                                         \
+        (result) = true;                                                       \
         break;                                                                 \
       }                                                                        \
     }                                                                          \
@@ -25,9 +25,11 @@ enum {
 };
 
 #include "allocator.h"
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef enum {
   LOG_ALL = 0, // Display all logs
@@ -45,6 +47,19 @@ char *load_file_text(Allocator *allocator, const char *filename);
 bool save_file_text(const char *filename, char *text);
 
 char *slice(Allocator *allocator, const char *source, size_t start, size_t end);
+
+int safe_fprintf(FILE *f, const char *fmt, ...);
+
+static inline int safe_memcpy(void *dest, size_t destsz, const void *src,
+                              size_t count) {
+  if (!dest || !src)
+    return EINVAL;
+  if (count > destsz)
+    return ERANGE;
+
+  memcpy(dest, src, count);
+  return 0;
+}
 
 #define ASSERT(cond, msg)                                                      \
   do {                                                                         \

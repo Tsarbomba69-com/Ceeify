@@ -251,14 +251,15 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
     }
   }
 
-  char *lexeme = allocator_alloc(&lexer->tokens.allocator,
-                                 max_lexeme_length * sizeof(char) + 1);
+  size_t lexeme_size = max_lexeme_length * sizeof(char) + 1;
+  char *lexeme = allocator_alloc(&lexer->tokens.allocator, lexeme_size);
   if (lexeme == NULL) {
     slog_error("Failed to allocate memory for lexeme");
     return NULL;
   }
 
-  memcpy(lexeme, matched_operator, max_lexeme_length);
+  safe_memcpy(lexeme, max_lexeme_length * sizeof(char) + 1, matched_operator,
+              max_lexeme_length);
   lexeme[max_lexeme_length] = '\0';
   lexer->position += max_lexeme_length;
 

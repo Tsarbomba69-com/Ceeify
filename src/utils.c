@@ -8,6 +8,23 @@ void cleanup_file(void *p) {
   }
 }
 
+#include <stdio.h>
+
+int safe_fprintf(FILE *f, const char *fmt, ...) {
+  char buf[1024]; // choose consciously
+  va_list ap;
+
+  va_start(ap, fmt);
+  int n = vsnprintf(buf, sizeof buf, fmt, ap);
+  va_end(ap);
+
+  if (n < 0 || n >= (int)sizeof buf) {
+    return -1; // truncated or error
+  }
+
+  return fputs(buf, f) < 0 ? -1 : n;
+}
+
 char *load_file_text(Allocator *allocator, const char *filename) {
   char *text = NULL;
 
@@ -54,13 +71,14 @@ char *slice(Allocator *allocator, const char *source, size_t start,
     return NULL;
   }
 
-  char *result = allocator_alloc(allocator, (length + 1) * sizeof(char));
+  size_t dst_size = (length + 1) * sizeof(char);
+  char *result = allocator_alloc(allocator, dst_size);
   if (result == NULL) {
     slog_error("Failed to allocate memory for string slice");
     return NULL;
   }
 
-  memcpy(result, source + start, length);
+  safe_memcpy(result, dst_size, source + start, length);
   result[length] = '\0';
   return result;
 }
@@ -77,7 +95,7 @@ bool save_file_text(const char *filename, char *text) {
     return false;
   }
 
-  int count = fprintf(file, "%s", text);
+  int count = safe_fprintf(file, "%s", text);
   if (count == 0) {
     slog_error("FILE: [%s] Failed to write text file", filename);
     fclose(file);

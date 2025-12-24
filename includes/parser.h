@@ -3,7 +3,7 @@
 #pragma once
 
 // TODO: Implement error handling in the parser (e.g., unexpected tokens)
-// TODO: Add support for type annotation in assignments and function definitions 
+// TODO: Add support function return type annotations
 
 #include "ASTNode_linkedlist.h"
 #include "lexer.h"
@@ -103,6 +103,7 @@ typedef struct ASTNode {
     FunctionDef funcdef;
     CallExpr call;
     ASTNode *ret;
+    ASTNode *annotation;
     Context ctx;
     Compare compare;
     ASTNode_LinkedList import;

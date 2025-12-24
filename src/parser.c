@@ -109,6 +109,7 @@ ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
   node->type = type;
   node->token = token;
   node->depth = 1;
+  node->annotation = NULL;
   return node;
 }
 
@@ -145,6 +146,10 @@ cJSON *serialize_node(ASTNode *node) {
   case VARIABLE:
   case LITERAL:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
+    if (node->annotation) {
+      cJSON_AddItemToObject(root, "annotation",
+                            serialize_node(node->annotation));
+    }
     break;
   case BINARY_OPERATION:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
@@ -615,6 +620,13 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
   while (token != NULL && token->type != RPAR) {
     if (token->type == IDENTIFIER) {
       ASTNode *param_node = node_new(parser, token, VARIABLE);
+
+      if (parser->next && parser->next->type == COLON) {
+        next_token(parser); // Consume identifier
+        next_token(parser); // Consume COLON
+        param_node->annotation = parse_expression(parser, 0);
+      }
+
       ASTNode_add_last(&func_node->funcdef.params, param_node);
     } else if (token->type != COMMA) {
       syntax_error("expected parameter name or ','", parser->lexer->filename,
@@ -663,6 +675,34 @@ ASTNode *parse_statement(Parser *parser) {
     return parse_expression(parser, 0);
   }
   case IDENTIFIER: {
+    if (parser->next && parser->next->type == COLON) {
+      ASTNode *var = node_new(parser, token, VARIABLE);
+      next_token(parser);
+      next_token(parser);
+
+      // Parse the type (e.g., "int", "List", etc.)
+      var->annotation = parse_expression(parser, 0);
+
+      if (parser->next && strcmp(parser->next->lexeme, "=") == 0) {
+        next_token(parser); // Move to '='
+        Token *assign_token = parser->current;
+        next_token(parser); // Move to value
+        ASTNode *value = parse_expression(parser, 0);
+        ASTNode *assign_node = node_new(parser, assign_token, ASSIGNMENT);
+        assign_node->assign.targets =
+            ASTNode_new_with_allocator(&parser->ast.allocator, 1);
+        ASTNode_add_last(&assign_node->assign.targets, var);
+        assign_node->assign.value = value;
+        return assign_node;
+      }
+
+      ASTNode *assign_node = node_new(parser, NULL, ASSIGNMENT);
+      assign_node->assign.targets =
+          ASTNode_new_with_allocator(&parser->ast.allocator, 1);
+      ASTNode_add_last(&assign_node->assign.targets, var);
+      assign_node->assign.value = NULL;
+      return assign_node;
+    }
 
     if (parser->next && is_augassign_op(parser->next->lexeme)) {
       ASTNode_LinkedList targets = parse_identifier_list(parser, token);

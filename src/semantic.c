@@ -20,6 +20,22 @@ static SymbolTable *symbol_table_new(Allocator *allocator, SymbolTable *parent,
   return st;
 }
 
+DataType string_to_datatype(const char *name) {
+  if (strcmp(name, "int") == 0)
+    return INT;
+  if (strcmp(name, "float") == 0)
+    return FLOAT;
+  if (strcmp(name, "str") == 0)
+    return STR;
+  if (strcmp(name, "bool") == 0)
+    return BOOL;
+  if (strcmp(name, "list") == 0)
+    return LIST;
+  if (strcmp(name, "None") == 0)
+    return NONE;
+  return UNKNOWN;
+}
+
 bool types_compatible(DataType lhs, DataType rhs) {
   // Unknown types are never safe
   if (lhs == UNKNOWN || rhs == UNKNOWN) {
@@ -194,6 +210,10 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
   case BINARY_OPERATION:
     return infer_binary_op(sa, node);
   case VARIABLE: {
+    if (node->annotation) {
+      return string_to_datatype(node->annotation->token->lexeme);
+    }
+
     Symbol *sym = sa_lookup(sa, node->token->lexeme);
     if (sym) {
       return sym->dtype;
@@ -481,7 +501,7 @@ frame_done:;
 
   size_t line_len = line_end - line_start;
   char *line_content = (char *)malloc(line_len + 1);
-  memcpy(line_content, line_start, line_len);
+  safe_memcpy(line_content, line_len + 1, line_start, line_len);
   line_content[line_len] = 0;
 
   /* -----------------------------------------------------------

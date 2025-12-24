@@ -30,6 +30,26 @@ lint() {
   find "$dir" \( -name "*.c" -o -name "*.h" \) -print0 | xargs -0 clang-format -i
 }
 
+analyze() {
+  if [ ! -f ./build/compile_commands.json ]; then
+    echo "compile_commands.json not found. Run: ./tasks.sh gen"
+    return 1
+  fi
+
+  files=$(jq -r '.[].file' build/compile_commands.json | sort -u)
+
+  clang-tidy \
+    -p ./build \
+    -quiet \
+    -header-filter='^'$(pwd) \
+    -checks='bugprone-*,clang-analyzer-*,cert-*,performance-*' \
+    -warnings-as-errors='clang-analyzer-*' \
+    --use-color \
+    --format-style=llvm \
+    --fix-errors \
+    $files
+}
+
 # If a function name was passed, call it
 if [[ $# -gt 0 ]]; then
   "$@"

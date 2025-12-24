@@ -161,7 +161,7 @@ void test_semantic_function_call_arity_mismatch(void) {
 void test_semantic_function_call_type_mismatch(void) {
     // Arrange
     Lexer lexer = tokenize(
-        "def add(x, y):\n"
+        "def add(x: int, y: int):\n"
         "    return x + y\n"
         "add(1, \"hello\")\n",
         "test.py"
@@ -173,7 +173,6 @@ void test_semantic_function_call_type_mismatch(void) {
     // Assert
     TEST_ASSERT_TRUE(sa_has_error(&sa));
     TEST_ASSERT_EQUAL(SEM_TYPE_MISMATCH, err.type);
-    slog_error("Error message: %s", err.message);
     // Cleanup
     parser_free(&parser);
 }

@@ -59,6 +59,8 @@ int main(void) {
   RUN_TEST(test_parse_function_call_no_args);
   RUN_TEST(test_parse_nested_function_call);
   RUN_TEST(test_parse_call_inside_expression);
+  RUN_TEST(test_parse_annotated_assignment);
+  RUN_TEST(test_parse_function_def_with_annotations);
   // Semantic
   RUN_TEST(test_semantic_empty_program);
   RUN_TEST(test_semantic_simple_assignment);
@@ -73,7 +75,7 @@ int main(void) {
   return UNITY_END();
 }
 
-int _main(void) {
+int main2(void) {
   slog_init("ceeify", SLOG_FLAGS_ALL, 0);
   DEFER(cleanup) slog_config_t cfg;
   slog_config_get(&cfg);
@@ -83,6 +85,6 @@ int _main(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_semantic_undefined_variable_in_function);
+  RUN_TEST(test_semantic_function_call_type_mismatch);
   return UNITY_END();
 }
