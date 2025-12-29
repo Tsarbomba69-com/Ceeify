@@ -150,7 +150,9 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
 }
 
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
+  ASSERT(sa != NULL, "SemanticAnalyzer cannot be NULL in sa_infer_type");
   ASSERT(node != NULL, "Cannot infer type of NULL node");
+
   switch (node->type) {
   case LITERAL: {
     Token *tok = node->token;
@@ -214,6 +216,12 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
       return string_to_datatype(node->annotation->token->lexeme);
     }
 
+    DataType dtype = string_to_datatype(node->token->lexeme);
+
+    if (dtype != UNKNOWN) {
+      return dtype;
+    }
+
     Symbol *sym = sa_lookup(sa, node->token->lexeme);
     if (sym) {
       return sym->dtype;
@@ -222,6 +230,31 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
                    "name '%s' is not defined", node->token->lexeme);
       return UNKNOWN;
     }
+  } break;
+  case FUNCTION_DEF: {
+    DataType ret_type = VOID;
+
+    for (size_t cur = node->funcdef.body.head; cur != SIZE_MAX;
+         cur = node->funcdef.body.elements[cur].next) {
+      ASTNode *body_node = node->funcdef.body.elements[cur].data;
+      if (body_node->type == RETURN) {
+        ret_type = sa_infer_type(sa, body_node->ret);
+      }
+    }
+
+    if (node->funcdef.returns) {
+      DataType annotation_type = sa_infer_type(sa, node->funcdef.returns);
+      if (ret_type != annotation_type) {
+        sa_set_error(sa, SEM_TYPE_MISMATCH, node->funcdef.returns->token,
+                     "function return type annotation '%s' does not match "
+                     "inferred return type '%s'",
+                     datatype_to_string(annotation_type),
+                     datatype_to_string(ret_type));
+        return UNKNOWN;
+      }
+      return annotation_type;
+    }
+    return ret_type;
   } break;
   default:
     return VOID;
@@ -326,7 +359,6 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     sym->name = arena_strdup(&sa->parser->ast.allocator.base,
                              node->funcdef.name->token->lexeme);
     sym->kind = FUNCTION;
-    sym->dtype = sa_infer_type(sa, node);
     sym->decl_node = node;
     sym->scope_level = node->depth;
     sa_define_symbol(sa, sym);
@@ -355,6 +387,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       }
     }
 
+    sym->dtype = sa_infer_type(sa, node);
     sa_exit_scope(sa);
   } break;
   case RETURN: {

@@ -88,4 +88,14 @@ void test_lexer_augassign(void) {
   Token_free(&lexer.tokens);
 }
 
+void test_lexer_rarrow(void) {
+  Lexer lexer = tokenize("->", "test_file.py");
+  Token *token = Token_get(&lexer.tokens, lexer.token_idx);
+  TEST_ASSERT_EQUAL(RARROW, token->type);
+  TEST_ASSERT_EQUAL_STRING("->", token->lexeme);
+  TEST_ASSERT_EQUAL(1, token->line);
+  TEST_ASSERT_EQUAL(1, token->col);
+  Token_free(&lexer.tokens);
+}
+
 #endif

@@ -26,6 +26,7 @@ typedef enum TokenType {
   RPAR,
   LSQB,
   RSQB,
+  RARROW,
   ENDMARKER
 } TokenType;
 

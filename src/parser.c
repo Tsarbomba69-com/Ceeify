@@ -604,6 +604,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
 
   ASTNode *name_node = node_new(parser, token, VARIABLE);
   func_node->funcdef.name = name_node;
+  func_node->funcdef.returns = NULL;
 
   token = next_token(parser);
   if (token == NULL || token->type != LPAR) {
@@ -636,21 +637,20 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
     token = next_token(parser);
   }
 
-  // Expect colon
   token = next_token(parser);
-  if (token == NULL || token->type != COLON) {
+  if (token && token->type == RARROW) {
+    next_token(parser);
+    func_node->funcdef.returns = parse_expression(parser, 0);
+    token = next_token(parser);
+  }
+
+  if (!token || token->type != COLON) {
     syntax_error("expected ':' after function parameters",
                  parser->lexer->filename, token);
     return NULL;
   }
 
   token = next_token(parser);
-  if (token == NULL || token->type != NEWLINE) {
-    syntax_error("expected newline after ':' in function declaration",
-                 parser->lexer->filename, token);
-    return NULL;
-  }
-
   func_node->funcdef.body =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
 
@@ -659,6 +659,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
     ASTNode *stmt = parse_statement(parser);
     if (stmt == NULL || stmt->type == END_BLOCK)
       break;
+      
     ASTNode_add_last(&func_node->funcdef.body, stmt);
   }
 
@@ -800,37 +801,6 @@ Parser parse(Lexer *lexer) {
   }
 
   return parser;
-}
-
-int8_t precedence(const char *op) {
-  // Unary operators
-  if (strcmp(op, "not") == 0)
-    return 5;
-
-  // Exponentiation
-  if (strcmp(op, "^") == 0)
-    return 4;
-
-  // Multiplicative
-  if (strcmp(op, "*") == 0 || strcmp(op, "/") == 0)
-    return 3;
-
-  // Additive
-  if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0)
-    return 2;
-
-  // Comparisons
-  if (strcmp(op, "<") == 0 || strcmp(op, ">") == 0 || strcmp(op, "<=") == 0 ||
-      strcmp(op, ">=") == 0 || strcmp(op, "==") == 0 || strcmp(op, "!=") == 0)
-    return 1;
-
-  // Logical AND / OR
-  if (strcmp(op, "and") == 0)
-    return 0;
-  if (strcmp(op, "or") == 0)
-    return -1;
-
-  return -99; // Unknown operator
 }
 
 void parser_free(Parser *parser) {

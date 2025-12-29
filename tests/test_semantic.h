@@ -81,7 +81,7 @@ void test_semantic_invalid_operation(void) {
 
 void test_semantic_function_declaration(void) {
   // Arrange
-  Lexer lexer = tokenize("def add(x, y):\n"
+  Lexer lexer = tokenize("def add(x: float, y: float):\n"
                          "    return x + y\n",
                          "test_file.py");
   Parser parser = parse(&lexer);
@@ -173,6 +173,48 @@ void test_semantic_function_call_type_mismatch(void) {
     // Assert
     TEST_ASSERT_TRUE(sa_has_error(&sa));
     TEST_ASSERT_EQUAL(SEM_TYPE_MISMATCH, err.type);
+    // Cleanup
+    parser_free(&parser);
+}
+
+void test_semantic_function_return_type_mismatch(void) {
+    // Arrange
+    Lexer lexer = tokenize(
+        "def f() -> int:\n"
+        "    return \"hello\"\n",
+        "test.py"
+    );
+    Parser parser = parse(&lexer);
+
+    // Act
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
+
+    // Assert
+    TEST_ASSERT_TRUE(sa_has_error(&sa));
+    TEST_ASSERT_EQUAL(SEM_TYPE_MISMATCH, err.type);
+
+    // Cleanup
+    parser_free(&parser);
+}
+
+void test_semantic_function_return_type_ok(void) {
+    // Arrange
+    Lexer lexer = tokenize(
+        "def f() -> int:\n"
+        "    return 42\n",
+        "test.py"
+    );
+    Parser parser = parse(&lexer);
+
+    // Act
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
+
+    // Assert
+    TEST_ASSERT_FALSE(sa_has_error(&sa));
+    TEST_ASSERT_EQUAL(SEM_OK, err.type);
+
     // Cleanup
     parser_free(&parser);
 }

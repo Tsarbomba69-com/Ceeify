@@ -32,6 +32,8 @@ Token *create_keyword_token(Lexer *lexer, char character);
 
 Token *create_newline_token(Lexer *lexer);
 
+Token *create_token_from_str(Lexer *lexer, char *lexeme, TokenType type);
+
 const char *token_type_to_string(TokenType type) {
   switch (type) {
   case KEYWORD:
@@ -60,6 +62,8 @@ const char *token_type_to_string(TokenType type) {
     return "COMMA";
   case COLON:
     return "COLON";
+  case RARROW:
+    return "RARROW";
   default:
     return "UNKNOWN";
   }
@@ -119,6 +123,12 @@ Lexer tokenize(const char *source, const char *filename) {
     }
 
     Token *token = NULL;
+
+    char next = lexer.source[lexer.position + 1];
+    if (character == '-' && next == '>') {
+      token = create_token_from_str(&lexer, "->", RARROW);
+    }
+
     const char *matched_operator = NULL;
     for (size_t i = 0; i < ARRAYSIZE(OPERATORS); i++) {
       if (character == OPERATORS[i]) {
@@ -444,4 +454,17 @@ cJSON *serialize_lexer(Lexer *lexer) {
   cJSON *tokens_json = serialize_tokens(&lexer->tokens);
   cJSON_AddItemToObject(root, "tokens", tokens_json);
   return root;
+}
+
+Token *create_token_from_str(Lexer *lexer, char *lexeme, TokenType type) {
+  Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
+  if (token == NULL) {
+    slog_error("Could not allocate memory for token");
+    return NULL;
+  }
+
+  token->lexeme = arena_strdup(&lexer->tokens.allocator.base, lexeme);
+  token->type = type;
+  lexer->position += strlen(lexeme);
+  return token;
 }

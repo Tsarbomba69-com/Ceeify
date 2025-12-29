@@ -40,6 +40,7 @@ int main(void) {
   RUN_TEST(test_lexer_square_brackets);
   RUN_TEST(test_lexer_endmarker);
   RUN_TEST(test_lexer_augassign);
+  RUN_TEST(test_lexer_rarrow);
   // Parser
   RUN_TEST(test_parser_single_number);
   RUN_TEST(test_parse_arithmetic_expression);
@@ -72,6 +73,8 @@ int main(void) {
   RUN_TEST(test_semantic_reassignment_type_mismatch);
   RUN_TEST(test_semantic_function_call_arity_mismatch);
   RUN_TEST(test_semantic_function_call_type_mismatch);
+  RUN_TEST(test_semantic_function_return_type_mismatch);
+  RUN_TEST(test_semantic_function_return_type_ok);
   return UNITY_END();
 }
 
@@ -85,6 +88,6 @@ int main2(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_semantic_function_call_type_mismatch);
+  RUN_TEST(test_semantic_function_declaration);
   return UNITY_END();
 }

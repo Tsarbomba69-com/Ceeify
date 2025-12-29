@@ -85,6 +85,7 @@ typedef struct {
   ASTNode *name;
   ASTNode_LinkedList params;
   ASTNode_LinkedList body;
+  ASTNode *returns;
 } FunctionDef;
 
 typedef struct {

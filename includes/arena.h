@@ -273,7 +273,8 @@ void *arena_memdup(Arena *a, void *data, size_t size) {
 #if defined(__clang__) || defined(__GNUC__)
 __attribute__((format(printf, 2, 3)))
 #endif
-char *arena_sprintf(Arena *a, const char *format, ...) {
+char *
+arena_sprintf(Arena *a, const char *format, ...) {
   va_list args;
   va_start(args, format);
   int n = vsnprintf(NULL, 0, format, args);
