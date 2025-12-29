@@ -67,10 +67,10 @@ target_link_libraries(test_ceeify unity cjson slog)
 # Apply sanitizer flags to all targets after they're defined
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
      set(SANITIZER_FLAGS "-fsanitize=address")
-     foreach(target ceeify test_ceeify cjson)
+     foreach(target ceeify test_ceeify)
          target_compile_options(${target} PRIVATE 
              -Wall -Wextra -Werror -pedantic ${SANITIZER_FLAGS}
-             -fdiagnostics-show-caret -Wunreachable-code -Wformat=2 -Wshadow)
+            -Wunreachable-code -Wformat=2 -Wshadow)
          target_link_options(${target} PRIVATE ${SANITIZER_FLAGS} -static-libasan)
      endforeach()
  endif()

@@ -1,8 +1,6 @@
 #include "ASTNode_linkedlist.h"
 
 ASTNode_LinkedList ASTNode_new(size_t capacity) {
-  assert(capacity > 0 && capacity <= SIZE_MAX);
-
   ASTNode_LinkedList list = {.capacity = capacity,
                              .head = SIZE_MAX,
                              .tail = SIZE_MAX,
@@ -22,8 +20,6 @@ ASTNode_LinkedList ASTNode_new(size_t capacity) {
 
 ASTNode_LinkedList ASTNode_new_with_allocator(Allocator *allocator,
                                               size_t capacity) {
-  assert(capacity > 0 && capacity <= SIZE_MAX);
-
   ASTNode_LinkedList list = {0};
   list.capacity = capacity;
   list.head = SIZE_MAX;

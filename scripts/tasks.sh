@@ -50,6 +50,26 @@ analyze() {
     $files
 }
 
+ikos() {
+  set -euo pipefail
+
+  BUILD_DIR="./build"
+
+  if [[ -d "$BUILD_DIR" ]]; then
+    echo "Removing existing build directory…"
+    rm -rf -- "$BUILD_DIR"
+  fi
+
+  echo "Configuring project with IKOS…"
+  # Reject interactive prompt
+  printf "n\n" | ikos-scan cmake -S . -B "$BUILD_DIR"
+  echo "Building project with IKOS…"
+  # Confirm interactive prompt
+  printf "Y\n" ikos-scan cmake --build "$BUILD_DIR"
+  echo "Generating IKOS report…"
+  ikos-view "$BUILD_DIR/ceeify.db"
+}
+
 # If a function name was passed, call it
 if [[ $# -gt 0 ]]; then
   "$@"

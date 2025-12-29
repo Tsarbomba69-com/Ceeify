@@ -539,6 +539,9 @@ void sa_enter_scope(SemanticAnalyzer *sa) {
   sa->current_scope = new_scope;
 }
 
+#if defined(__clang__) || defined(__GNUC__)
+__attribute__((format(printf, 4, 5)))
+#endif
 void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
                   const char *fmt, ...) {
   if (!sa) {
