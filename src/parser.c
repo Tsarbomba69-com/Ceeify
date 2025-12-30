@@ -659,7 +659,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
     ASTNode *stmt = parse_statement(parser);
     if (stmt == NULL || stmt->type == END_BLOCK)
       break;
-      
+
     ASTNode_add_last(&func_node->funcdef.body, stmt);
   }
 

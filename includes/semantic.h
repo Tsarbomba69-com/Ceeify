@@ -90,4 +90,6 @@ bool sa_has_error(SemanticAnalyzer *sa);
 
 SemanticError sa_get_error(SemanticAnalyzer *sa);
 
+DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
+
 #endif // SEMANTIC_H_

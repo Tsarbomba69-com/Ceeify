@@ -52,6 +52,8 @@ set(SOURCES
     src/utils.c
     src/profiler.c
     src/semantic.c
+    src/tac.c
+    src/string_builder.c
 )
 
 

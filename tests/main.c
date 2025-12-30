@@ -1,6 +1,7 @@
 #include "test_lexer.h"
 #include "test_parser.h"
 #include "test_semantic.h"
+#include "test_tac.h"
 #ifndef ARENA_IMPLEMENTATION
 #define ARENA_IMPLEMENTATION
 #include "arena.h"
@@ -75,6 +76,8 @@ int main(void) {
   RUN_TEST(test_semantic_function_call_type_mismatch);
   RUN_TEST(test_semantic_function_return_type_mismatch);
   RUN_TEST(test_semantic_function_return_type_ok);
+  // Three-address code (TAC)
+  RUN_TEST(test_tac_simple_assignment);
   return UNITY_END();
 }
 

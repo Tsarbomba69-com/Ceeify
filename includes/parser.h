@@ -3,7 +3,6 @@
 #pragma once
 
 // TODO: Implement error handling in the parser (e.g., unexpected tokens)
-// TODO: Add support function return type annotations
 
 #include "ASTNode_linkedlist.h"
 #include "lexer.h"

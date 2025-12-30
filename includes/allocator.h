@@ -202,23 +202,23 @@ static inline void *allocator_alloc_dbg(Allocator *arena, size_t size,
   return ptr;
 }
 
-static inline void *allocator_realloc_dbg(Allocator *arena, void *old_ptr,
+static inline void *allocator_realloc_dbg(Allocator *allocator, void *old_ptr,
                                           size_t old_size, size_t new_size,
                                           const char *file, int line) {
-  void *ptr = arena_realloc(&arena->base, old_ptr, old_size, new_size);
+  void *ptr = arena_realloc(&allocator->base, old_ptr, old_size, new_size);
 #if ARENA_DEBUG_MODE
   if (ptr) {
     int64_t diff = (int64_t)new_size - (int64_t)old_size;
-    arena->stats.realloc_count++;
+    allocator->stats.realloc_count++;
     if (diff > 0)
-      arena->stats.total_allocated += (size_t)diff;
+      allocator->stats.total_allocated += (size_t)diff;
     else
-      arena->stats.total_freed += (size_t)(-diff);
-    arena->stats.current_usage += diff;
-    if ((int64_t)arena->stats.current_usage < 0)
-      arena->stats.current_usage = 0;
+      allocator->stats.total_freed += (size_t)(-diff);
+    allocator->stats.current_usage += diff;
+    if ((int64_t)allocator->stats.current_usage < 0)
+      allocator->stats.current_usage = 0;
     global_stats_update(diff);
-    allocator_stats_log(arena, "realloc", file, line);
+    allocator_stats_log(allocator, "realloc", file, line);
   }
 #else
   (void)file;
@@ -275,8 +275,8 @@ static inline char *allocator_sprintf_dbg(Allocator *arena, const char *format,
 #define allocator_alloc(arena, size)                                           \
   allocator_alloc_dbg((arena), (size), __FILE__, __LINE__)
 
-#define allocator_realloc(arena, old, old_size, new_size)                      \
-  allocator_realloc_dbg((arena), (old), (old_size), (new_size), __FILE__,      \
+#define allocator_realloc(allocator, old, old_size, new_size)                  \
+  allocator_realloc_dbg((allocator), (old), (old_size), (new_size), __FILE__,  \
                         __LINE__)
 
 #define allocator_free(arena) allocator_free_dbg((arena), __FILE__, __LINE__)
