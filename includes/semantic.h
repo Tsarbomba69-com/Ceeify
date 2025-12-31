@@ -33,6 +33,7 @@ typedef struct SemanticError {
  * ----------------------------- */
 
 typedef struct Symbol {
+  size_t id;                 // unique identifier
   char *name;
   SymbolType kind;           // VAR, FUNCTION, MODULE, CLASS, BLOCK
   DataType dtype;            // INT, STR, BOOL, LIST, etc.
@@ -57,6 +58,7 @@ typedef struct SymbolTable {
  * ----------------------------- */
 
 typedef struct SemanticAnalyzer {
+  size_t next_symbol_id;
   SymbolTable *current_scope;
   SemanticError last_error;
   Parser *parser;
@@ -91,5 +93,9 @@ bool sa_has_error(SemanticAnalyzer *sa);
 SemanticError sa_get_error(SemanticAnalyzer *sa);
 
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
+
+static inline bool is_primitive(DataType type) {
+  return type == INT || type == FLOAT || type == STR || type == BOOL;
+}
 
 #endif // SEMANTIC_H_

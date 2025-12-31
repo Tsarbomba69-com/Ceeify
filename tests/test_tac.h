@@ -30,7 +30,7 @@ void test_tac_simple_assignment(void) {
     // Should generate something like:
     // %0 = CONST 5 (INT)
     // STORE %0 -> x
-    StringBuilder sb = tac_generate_code(&tac, &sa.parser->ast.allocator);
+    StringBuilder sb = tac_generate_code(&tac);
     slog_info("Generated TAC Code:\n%.*s", (int)sb.count, sb.items);
     // Cleanup
     parser_free(&parser);

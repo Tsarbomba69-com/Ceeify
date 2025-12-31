@@ -331,6 +331,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
 
       if (!sym) {
         sym = allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
+        sym->id = sa->next_symbol_id++;
         sym->name = arena_strdup(&sa->parser->ast.allocator.base,
                                  target->token->lexeme);
         sym->kind = VAR;

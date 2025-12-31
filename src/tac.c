@@ -6,6 +6,11 @@ static void gen_stmt(Tac *tac, ASTNode *node);
 
 static void gen_assign(Tac *tac, ASTNode *node);
 
+size_t tac_add_constant(TACProgram *program, ConstantValue value,
+                        DataType type);
+
+ConstantEntry *tac_get_constant(TACProgram *program, size_t id);
+
 static TACValue new_tac_value(size_t id, DataType type) {
   TACValue val;
   val.id = id;
@@ -117,6 +122,7 @@ TACProgram tac_generate(SemanticAnalyzer *sa) {
                       sizeof(TACInstruction) * sa->parser->ast.capacity);
   tac.program.count = 0;
   tac.program.capacity = sa->parser->ast.capacity;
+  tac.program.allocator = &sa->parser->ast.allocator;
   // Generate TAC for all AST nodes in the program
   ASTNode_LinkedList *program = &sa->parser->ast;
   for (size_t current = program->head; current != SIZE_MAX;
@@ -159,9 +165,10 @@ static void gen_assign(Tac *tac, ASTNode *node) {
     if (target->type == VARIABLE) {
       Symbol *sym = sa_lookup(tac->sa, target->token->lexeme);
       if (sym) {
-        TACValue var_addr = new_tac_value(0, sym->dtype);
+        TACValue var_addr = new_tac_value(sym->id, sym->dtype);
         TACInstruction instr = create_instruction(
-            TAC_STORE, value, new_tac_value(0, VOID), var_addr, NULL, NULL);
+            TAC_STORE, value, new_tac_value(tac->reg_counter, VOID), var_addr,
+            NULL, NULL);
         append_instruction(tac, instr);
       }
     }
@@ -174,20 +181,39 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
 
   switch (node->type) {
   case LITERAL: {
-    TACValue reg = new_reg(tac, sa_infer_type(tac->sa, node));
-    TACValue const_val = new_tac_value(0, reg.type);
+    DataType type = sa_infer_type(tac->sa, node);
+    ConstantValue const_val;
+    // TODO: Building a constant value should be a separated function
+    switch (type) {
+    case INT:
+      const_val.int_val = strtol(node->token->lexeme, NULL, 10);
+      break;
+    case FLOAT:
+      const_val.float_val = atof(node->token->lexeme);
+      break;
+    case STR:
+      const_val.str_val = node->token->lexeme;
+      break;
+    case BOOL:
+      const_val.int_val = strcmp(node->token->lexeme, "true") == 0 ? 1 : 0;
+      break;
+    case NONE:
+      const_val.ptr = NULL;
+      break;
+    default:
+      type = UNKNOWN;
+      const_val.ptr = NULL;
+      break;
+    }
 
-    // For simplicity, we store the constant value in lhs.id
-    // In a real implementation, you'd have a proper constant table
+    size_t const_id = tac_add_constant(&tac->program, const_val, type);
+    TACValue reg = new_reg(tac, type);
+    TACValue const_tac_val = new_tac_value(const_id, type);
     TACInstruction instr = create_instruction(
-        TAC_CONST, const_val, new_tac_value(0, VOID), reg, NULL, NULL);
-    // Store the constant value (simplified)
-    instr.lhs.id = (size_t)node->token->lexeme; // Just a placeholder
-
+        TAC_CONST, const_tac_val, new_tac_value(0, VOID), reg, NULL, NULL);
     append_instruction(tac, instr);
     return reg;
   }
-
   case VARIABLE: {
     Symbol *sym = sa_lookup(tac->sa, node->token->lexeme);
     if (!sym)
@@ -230,20 +256,32 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
 // |-----------------|
 
 // Format a TACValue as a string
+// TODO: Make program the first argument
 static void format_value(StringBuilder *sb, TACValue val, const char *prefix) {
   if (val.type == VOID) {
     sb_appendf(sb, "_");
-  } else {
-    sb_appendf(sb, "%s%zu:%s", prefix, val.id, type_to_str(val.type));
+    return;
   }
+
+  sb_appendf(sb, "%s%zu:%s", prefix, val.id, type_to_str(val.type));
+}
+
+static void format_value_ref(StringBuilder *sb, TACValue val, const char *prefix) {
+  if (val.type == VOID) {
+    sb_appendf(sb, "_");
+    return;
+  }
+
+  sb_appendf(sb, "%s%zu", prefix, val.id);
 }
 
 // Generate TAC code from a TACProgram and return it as a StringBuilder
-StringBuilder tac_generate_code(TACProgram *program, Allocator *allocator) {
+StringBuilder tac_generate_code(TACProgram *program) {
   StringBuilder sb = {0};
-  sb.allocator = allocator;
-  sb.items = allocator_alloc(allocator, ARENA_DA_INIT_CAP * sizeof(char));
-    sb.count = 0;
+  sb.allocator = program->allocator;
+  sb.items =
+      allocator_alloc(program->allocator, ARENA_DA_INIT_CAP * sizeof(char));
+  sb.count = 0;
   sb.capacity = ARENA_DA_INIT_CAP;
   if (!program) {
     return sb;
@@ -267,15 +305,39 @@ StringBuilder tac_generate_code(TACProgram *program, Allocator *allocator) {
       break;
 
     case TAC_CONST: {
-      StringBuilder result_sb = {.allocator = allocator};
-      format_value(&result_sb, instr->result, "t");
-      sb_appendf(&sb, "    %.*s = CONST %lu\n", (int)result_sb.count,
-                 result_sb.items, instr->lhs.id);
+      StringBuilder res_sb = {.allocator = program->allocator};
+      format_value(&res_sb, instr->result, "t");
+
+      ConstantEntry *c = tac_get_constant(program, instr->lhs.id);
+      ASSERT(c, "CONST instruction missing constant");
+
+      switch (c->type) {
+      case INT:
+        sb_appendf(&sb, "    %.*s = CONST %ld\n", (int)res_sb.count,
+                   res_sb.items, c->value.int_val);
+        break;
+      case FLOAT:
+        sb_appendf(&sb, "    %.*s = CONST %f\n", (int)res_sb.count,
+                   res_sb.items, c->value.float_val);
+        break;
+      case STR:
+        sb_appendf(&sb, "    %.*s = CONST \"%s\"\n", (int)res_sb.count,
+                   res_sb.items, c->value.str_val);
+        break;
+      case BOOL:
+        sb_appendf(&sb, "    %.*s = CONST %zu\n", (int)res_sb.count,
+                   res_sb.items, c->value.int_val);
+        break;
+      default:
+        sb_appendf(&sb, "    %.*s = CONST <unknown>\n", (int)res_sb.count,
+                   res_sb.items);
+      }
       break;
     }
 
     case TAC_LOAD: {
-      StringBuilder lhs_sb = {.allocator = allocator}, res_sb = {.allocator = allocator};
+      StringBuilder lhs_sb = {.allocator = program->allocator},
+                    res_sb = {.allocator = program->allocator};
       format_value(&lhs_sb, instr->lhs, "v");
       format_value(&res_sb, instr->result, "t");
       sb_appendf(&sb, "    %.*s = LOAD %.*s\n", (int)res_sb.count, res_sb.items,
@@ -284,11 +346,14 @@ StringBuilder tac_generate_code(TACProgram *program, Allocator *allocator) {
     }
 
     case TAC_STORE: {
-      StringBuilder lhs_sb = {.allocator = allocator}, res_sb = {.allocator = allocator};
-      format_value(&lhs_sb, instr->lhs, "t");
-      format_value(&res_sb, instr->result, "v");
-      sb_appendf(&sb, "    %.*s = STORE %.*s\n", (int)res_sb.count,
-                 res_sb.items, (int)lhs_sb.count, lhs_sb.items);
+      StringBuilder src_sb = {.allocator = program->allocator};
+      StringBuilder dst_sb = {.allocator = program->allocator};
+
+      format_value_ref(&src_sb, instr->lhs, "t");
+      format_value(&dst_sb, instr->result, "v");
+
+      sb_appendf(&sb, "    %.*s = %.*s\n", (int)dst_sb.count, dst_sb.items,
+                 (int)src_sb.count, src_sb.items);
       break;
     }
 
@@ -392,24 +457,21 @@ StringBuilder tac_generate_pretty_code(TACProgram *program) {
     }
 
     case TAC_LOAD: {
-      StringBuilder lhs_sb = {0}, res_sb = {0};
-      format_value(&lhs_sb, instr->lhs, "v");
-      format_value(&res_sb, instr->result, "t");
-      sb_appendf(&sb, "%.*s = LOAD %.*s", (int)res_sb.count, res_sb.items,
-                 (int)lhs_sb.count, lhs_sb.items);
-      free(lhs_sb.items);
-      free(res_sb.items);
+      StringBuilder src_sb = {.allocator = program->allocator};
+      StringBuilder dst_sb = {.allocator = program->allocator};
+      format_value(&src_sb, instr->lhs, "v");
+      format_value(&dst_sb, instr->result, "t");
+      sb_appendf(&sb, "    %.*s = %.*s\n", (int)dst_sb.count, dst_sb.items,
+                 (int)src_sb.count, src_sb.items);
       break;
     }
 
     case TAC_STORE: {
-      StringBuilder lhs_sb = {0}, res_sb = {0};
+      StringBuilder lhs_sb = {.allocator = program->allocator}, res_sb = {.allocator = program->allocator};
       format_value(&lhs_sb, instr->lhs, "t");
       format_value(&res_sb, instr->result, "v");
       sb_appendf(&sb, "%.*s = STORE %.*s", (int)res_sb.count, res_sb.items,
                  (int)lhs_sb.count, lhs_sb.items);
-      free(lhs_sb.items);
-      free(res_sb.items);
       break;
     }
 
@@ -528,4 +590,78 @@ void tac_append_instruction(StringBuilder *sb, TACInstruction *instr,
     sb_appendf(sb, "    %s\n", op_to_str(instr->op));
     break;
   }
+}
+
+size_t tac_add_constant(TACProgram *program, ConstantValue value,
+                        DataType type) {
+  if (!program)
+    return 0;
+
+  // Check if constant already exists
+  for (size_t i = 0; i < program->constants.count; i++) {
+    ConstantEntry *entry = &program->constants.entries[i];
+    if (entry->type == type) {
+      switch (type) {
+      case INT:
+        if (entry->value.int_val == value.int_val)
+          return entry->id;
+        break;
+      case FLOAT:
+        if (entry->value.float_val == value.float_val)
+          return entry->id;
+        break;
+      case STR:
+        if (strcmp(entry->value.str_val, value.str_val) == 0)
+          return entry->id;
+        break;
+      case BOOL:
+        if (entry->value.int_val == value.int_val)
+          return entry->id;
+        break;
+      default:
+        break;
+      }
+    }
+  }
+
+  // Grow constant table if needed
+  if (program->constants.count >= program->constants.capacity) {
+    size_t new_capacity =
+        program->constants.capacity == 0 ? 16 : program->constants.capacity * 2;
+    ConstantEntry *new_entries = allocator_realloc(
+        program->allocator, program->constants.entries,
+        program->constants.count, new_capacity * sizeof(ConstantEntry));
+    if (!new_entries)
+      return 0;
+
+    program->constants.entries = new_entries;
+    program->constants.capacity = new_capacity;
+  }
+
+  // Add new constant
+  ConstantEntry *entry = &program->constants.entries[program->constants.count];
+  entry->id = program->constants.next_id++;
+  entry->type = type;
+
+  // Copy value (handle strings specially)
+  if (type == STR) {
+    entry->value.str_val = value.str_val;
+  } else {
+    entry->value = value;
+  }
+
+  program->constants.count++;
+  return entry->id;
+}
+
+ConstantEntry *tac_get_constant(TACProgram *program, size_t id) {
+  if (!program)
+    return NULL;
+
+  for (size_t i = 0; i < program->constants.count; i++) {
+    if (program->constants.entries[i].id == id) {
+      return &program->constants.entries[i];
+    }
+  }
+  return NULL;
 }

@@ -8,6 +8,30 @@
 #include "string_builder.h"
 
 /* -----------------------------
+ *  CONSTANT TABLE
+ * ----------------------------- */
+
+typedef union ConstantValue {
+  int64_t int_val;
+  double float_val;
+  char *str_val;
+  void *ptr;
+} ConstantValue;
+
+typedef struct ConstantEntry {
+  ConstantValue value;
+  DataType type;
+  size_t id; // Unique identifier for this constant
+} ConstantEntry;
+
+typedef struct ConstantTable {
+  ConstantEntry *entries;
+  size_t count;
+  size_t capacity;
+  size_t next_id;
+} ConstantTable;
+
+/* -----------------------------
  *  CORE TYPES
  * ----------------------------- */
 
@@ -15,6 +39,8 @@ typedef struct TACProgram {
   struct TACInstruction *instructions;
   size_t count;
   size_t capacity;
+  ConstantTable constants;
+  Allocator *allocator;
 } TACProgram;
 
 typedef struct {
@@ -61,6 +87,6 @@ TACProgram tac_generate(SemanticAnalyzer *sa);
 
 void tac_free(TACProgram *program);
 
-StringBuilder tac_generate_code(TACProgram *program, Allocator *allocator);
+StringBuilder tac_generate_code(TACProgram *program);
 
 #endif // TAC_H
