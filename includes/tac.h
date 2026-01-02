@@ -60,6 +60,7 @@ typedef enum {
   TAC_MUL,
   TAC_DIV,
   TAC_CMP,
+  TAC_NEG,
   // Function operations
   TAC_CALL,
   TAC_RETURN,

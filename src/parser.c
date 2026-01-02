@@ -316,6 +316,7 @@ ASTNode *nud(Parser *parser) {
   case KEYWORD:
   case OPERATOR:
     if (is_prefix_operator(token)) {
+      next_token(parser);
       ASTNode *node = node_new(parser, token, UNARY_OPERATION);
       int8_t rbp = get_prefix_precedence(token->lexeme);
       node->bin_op.right = parse_expression(parser, rbp);

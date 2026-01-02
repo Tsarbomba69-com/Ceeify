@@ -8,6 +8,10 @@ static void gen_assign(Tac *tac, ASTNode *node);
 
 static TACValue gen_binary_op(Tac *tac, ASTNode *node);
 
+static TACValue gen_unary_op(Tac *tac, ASTNode *node);
+
+TACValue gen_const_value(Tac *tac, ASTNode *node);
+
 size_t tac_add_constant(TACProgram *program, ConstantValue value,
                         DataType type);
 
@@ -167,9 +171,9 @@ static void gen_assign(Tac *tac, ASTNode *node) {
       Symbol *sym = sa_lookup(tac->sa, target->token->lexeme);
       if (sym) {
         TACValue var_addr = new_tac_value(sym->id, sym->dtype);
-        TACInstruction instr = create_instruction(
-            TAC_STORE, value, new_tac_value(tac->reg_counter, VOID), var_addr,
-            NULL, NULL);
+        TACInstruction instr =
+            create_instruction(TAC_STORE, value, new_tac_value(sym->id, VOID),
+                               var_addr, NULL, NULL);
         append_instruction(tac, instr);
       }
     }
@@ -182,38 +186,7 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
 
   switch (node->type) {
   case LITERAL: {
-    DataType type = sa_infer_type(tac->sa, node);
-    ConstantValue const_val;
-    // TODO: Building a constant value should be a separated function
-    switch (type) {
-    case INT:
-      const_val.int_val = strtol(node->token->lexeme, NULL, 10);
-      break;
-    case FLOAT:
-      const_val.float_val = atof(node->token->lexeme);
-      break;
-    case STR:
-      const_val.str_val = node->token->lexeme;
-      break;
-    case BOOL:
-      const_val.int_val = strcmp(node->token->lexeme, "true") == 0 ? 1 : 0;
-      break;
-    case NONE:
-      const_val.ptr = NULL;
-      break;
-    default:
-      type = UNKNOWN;
-      const_val.ptr = NULL;
-      break;
-    }
-
-    size_t const_id = tac_add_constant(&tac->program, const_val, type);
-    TACValue reg = new_reg(tac, type);
-    TACValue const_tac_val = new_tac_value(const_id, type);
-    TACInstruction instr = create_instruction(
-        TAC_CONST, const_tac_val, new_tac_value(0, VOID), reg, NULL, NULL);
-    append_instruction(tac, instr);
-    return reg;
+    return gen_const_value(tac, node);
   }
   case VARIABLE: {
     Symbol *sym = sa_lookup(tac->sa, node->token->lexeme);
@@ -221,10 +194,7 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
       return new_tac_value(0, UNKNOWN);
 
     TACValue reg = new_reg(tac, sym->dtype);
-    TACValue var_addr = new_tac_value(0, sym->dtype);
-    // In a real implementation, var_addr.id would hold the variable's
-    // address/ID
-
+    TACValue var_addr = new_tac_value(sym->id, sym->dtype);
     TACInstruction instr = create_instruction(
         TAC_LOAD, var_addr, new_tac_value(0, VOID), reg, NULL, NULL);
     append_instruction(tac, instr);
@@ -239,8 +209,7 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
     // return gen_compare(tac, sa, node);
 
   case UNARY_OPERATION:
-    UNREACHABLE("Binary operations not yet implemented");
-    // return gen_unary_op(tac, sa, node);
+    return gen_unary_op(tac, node);
 
   case CALL:
     UNREACHABLE("Binary operations not yet implemented");
@@ -249,6 +218,39 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
   default:
     return new_tac_value(0, UNKNOWN);
   }
+}
+
+TACValue gen_const_value(Tac *tac, ASTNode *node) {
+  ASSERT(tac != NULL, "Tac cannot be NULL in gen_const_value");
+  ASSERT(node != NULL, "ASTNode cannot be NULL in gen_const_value");
+  ASSERT(node->type == LITERAL, "Node must be of type LITERAL");
+
+  ConstantValue const_val;
+  DataType dtype = sa_infer_type(tac->sa, node);
+
+  switch (dtype) {
+  case INT:
+    const_val.int_val = strtoll(node->token->lexeme, NULL, 10);
+    break;
+  case FLOAT:
+    const_val.float_val = strtod(node->token->lexeme, NULL);
+    break;
+  case STR:
+    const_val.str_val =
+        arena_strdup(&tac->sa->parser->ast.allocator.base, node->token->lexeme);
+    break;
+  default:
+    UNREACHABLE("Unsupported literal type in gen_const_value");
+  }
+
+  size_t const_id = tac_add_constant(&tac->program, const_val, dtype);
+  TACValue result = new_reg(tac, dtype);
+  TACValue const_value = new_tac_value(const_id, dtype);
+
+  TACInstruction instr = create_instruction(
+      TAC_CONST, const_value, new_tac_value(0, VOID), result, NULL, NULL);
+  append_instruction(tac, instr);
+  return result;
 }
 
 static TACValue gen_binary_op(Tac *tac, ASTNode *node) {
@@ -283,6 +285,46 @@ static TACValue gen_binary_op(Tac *tac, ASTNode *node) {
   TACInstruction instr = create_instruction(op, lhs, rhs, result, NULL, NULL);
   append_instruction(tac, instr);
   return result;
+}
+
+static TACValue gen_unary_op(Tac *tac, ASTNode *node) {
+  ASSERT(tac != NULL, "Tac cannot be NULL in gen_unary_op");
+  ASSERT(node != NULL, "ASTNode cannot be NULL in gen_unary_op");
+  ASSERT(node->type == UNARY_OPERATION, "Node must be UNARY_OPERATION");
+  ASSERT(node->token != NULL, "Unary operation node must have a token");
+
+  // Generate operand
+  TACValue operand = gen_expr(tac, node->bin_op.right);
+
+  // Infer result type
+  DataType result_type = sa_infer_type(tac->sa, node);
+
+  const char *op = node->token->lexeme;
+
+  /* Unary minus: -x ==> 0 - x */
+  if (strcmp(op, "-") == 0) {
+    Token zero_token = {
+        .type = NUMBER,
+        .lexeme = "0",
+        .line = 0,
+        .col = 0,
+        .ident = 0,
+    };
+    ASTNode *zero_node = node_new(tac->sa->parser, &zero_token, LITERAL);
+    TACValue zero_val = gen_const_value(tac, zero_node);
+    TACValue result = new_reg(tac, result_type);
+    TACInstruction instr =
+        create_instruction(TAC_SUB, zero_val, operand, result, NULL, NULL);
+    append_instruction(tac, instr);
+    return result;
+  }
+
+  /* Unary plus: +x ==> x (no-op) */
+  if (strcmp(op, "+") == 0) {
+    return operand;
+  }
+
+  UNREACHABLE("Unknown unary operator in gen_unary_op");
 }
 
 // |-----------------|
@@ -373,9 +415,9 @@ StringBuilder tac_generate_code(TACProgram *program) {
     case TAC_LOAD: {
       StringBuilder lhs_sb = {.allocator = program->allocator},
                     res_sb = {.allocator = program->allocator};
-      format_value(&lhs_sb, instr->lhs, "v");
+      format_value_ref(&lhs_sb, instr->lhs, "v");
       format_value(&res_sb, instr->result, "t");
-      sb_appendf(&sb, "    %.*s = LOAD %.*s\n", (int)res_sb.count, res_sb.items,
+      sb_appendf(&sb, "    %.*s = %.*s\n", (int)res_sb.count, res_sb.items,
                  (int)lhs_sb.count, lhs_sb.items);
       break;
     }
@@ -415,7 +457,6 @@ StringBuilder tac_generate_code(TACProgram *program) {
       sb_appendf(&sb, "    %.*s = CALL %s(%lu args)\n", (int)res_sb.count,
                  res_sb.items, instr->label ? instr->label : "unknown",
                  instr->lhs.id);
-      free(res_sb.items);
       break;
     }
 
@@ -439,7 +480,6 @@ StringBuilder tac_generate_code(TACProgram *program) {
       format_value(&lhs_sb, instr->lhs, "t");
       sb_appendf(&sb, "    CJUMP %.*s -> %s\n", (int)lhs_sb.count, lhs_sb.items,
                  instr->label ? instr->label : "unknown");
-      free(lhs_sb.items);
       break;
     }
 

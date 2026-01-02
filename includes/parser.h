@@ -113,6 +113,8 @@ typedef struct ASTNode {
 
 Parser parse(Lexer *lexer);
 
+ASTNode *node_new(Parser *parser, Token *token, NodeType type);
+
 void parser_free(Parser *parser);
 
 Token *next_token(Parser *parser);

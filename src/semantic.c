@@ -211,6 +211,8 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
   } break;
   case BINARY_OPERATION:
     return infer_binary_op(sa, node);
+  case UNARY_OPERATION:
+    return sa_infer_type(sa, node->bin_op.right);
   case VARIABLE: {
     if (node->annotation) {
       return string_to_datatype(node->annotation->token->lexeme);

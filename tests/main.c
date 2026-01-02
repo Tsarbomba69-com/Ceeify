@@ -79,6 +79,11 @@ int main(void) {
   // Three-address code (TAC)
   RUN_TEST(test_tac_simple_assignment);
   RUN_TEST(test_tac_binary_expression);
+  RUN_TEST(test_tac_variable_to_variable_assignment);
+  RUN_TEST(test_tac_variable_reassignment);
+  RUN_TEST(test_tac_expression_with_variable);
+  RUN_TEST(test_tac_multiple_statements);
+  RUN_TEST(test_tac_unary_minus);
   return UNITY_END();
 }
 
