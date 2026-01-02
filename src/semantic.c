@@ -450,6 +450,23 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       }
     }
   } break;
+
+  case IF: {
+    if (!analyze_node(sa, node->ctrl_stmt.test))
+      return false;
+    for (size_t cur = node->ctrl_stmt.body.head; cur != SIZE_MAX;
+         cur = node->ctrl_stmt.body.elements[cur].next) {
+      ASTNode *body_node = node->ctrl_stmt.body.elements[cur].data;
+      if (!analyze_node(sa, body_node))
+        return false;
+    }
+    for (size_t cur = node->ctrl_stmt.orelse.head; cur != SIZE_MAX;
+         cur = node->ctrl_stmt.orelse.elements[cur].next) {
+      ASTNode *else_node = node->ctrl_stmt.orelse.elements[cur].data;
+      if (!analyze_node(sa, else_node))
+        return false;
+    }
+  }
   default:
     break;
   }

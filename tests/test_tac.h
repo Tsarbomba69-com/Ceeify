@@ -176,4 +176,49 @@ void test_tac_unary_minus(void) {
   parser_free(&parser);
 }
 
+void test_tac_if_statement_no_else(void) {
+  Lexer lexer = tokenize(
+    "x = 1\n"
+    "if x:\n"
+    "    y = 2\n",
+    "test.py"
+  );
+
+  Parser parser = parse(&lexer);
+  SemanticAnalyzer sa = analyze_program(&parser);
+  TACProgram tac = tac_generate(&sa);
+  slog_info("%s", tac_generate_code(&tac).items);
+  TEST_ASSERT_NOT_NULL(tac.instructions);
+  TEST_ASSERT_TRUE(tac.count >= 7);
+
+  // 0: CONST 1
+  TEST_ASSERT_EQUAL_INT(TAC_CONST, tac.instructions[0].op);
+
+  // 1: STORE x
+  TEST_ASSERT_EQUAL_INT(TAC_STORE, tac.instructions[1].op);
+
+  // 2: LOAD x
+  TEST_ASSERT_EQUAL_INT(TAC_LOAD, tac.instructions[2].op);
+
+  // 3: JZ L0
+  TEST_ASSERT_EQUAL_INT(TAC_JZ, tac.instructions[3].op);
+
+  // 4: CONST 2
+  TEST_ASSERT_EQUAL_INT(TAC_CONST, tac.instructions[4].op);
+
+  // 5: STORE y
+  TEST_ASSERT_EQUAL_INT(TAC_STORE, tac.instructions[5].op);
+
+  // 6: LABEL L0
+  TEST_ASSERT_EQUAL_INT(TAC_LABEL, tac.instructions[6].op);
+
+  // Jump must target the label
+  TEST_ASSERT_EQUAL_STRING(
+    tac.instructions[6].label,
+    tac.instructions[3].label
+  );
+  // Cleanup
+  parser_free(&parser);
+}
+
 #endif // TEST_TAC_H_

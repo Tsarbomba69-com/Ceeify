@@ -6,6 +6,8 @@ static void gen_stmt(Tac *tac, ASTNode *node);
 
 static void gen_assign(Tac *tac, ASTNode *node);
 
+static void gen_if(Tac *tac, ASTNode *node);
+
 static TACValue gen_binary_op(Tac *tac, ASTNode *node);
 
 static TACValue gen_unary_op(Tac *tac, ASTNode *node);
@@ -149,6 +151,9 @@ static void gen_stmt(Tac *tac, ASTNode *node) {
   switch (node->type) {
   case ASSIGNMENT:
     gen_assign(tac, node);
+    break;
+  case IF:
+    gen_if(tac, node);
     break;
   default:
     slog_warn("TAC generation for node type %d not implemented", node->type);
@@ -475,6 +480,15 @@ StringBuilder tac_generate_code(TACProgram *program) {
       sb_appendf(&sb, "    JUMP %s\n", instr->label ? instr->label : "unknown");
       break;
 
+    case TAC_JZ: {
+      StringBuilder lhs_sb = {.allocator = program->allocator};
+      format_value_ref(&lhs_sb, instr->lhs, "t");
+
+      sb_appendf(&sb, "    JZ %.*s -> %s\n", (int)lhs_sb.count, lhs_sb.items,
+                 instr->label ? instr->label : "unknown");
+      break;
+    }
+
     case TAC_CJUMP: {
       StringBuilder lhs_sb = {0};
       format_value(&lhs_sb, instr->lhs, "t");
@@ -739,4 +753,31 @@ ConstantEntry *tac_get_constant(TACProgram *program, size_t id) {
     }
   }
   return NULL;
+}
+
+static const char *new_label(Tac *tac) {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "L%zu", tac->label_counter++);
+  return arena_strdup(&tac->sa->parser->ast.allocator.base, buf);
+}
+
+static void gen_if(Tac *tac, ASTNode *node) {
+  ASSERT(node->type == IF, "Expected IF");
+  TACValue cond = gen_expr(tac, node->ctrl_stmt.test);
+  const char *end_label = new_label(tac);
+  TACInstruction jz =
+      create_instruction(TAC_JZ, cond, new_tac_value(0, VOID),
+                         new_tac_value(0, VOID), end_label, NULL);
+  append_instruction(tac, jz);
+
+  // 4. Emit body
+  for (size_t cur = node->ctrl_stmt.body.head; cur != SIZE_MAX;
+       cur = node->ctrl_stmt.body.elements[cur].next) {
+    gen_stmt(tac, node->ctrl_stmt.body.elements[cur].data);
+  }
+
+  TACInstruction label = create_instruction(
+      TAC_LABEL, new_tac_value(0, VOID), new_tac_value(0, VOID),
+      new_tac_value(0, VOID), end_label, NULL);
+  append_instruction(tac, label);
 }

@@ -45,6 +45,7 @@ typedef struct TACProgram {
 
 typedef struct {
   size_t reg_counter;
+  size_t label_counter;
   TACProgram program;
   SemanticAnalyzer *sa;
 } Tac;
@@ -66,6 +67,7 @@ typedef enum {
   TAC_RETURN,
   // Control flow operations
   TAC_JUMP,
+  TAC_JZ,
   TAC_CJUMP,
   TAC_LABEL,
 } TACOp;

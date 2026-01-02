@@ -84,6 +84,7 @@ int main(void) {
   RUN_TEST(test_tac_expression_with_variable);
   RUN_TEST(test_tac_multiple_statements);
   RUN_TEST(test_tac_unary_minus);
+  RUN_TEST(test_tac_if_statement_no_else);
   return UNITY_END();
 }
 
