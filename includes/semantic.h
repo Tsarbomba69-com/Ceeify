@@ -33,7 +33,7 @@ typedef struct SemanticError {
  * ----------------------------- */
 
 typedef struct Symbol {
-  size_t id;                 // unique identifier
+  size_t id; // unique identifier
   char *name;
   SymbolType kind;           // VAR, FUNCTION, MODULE, CLASS, BLOCK
   DataType dtype;            // INT, STR, BOOL, LIST, etc.

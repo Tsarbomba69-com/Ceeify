@@ -6,6 +6,8 @@ static void gen_stmt(Tac *tac, ASTNode *node);
 
 static void gen_assign(Tac *tac, ASTNode *node);
 
+static TACValue gen_binary_op(Tac *tac, ASTNode *node);
+
 size_t tac_add_constant(TACProgram *program, ConstantValue value,
                         DataType type);
 
@@ -151,10 +153,9 @@ static void gen_stmt(Tac *tac, ASTNode *node) {
 }
 
 static void gen_assign(Tac *tac, ASTNode *node) {
-  if (node->type != ASSIGNMENT) {
-    slog_warn("gen_assign called with non-assignment node");
-    return;
-  }
+  ASSERT(tac != NULL, "Tac cannot be NULL in gen_assign");
+  ASSERT(node != NULL, "ASTNode cannot be NULL in gen_assign");
+  ASSERT(node->type == ASSIGNMENT, "Node must be of type ASSIGNMENT");
 
   ASTNode *value_node = node->assign.value;
   TACValue value = gen_expr(tac, value_node);
@@ -231,8 +232,7 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
   }
 
   case BINARY_OPERATION:
-    UNREACHABLE("Binary operations not yet implemented");
-    // return gen_binary_op(tac, sa, node);
+    return gen_binary_op(tac, node);
 
   case COMPARE:
     UNREACHABLE("Binary operations not yet implemented");
@@ -251,6 +251,40 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
   }
 }
 
+static TACValue gen_binary_op(Tac *tac, ASTNode *node) {
+  ASSERT(tac != NULL, "Tac cannot be NULL in gen_binary_op");
+  ASSERT(node != NULL, "ASTNode cannot be NULL in gen_binary_op");
+  ASSERT(node->type == BINARY_OPERATION, "Node must be BINARY_OPERATION");
+  ASSERT(node->token != NULL, "Binary operation node must have a token");
+
+  // Generate operands
+  TACValue lhs = gen_expr(tac, node->bin_op.left);
+  TACValue rhs = gen_expr(tac, node->bin_op.right);
+
+  // Infer result type from semantic analysis
+  DataType result_type = sa_infer_type(tac->sa, node);
+  TACValue result = new_reg(tac, result_type);
+
+  const char *op_lexeme = node->token->lexeme;
+  TACOp op;
+
+  if (strcmp(op_lexeme, "+") == 0) {
+    op = TAC_ADD;
+  } else if (strcmp(op_lexeme, "-") == 0) {
+    op = TAC_SUB;
+  } else if (strcmp(op_lexeme, "*") == 0) {
+    op = TAC_MUL;
+  } else if (strcmp(op_lexeme, "/") == 0) {
+    op = TAC_DIV;
+  } else {
+    UNREACHABLE("Invalid binary operator in gen_binary_op");
+  }
+
+  TACInstruction instr = create_instruction(op, lhs, rhs, result, NULL, NULL);
+  append_instruction(tac, instr);
+  return result;
+}
+
 // |-----------------|
 // | Printing region |
 // |-----------------|
@@ -266,7 +300,8 @@ static void format_value(StringBuilder *sb, TACValue val, const char *prefix) {
   sb_appendf(sb, "%s%zu:%s", prefix, val.id, type_to_str(val.type));
 }
 
-static void format_value_ref(StringBuilder *sb, TACValue val, const char *prefix) {
+static void format_value_ref(StringBuilder *sb, TACValue val,
+                             const char *prefix) {
   if (val.type == VOID) {
     sb_appendf(sb, "_");
     return;
@@ -362,16 +397,15 @@ StringBuilder tac_generate_code(TACProgram *program) {
     case TAC_MUL:
     case TAC_DIV:
     case TAC_CMP: {
-      StringBuilder lhs_sb = {0}, rhs_sb = {0}, res_sb = {0};
-      format_value(&lhs_sb, instr->lhs, "t");
-      format_value(&rhs_sb, instr->rhs, "t");
+      StringBuilder lhs_sb = {.allocator = program->allocator},
+                    rhs_sb = {.allocator = program->allocator},
+                    res_sb = {.allocator = program->allocator};
+      format_value_ref(&lhs_sb, instr->lhs, "t");
+      format_value_ref(&rhs_sb, instr->rhs, "t");
       format_value(&res_sb, instr->result, "t");
       sb_appendf(&sb, "    %.*s = %s %.*s, %.*s\n", (int)res_sb.count,
                  res_sb.items, op_to_str(instr->op), (int)lhs_sb.count,
                  lhs_sb.items, (int)rhs_sb.count, rhs_sb.items);
-      free(lhs_sb.items);
-      free(rhs_sb.items);
-      free(res_sb.items);
       break;
     }
 
@@ -467,7 +501,8 @@ StringBuilder tac_generate_pretty_code(TACProgram *program) {
     }
 
     case TAC_STORE: {
-      StringBuilder lhs_sb = {.allocator = program->allocator}, res_sb = {.allocator = program->allocator};
+      StringBuilder lhs_sb = {.allocator = program->allocator},
+                    res_sb = {.allocator = program->allocator};
       format_value(&lhs_sb, instr->lhs, "t");
       format_value(&res_sb, instr->result, "v");
       sb_appendf(&sb, "%.*s = STORE %.*s", (int)res_sb.count, res_sb.items,

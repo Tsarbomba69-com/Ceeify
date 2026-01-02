@@ -78,6 +78,7 @@ int main(void) {
   RUN_TEST(test_semantic_function_return_type_ok);
   // Three-address code (TAC)
   RUN_TEST(test_tac_simple_assignment);
+  RUN_TEST(test_tac_binary_expression);
   return UNITY_END();
 }
 
