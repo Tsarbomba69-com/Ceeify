@@ -2,8 +2,6 @@
 #define TAC_H_
 #pragma once
 
-// TODO: Implement constant table folding during TAC generation
-
 #include "semantic.h"
 #include "string_builder.h"
 
@@ -66,9 +64,9 @@ typedef enum {
   TAC_CALL,
   TAC_RETURN,
   // Control flow operations
-  TAC_JUMP,
+  TAC_JMP,
   TAC_JZ,
-  TAC_CJUMP,
+  TAC_CJMP,
   TAC_LABEL,
 } TACOp;
 
@@ -82,8 +80,7 @@ typedef struct TACInstruction {
   TACValue lhs;
   TACValue rhs;
   TACValue result;
-  const char *label;       // target / definition
-  const char *label_false; // for conditional jump
+  const char *label; // target / definition
 } TACInstruction;
 
 TACProgram tac_generate(SemanticAnalyzer *sa);

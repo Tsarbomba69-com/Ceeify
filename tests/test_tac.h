@@ -177,17 +177,17 @@ void test_tac_unary_minus(void) {
 }
 
 void test_tac_if_statement_no_else(void) {
-  Lexer lexer = tokenize(
-    "x = 1\n"
-    "if x:\n"
-    "    y = 2\n",
-    "test.py"
-  );
+  // Arrange
+  Lexer lexer = tokenize("x = 1\n"
+                         "if x:\n"
+                         "    y = 2\n",
+                         "test.py");
 
   Parser parser = parse(&lexer);
   SemanticAnalyzer sa = analyze_program(&parser);
+  // Act
   TACProgram tac = tac_generate(&sa);
-  slog_info("%s", tac_generate_code(&tac).items);
+  // Assert
   TEST_ASSERT_NOT_NULL(tac.instructions);
   TEST_ASSERT_TRUE(tac.count >= 7);
 
@@ -213,10 +213,107 @@ void test_tac_if_statement_no_else(void) {
   TEST_ASSERT_EQUAL_INT(TAC_LABEL, tac.instructions[6].op);
 
   // Jump must target the label
-  TEST_ASSERT_EQUAL_STRING(
-    tac.instructions[6].label,
-    tac.instructions[3].label
-  );
+  TEST_ASSERT_EQUAL_STRING(tac.instructions[6].label,
+                           tac.instructions[3].label);
+  // Cleanup
+  parser_free(&parser);
+}
+
+void test_tac_operator_precedence(void) {
+  Lexer lexer = tokenize("x = 1 + 2 * 3", "test.py");
+  Parser parser = parse(&lexer);
+  SemanticAnalyzer sa = analyze_program(&parser);
+
+  TACProgram tac = tac_generate(&sa);
+  // Expected:
+  // CONST 1
+  // CONST 2
+  // CONST 3
+  // MUL r1, r2 -> r3
+  // ADD r0, r3 -> r4
+  // STORE r4 -> x
+  TEST_ASSERT_EQUAL_INT(6, tac.count);
+
+  TEST_ASSERT_EQUAL_INT(TAC_MUL, tac.instructions[3].op);
+  TEST_ASSERT_EQUAL_INT(TAC_ADD, tac.instructions[4].op);
+  TEST_ASSERT_EQUAL_INT(TAC_STORE, tac.instructions[5].op);
+
+  parser_free(&parser);
+}
+
+void test_tac_parenthesized_expression(void) {
+  Lexer lexer = tokenize("x = (1 + 2) * 3", "test.py");
+  Parser parser = parse(&lexer);
+  SemanticAnalyzer sa = analyze_program(&parser);
+
+  TACProgram tac = tac_generate(&sa);
+
+  // ADD must happen before MUL
+  TEST_ASSERT_EQUAL_INT(TAC_ADD, tac.instructions[2].op);
+  TEST_ASSERT_EQUAL_INT(TAC_MUL, tac.instructions[4].op);
+
+  parser_free(&parser);
+}
+
+void test_tac_if_else_statement(void) {
+  Lexer lexer = tokenize("x = 1\n"
+                         "if x:\n"
+                         "    y = 2\n"
+                         "else:\n"
+                         "    y = 3\n",
+                         "test.py");
+
+  Parser parser = parse(&lexer);
+  SemanticAnalyzer sa = analyze_program(&parser);
+  TACProgram tac = tac_generate(&sa);
+  int32_t jz = -1, jmp = -1;
+  const char *jz_label = NULL;
+  const char *jmp_label = NULL;
+  int label_count = 0;
+
+  for (size_t i = 0; i < tac.count; i++) {
+    TACInstruction *in = &tac.instructions[i];
+
+    if (in->op == TAC_JZ || in->op == TAC_CJMP) {
+      jz = (int32_t)i;
+      jz_label = in->label;
+    }
+
+    if (in->op == TAC_JMP) {
+      jmp = (int32_t)i;
+      jmp_label = in->label;
+    }
+
+    if (in->op == TAC_LABEL) {
+      label_count++;
+    }
+  }
+
+  TEST_ASSERT_TRUE(jz >= 0);
+  TEST_ASSERT_TRUE(jmp >= 0);
+  TEST_ASSERT_TRUE(label_count == 2);
+
+  // Labels must exist
+  TEST_ASSERT_NOT_NULL(jz_label);
+  TEST_ASSERT_NOT_NULL(jmp_label);
+
+  // Labels must be different
+  TEST_ASSERT_NOT_EQUAL(jz_label, jmp_label);
+
+  // Both jump targets must be defined labels
+  int jz_label_found = 0, jmp_label_found = 0;
+
+  for (size_t i = 0; i < tac.count; i++) {
+    if (tac.instructions[i].op == TAC_LABEL) {
+      if (strcmp(tac.instructions[i].label, jz_label) == 0)
+        jz_label_found = 1;
+      if (strcmp(tac.instructions[i].label, jmp_label) == 0)
+        jmp_label_found = 1;
+    }
+  }
+
+  TEST_ASSERT_TRUE(jz_label_found);
+  TEST_ASSERT_TRUE(jmp_label_found);
   // Cleanup
   parser_free(&parser);
 }

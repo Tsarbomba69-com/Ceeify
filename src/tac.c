@@ -27,15 +27,13 @@ static TACValue new_tac_value(size_t id, DataType type) {
 }
 
 static TACInstruction create_instruction(TACOp op, TACValue lhs, TACValue rhs,
-                                         TACValue result, const char *label,
-                                         const char *label_false) {
+                                         TACValue result, const char *label) {
   TACInstruction instr;
   instr.op = op;
   instr.lhs = lhs;
   instr.rhs = rhs;
   instr.result = result;
   instr.label = label;
-  instr.label_false = label_false;
   return instr;
 }
 
@@ -45,9 +43,10 @@ static void append_instruction(Tac *tac, TACInstruction instr) {
   if (tac->program.count >= tac->program.capacity) {
     size_t new_capacity =
         tac->program.capacity == 0 ? 16 : tac->program.capacity * 2;
-    allocator_realloc(&tac->sa->parser->ast.allocator,
-                      tac->program.instructions, tac->sa->parser->ast.size,
-                      new_capacity * sizeof(TACInstruction));
+    tac->program.instructions =
+        allocator_realloc(tac->program.allocator, tac->program.instructions,
+                          tac->program.capacity * sizeof(TACInstruction),
+                          new_capacity * sizeof(TACInstruction));
     tac->program.capacity = new_capacity;
   }
 
@@ -101,10 +100,12 @@ static const char *op_to_str(TACOp op) {
     return "CALL";
   case TAC_RETURN:
     return "RETURN";
-  case TAC_JUMP:
-    return "JUMP";
-  case TAC_CJUMP:
-    return "CJUMP";
+  case TAC_JMP:
+    return "JMP";
+  case TAC_CJMP:
+    return "CJMP";
+  case TAC_JZ:
+    return "JZ";
   case TAC_LABEL:
     return "LABEL";
   default:
@@ -176,9 +177,8 @@ static void gen_assign(Tac *tac, ASTNode *node) {
       Symbol *sym = sa_lookup(tac->sa, target->token->lexeme);
       if (sym) {
         TACValue var_addr = new_tac_value(sym->id, sym->dtype);
-        TACInstruction instr =
-            create_instruction(TAC_STORE, value, new_tac_value(sym->id, VOID),
-                               var_addr, NULL, NULL);
+        TACInstruction instr = create_instruction(
+            TAC_STORE, value, new_tac_value(sym->id, VOID), var_addr, NULL);
         append_instruction(tac, instr);
       }
     }
@@ -201,7 +201,7 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
     TACValue reg = new_reg(tac, sym->dtype);
     TACValue var_addr = new_tac_value(sym->id, sym->dtype);
     TACInstruction instr = create_instruction(
-        TAC_LOAD, var_addr, new_tac_value(0, VOID), reg, NULL, NULL);
+        TAC_LOAD, var_addr, new_tac_value(0, VOID), reg, NULL);
     append_instruction(tac, instr);
     return reg;
   }
@@ -253,7 +253,7 @@ TACValue gen_const_value(Tac *tac, ASTNode *node) {
   TACValue const_value = new_tac_value(const_id, dtype);
 
   TACInstruction instr = create_instruction(
-      TAC_CONST, const_value, new_tac_value(0, VOID), result, NULL, NULL);
+      TAC_CONST, const_value, new_tac_value(0, VOID), result, NULL);
   append_instruction(tac, instr);
   return result;
 }
@@ -287,7 +287,7 @@ static TACValue gen_binary_op(Tac *tac, ASTNode *node) {
     UNREACHABLE("Invalid binary operator in gen_binary_op");
   }
 
-  TACInstruction instr = create_instruction(op, lhs, rhs, result, NULL, NULL);
+  TACInstruction instr = create_instruction(op, lhs, rhs, result, NULL);
   append_instruction(tac, instr);
   return result;
 }
@@ -319,7 +319,7 @@ static TACValue gen_unary_op(Tac *tac, ASTNode *node) {
     TACValue zero_val = gen_const_value(tac, zero_node);
     TACValue result = new_reg(tac, result_type);
     TACInstruction instr =
-        create_instruction(TAC_SUB, zero_val, operand, result, NULL, NULL);
+        create_instruction(TAC_SUB, zero_val, operand, result, NULL);
     append_instruction(tac, instr);
     return result;
   }
@@ -476,7 +476,7 @@ StringBuilder tac_generate_code(TACProgram *program) {
       }
       break;
 
-    case TAC_JUMP:
+    case TAC_JMP:
       sb_appendf(&sb, "    JUMP %s\n", instr->label ? instr->label : "unknown");
       break;
 
@@ -489,7 +489,7 @@ StringBuilder tac_generate_code(TACProgram *program) {
       break;
     }
 
-    case TAC_CJUMP: {
+    case TAC_CJMP: {
       StringBuilder lhs_sb = {0};
       format_value(&lhs_sb, instr->lhs, "t");
       sb_appendf(&sb, "    CJUMP %.*s -> %s\n", (int)lhs_sb.count, lhs_sb.items,
@@ -602,11 +602,11 @@ StringBuilder tac_generate_pretty_code(TACProgram *program) {
       }
       break;
 
-    case TAC_JUMP:
+    case TAC_JMP:
       sb_appendf(&sb, "JUMP %s", instr->label ? instr->label : "unknown");
       break;
 
-    case TAC_CJUMP: {
+    case TAC_CJMP: {
       StringBuilder lhs_sb = {0};
       format_value(&lhs_sb, instr->lhs, "t");
       sb_appendf(&sb, "CJUMP %.*s -> %s", (int)lhs_sb.count, lhs_sb.items,
@@ -667,11 +667,11 @@ void tac_append_instruction(StringBuilder *sb, TACInstruction *instr,
     }
     break;
 
-  case TAC_JUMP:
+  case TAC_JMP:
     sb_appendf(sb, "    JUMP %s\n", instr->label);
     break;
 
-  case TAC_CJUMP:
+  case TAC_CJMP:
     sb_appendf(sb, "    CJUMP t%zu -> %s\n", instr->lhs.id, instr->label);
     break;
 
@@ -764,20 +764,42 @@ static const char *new_label(Tac *tac) {
 static void gen_if(Tac *tac, ASTNode *node) {
   ASSERT(node->type == IF, "Expected IF");
   TACValue cond = gen_expr(tac, node->ctrl_stmt.test);
+  bool has_else = node->ctrl_stmt.orelse.head != SIZE_MAX;
+  const char *else_label = has_else ? new_label(tac) : NULL;
   const char *end_label = new_label(tac);
-  TACInstruction jz =
-      create_instruction(TAC_JZ, cond, new_tac_value(0, VOID),
-                         new_tac_value(0, VOID), end_label, NULL);
-  append_instruction(tac, jz);
 
-  // 4. Emit body
+  /* if not cond -> else or end */
+  append_instruction(tac,
+                     create_instruction(TAC_JZ, cond, new_tac_value(0, VOID),
+                                        new_tac_value(0, VOID),
+                                        has_else ? else_label : end_label));
+
+  /* then-body */
   for (size_t cur = node->ctrl_stmt.body.head; cur != SIZE_MAX;
        cur = node->ctrl_stmt.body.elements[cur].next) {
     gen_stmt(tac, node->ctrl_stmt.body.elements[cur].data);
   }
 
-  TACInstruction label = create_instruction(
-      TAC_LABEL, new_tac_value(0, VOID), new_tac_value(0, VOID),
-      new_tac_value(0, VOID), end_label, NULL);
-  append_instruction(tac, label);
+  /* jump over else */
+  if (has_else) {
+    append_instruction(tac,
+                       create_instruction(TAC_JMP, new_tac_value(0, VOID),
+                                          new_tac_value(0, VOID),
+                                          new_tac_value(0, VOID), end_label));
+    append_instruction(tac,
+                       create_instruction(TAC_LABEL, new_tac_value(0, VOID),
+                                          new_tac_value(0, VOID),
+                                          new_tac_value(0, VOID), else_label));
+
+    for (size_t cur = node->ctrl_stmt.orelse.head; cur != SIZE_MAX;
+         cur = node->ctrl_stmt.orelse.elements[cur].next) {
+      gen_stmt(tac, node->ctrl_stmt.orelse.elements[cur].data);
+    }
+  }
+
+  /* end label */
+  append_instruction(tac,
+                     create_instruction(TAC_LABEL, new_tac_value(0, VOID),
+                                        new_tac_value(0, VOID),
+                                        new_tac_value(0, VOID), end_label));
 }

@@ -85,6 +85,9 @@ int main(void) {
   RUN_TEST(test_tac_multiple_statements);
   RUN_TEST(test_tac_unary_minus);
   RUN_TEST(test_tac_if_statement_no_else);
+  RUN_TEST(test_tac_operator_precedence);
+  RUN_TEST(test_tac_parenthesized_expression);
+  RUN_TEST(test_tac_if_else_statement);
   return UNITY_END();
 }
 
