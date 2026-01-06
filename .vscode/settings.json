@@ -47,9 +47,9 @@
     },
     "cmake.debugConfig": {
         "args": [
-            "-dump-ast", 
-            "-o", "output.json",
-            "${workspaceFolder}/tests/mock/expression_parentheses_override_precedence.py",
+            "-emit", "c",
+            // "-o", "output.c",
+            "${workspaceFolder}/tests/mock/type_mismatch.py",
         ]
     }
 }

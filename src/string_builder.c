@@ -16,6 +16,15 @@
     }                                                                          \
   } while (0)
 
+StringBuilder sb_init(Allocator *allocator, size_t capacity) {
+  StringBuilder sb;
+  sb.items = allocator_alloc(allocator, capacity * sizeof(char));
+  sb.count = 0;
+  sb.capacity = capacity;
+  sb.allocator = allocator;
+  return sb;
+}
+
 int sb_appendf(StringBuilder *sb, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);

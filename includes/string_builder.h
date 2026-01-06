@@ -11,6 +11,8 @@ typedef struct {
   Allocator *allocator;
 } StringBuilder;
 
+StringBuilder sb_init(Allocator *allocator, size_t capacity);
+
 int sb_appendf(StringBuilder *sb, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 
 #endif // STRING_BUILDER_H_

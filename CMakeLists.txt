@@ -54,6 +54,7 @@ set(SOURCES
     src/semantic.c
     src/tac.c
     src/string_builder.c
+    src/codegen.c
 )
 
 

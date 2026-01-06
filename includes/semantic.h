@@ -61,7 +61,7 @@ typedef struct SemanticAnalyzer {
   size_t next_symbol_id;
   SymbolTable *current_scope;
   SemanticError last_error;
-  Parser *parser;
+  Parser parser;
 } SemanticAnalyzer;
 
 /* -----------------------------
@@ -97,5 +97,7 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
 static inline bool is_primitive(DataType type) {
   return type == INT || type == FLOAT || type == STR || type == BOOL;
 }
+
+const char *datatype_to_string(DataType t);
 
 #endif // SEMANTIC_H_

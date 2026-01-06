@@ -166,7 +166,6 @@ void test_if_elif_statement(void) {
                          "elif x < 20:\n"
                          "  y = 15\n",
                          "test_file.py");
-
   Parser parser = parse(&lexer);
 
   // Pop the top-level node

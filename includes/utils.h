@@ -109,4 +109,6 @@ static inline int safe_memcpy(void *dest, size_t destsz, const void *src,
 #define PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK)
 #endif
 
+#define UNUSED(value) (void)(value)
+
 #endif

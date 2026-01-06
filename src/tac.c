@@ -127,13 +127,13 @@ TACProgram tac_generate(SemanticAnalyzer *sa) {
   tac.sa = sa;
   tac.reg_counter = 0;
   tac.program.instructions =
-      allocator_alloc(&sa->parser->ast.allocator,
-                      sizeof(TACInstruction) * sa->parser->ast.capacity);
+      allocator_alloc(&sa->parser.ast.allocator,
+                      sizeof(TACInstruction) * sa->parser.ast.capacity);
   tac.program.count = 0;
-  tac.program.capacity = sa->parser->ast.capacity;
-  tac.program.allocator = &sa->parser->ast.allocator;
+  tac.program.capacity = sa->parser.ast.capacity;
+  tac.program.allocator = &sa->parser.ast.allocator;
   // Generate TAC for all AST nodes in the program
-  ASTNode_LinkedList *program = &sa->parser->ast;
+  ASTNode_LinkedList *program = &sa->parser.ast;
   for (size_t current = program->head; current != SIZE_MAX;
        current = program->elements[current].next) {
     ASTNode *node = program->elements[current].data;
@@ -242,7 +242,7 @@ TACValue gen_const_value(Tac *tac, ASTNode *node) {
     break;
   case STR:
     const_val.str_val =
-        arena_strdup(&tac->sa->parser->ast.allocator.base, node->token->lexeme);
+        arena_strdup(&tac->sa->parser.ast.allocator.base, node->token->lexeme);
     break;
   default:
     UNREACHABLE("Unsupported literal type in gen_const_value");
@@ -315,7 +315,7 @@ static TACValue gen_unary_op(Tac *tac, ASTNode *node) {
         .col = 0,
         .ident = 0,
     };
-    ASTNode *zero_node = node_new(tac->sa->parser, &zero_token, LITERAL);
+    ASTNode *zero_node = node_new(&tac->sa->parser, &zero_token, LITERAL);
     TACValue zero_val = gen_const_value(tac, zero_node);
     TACValue result = new_reg(tac, result_type);
     TACInstruction instr =
@@ -758,7 +758,7 @@ ConstantEntry *tac_get_constant(TACProgram *program, size_t id) {
 static const char *new_label(Tac *tac) {
   char buf[32];
   snprintf(buf, sizeof(buf), "L%zu", tac->label_counter++);
-  return arena_strdup(&tac->sa->parser->ast.allocator.base, buf);
+  return arena_strdup(&tac->sa->parser.ast.allocator.base, buf);
 }
 
 static void gen_if(Tac *tac, ASTNode *node) {

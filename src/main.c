@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "codegen.h"
 #include "profiler.h"
 #ifndef FLAG_IMPLEMENTATION
 #define FLAG_IMPLEMENTATION
@@ -9,6 +9,8 @@
 #define ARENA_IMPLEMENTATION
 #include "arena.h"
 #endif
+
+static Allocator allocator_global;
 
 #define MIN_CAP 1024
 
@@ -51,6 +53,25 @@ int dump_ast(const char *source_path, const char *out_file) {
   free(json);
   trace_buffer_destroy(&trace);
   return EXIT_SUCCESS;
+}
+
+Codegen compile_to_c(const char *source, const char *source_path) {
+  Lexer lexer = tokenize(source, source_path);
+  Parser parser = parse(&lexer);
+
+  SemanticAnalyzer sa = analyze_program(&parser);
+  if (sa_has_error(&sa)) {
+    slog_error(sa_get_error(&sa).message);
+    exit(EXIT_FAILURE);
+  }
+
+  Codegen cg = codegen_init(&sa);
+  if (!codegen_program(&cg)) {
+    slog_error("Code generation failed: %s", codegen_get_error(&cg).message);
+    exit(EXIT_FAILURE);
+  }
+
+  return cg;
 }
 
 void usage(FILE *stream) {
@@ -100,8 +121,9 @@ static void reorder_args(int *argc, char **argv) {
 }
 
 void cleanup(void *p) {
-  (void)p;
+  UNUSED(p);
   slog_destroy();
+  allocator_free(&allocator_global);
 }
 
 int main(int argc, char **argv) {
@@ -122,6 +144,7 @@ int main(int argc, char **argv) {
   bool *dump_flag = flag_bool("dump-ast", false,
                               "Dump the parse tree after parsing and stop");
   char **out_file = flag_str("o", NULL, "Output file (default: stdout)");
+  char **emit = flag_str("emit", "c", "Output kind: c | tac | llvm");
 
   /* reorder so flags can appear anywhere */
   reorder_args(&argc, argv);
@@ -152,6 +175,25 @@ int main(int argc, char **argv) {
   if (*dump_flag) {
     int rc = dump_ast(in_filepath, *out_file);
     return rc;
+  }
+
+  if (strcmp(*emit, "c") == 0) {
+    // Python → C
+    Codegen cg = compile_to_c(load_file_text(&allocator_global, in_filepath),
+                              in_filepath);
+    if (*out_file != NULL && strlen(*out_file) > 0) {
+      if (!save_file_text(*out_file, cg.output.items))
+        return EXIT_FAILURE;
+    } else {
+      slog_info("%s", cg.output.items);
+    }
+    codegen_free(&cg);
+  } else if (strcmp(*emit, "tac") == 0) {
+    // Python → TAC
+  } else if (strcmp(*emit, "llvm") == 0) {
+    // Python → LLVM
+  } else {
+    slog_error("unknown emit target: %s", *emit);
   }
 
   return EXIT_SUCCESS;

@@ -68,7 +68,7 @@ typedef struct Compare {
 } Compare;
 
 typedef struct Parser {
-  Lexer *lexer;
+  Lexer lexer;
   Token *current;
   Token *next;
   ASTNode_LinkedList ast;
@@ -121,7 +121,9 @@ Token *next_token(Parser *parser);
 
 Token *consume(Parser *parser, TokenType expected_type);
 
-int8_t precedence(const char *op);
+int8_t get_infix_precedence(const char *op);
+
+int8_t get_prefix_precedence(const char *op);
 
 cJSON *serialize_program(ASTNode_LinkedList *program);
 

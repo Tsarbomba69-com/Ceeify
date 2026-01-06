@@ -95,30 +95,43 @@ Lexer tokenize(const char *source, const char *filename) {
   size_t line = 1;
   size_t column = 1;
   size_t ident = 0;
+  bool at_line_start = true;
 
   while (lexer.position < lexer.source_length) {
     char character = lexer.source[lexer.position];
-    char prev = lexer.position > 0 ? lexer.source[lexer.position - 1] : ' ';
+    size_t token_start_col = column;
     size_t spaces = 0;
 
-    while (character == ' ' || character == '\t') {
-      if (character == ' ')
-        spaces++;
-      else
-        spaces += 4;
-      column++;
-      spaces += column;
-      character = lexer.source[++lexer.position];
+    if (at_line_start) {
+      while (character == ' ' || character == '\t') {
+        if (character == ' ')
+          spaces++;
+        else
+          spaces += 4;
+
+        lexer.position++;
+        character = lexer.source[lexer.position];
+      }
+
+      ident = spaces / 2;
+      column = spaces + 1;
+      at_line_start = false;
     }
 
-    size_t new_ident = spaces / 4;
-    ident = prev == '\n' && new_ident != ident ? new_ident : ident;
-
     if (character == '#') {
-      while ('\n' != lexer.source[++lexer.position])
-        continue;
+      while (lexer.position + 1 < lexer.source_length &&
+             lexer.source[lexer.position + 1] != '\n') {
+        lexer.position++;
+      }
+
+      if (lexer.position + 1 < lexer.source_length) {
+        lexer.position++;
+      }
+
       line++;
       column = 1;
+      at_line_start = true;
+      lexer.position++;
       continue;
     }
 
@@ -161,9 +174,10 @@ Lexer tokenize(const char *source, const char *filename) {
     }
 
     if (token != NULL) {
-      token->col = column;
+      token->col = token_start_col;
       token->line = line;
       token->ident = ident;
+      column += 1;
       Token_push(&lexer.tokens, token);
       continue;
     }
@@ -171,48 +185,53 @@ Lexer tokenize(const char *source, const char *filename) {
     if (matched_operator != NULL) {
       // Build the operator lexeme
       token = create_operator_token(&lexer, matched_operator);
-      token->col = column;
+      token->col = token_start_col;
       token->line = line;
       token->ident = ident;
+      column += strlen(token->lexeme);
       Token_push(&lexer.tokens, token);
       continue;
     }
 
     if (isdigit(character)) {
       token = create_number_token(&lexer, character);
-      token->col = column;
+      token->col = token_start_col;
       token->line = line;
       token->ident = ident;
+      column += strlen(token->lexeme);
       Token_push(&lexer.tokens, token);
       continue;
     }
 
     if (character == '\'' || character == '\"') {
       token = create_string_token(&lexer, character);
-      token->col = column;
+      token->col = token_start_col;
       token->line = line;
       token->ident = ident;
+      column += strlen(token->lexeme) + 2; // account for quotes
       Token_push(&lexer.tokens, token);
       continue;
     }
 
     if (isalpha(character) || character == '_') {
       token = create_keyword_token(&lexer, character);
-      token->col = column;
+      token->col = token_start_col;
       token->line = line;
       token->ident = ident;
+      column += strlen(token->lexeme);
       Token_push(&lexer.tokens, token);
       continue;
     }
 
     if (character == '\n') {
       token = create_newline_token(&lexer);
-      token->col = column;
-      token->line = line;
       token->ident = ident;
-      Token_push(&lexer.tokens, token);
+      token->col = token_start_col;
+      token->line = line;
+      column = 1;
       line++;
-      column = 0;
+      at_line_start = true;
+      Token_push(&lexer.tokens, token);
     }
 
     lexer.position++;

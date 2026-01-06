@@ -6,17 +6,17 @@ const char *AUG_ASSIGN_OPS[] = {"+=", "-=", "*=",  "@=",  "/=",  "%=", "&=",
                                 "|=", "^=", "<<=", ">>=", "**=", "//="};
 
 Token *next_token(Parser *parser) {
-  if (parser->lexer->token_idx >= parser->lexer->tokens.size) {
+  if (parser->lexer.token_idx >= parser->lexer.tokens.size) {
     parser->current = NULL;
     parser->next = NULL;
     return NULL;
   }
 
-  parser->current = Token_get(&parser->lexer->tokens, parser->lexer->token_idx);
-  parser->lexer->token_idx++;
+  parser->current = Token_get(&parser->lexer.tokens, parser->lexer.token_idx);
+  parser->lexer.token_idx++;
 
-  if (parser->lexer->token_idx < parser->lexer->tokens.size) {
-    parser->next = Token_get(&parser->lexer->tokens, parser->lexer->token_idx);
+  if (parser->lexer.token_idx < parser->lexer.tokens.size) {
+    parser->next = Token_get(&parser->lexer.tokens, parser->lexer.token_idx);
   } else {
     parser->next = NULL;
   }
@@ -38,7 +38,7 @@ ASTNode *bin_op_new(Parser *parser, Token *operation, ASTNode *left,
                     ASTNode *right);
 
 static inline Parser parser_new(Lexer *lexer) {
-  return (Parser){.lexer = lexer,
+  return (Parser){.lexer = *lexer,
                   .current = NULL,
                   .next = peek_token(lexer),
                   .ast = ASTNode_new(DEFAULT_CAP)};
@@ -330,7 +330,7 @@ ASTNode *nud(Parser *parser) {
 
   syntax_error(
       "expected start of expression (literal, variable, or prefix operator)",
-      parser->lexer->filename, token);
+      parser->lexer.filename, token);
   return NULL;
 }
 
@@ -447,7 +447,7 @@ ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token) {
 
   for (; next != NULL && next->type == COMMA; next = next_token(parser)) {
     if (token == NULL || token->type != IDENTIFIER) {
-      syntax_error("expected identifier after comma", parser->lexer->filename,
+      syntax_error("expected identifier after comma", parser->lexer.filename,
                    token);
     }
 
@@ -462,7 +462,7 @@ ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token) {
 Token *consume(Parser *parser, TokenType expected) {
   Token *token = next_token(parser);
   if (!token || token->type != expected) {
-    syntax_error("unexpected token", parser->lexer->filename, token);
+    syntax_error("unexpected token", parser->lexer.filename, token);
   }
   return token;
 }
@@ -487,7 +487,7 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
 
   if (parser->next == NULL || parser->next->type != NEWLINE) {
     syntax_error("expected newline after ':' in 'while' statement",
-                 parser->lexer->filename, parser->next);
+                 parser->lexer.filename, parser->next);
     return NULL;
   }
 
@@ -507,14 +507,14 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
       strcmp(parser->current->lexeme, "else") == 0) {
     next_token(parser);
     if (parser->current == NULL || parser->current->type != COLON) {
-      syntax_error("expected ':' after 'else'", parser->lexer->filename,
+      syntax_error("expected ':' after 'else'", parser->lexer.filename,
                    parser->current);
       return NULL;
     }
 
     if (parser->next == NULL || parser->next->type != NEWLINE) {
       syntax_error("expected newline after ':' in 'else' statement",
-                   parser->lexer->filename, parser->next);
+                   parser->lexer.filename, parser->next);
       return NULL;
     }
 
@@ -543,7 +543,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
   if (!parser->current || !parser->next || parser->current->type != COLON ||
       parser->next->type != NEWLINE) {
     syntax_error("expected newline after ':' in 'if' statement",
-                 parser->lexer->filename, parser->next);
+                 parser->lexer.filename, parser->next);
     return NULL;
   }
 
@@ -570,7 +570,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
     next_token(parser);
 
     if (parser->current == NULL || parser->current->type != COLON) {
-      syntax_error("expected ':' after 'else'", parser->lexer->filename,
+      syntax_error("expected ':' after 'else'", parser->lexer.filename,
                    parser->current);
       return NULL;
     }
@@ -580,7 +580,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
 
     if (parser->current == NULL || parser->current->type != NEWLINE) {
       syntax_error("expected newline after ':' in 'else' statement",
-                   parser->lexer->filename, parser->current);
+                   parser->lexer.filename, parser->current);
       return NULL;
     }
 
@@ -598,7 +598,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
 ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
   Token *token = next_token(parser);
   if (token == NULL || token->type != IDENTIFIER) {
-    syntax_error("expected function name after 'def'", parser->lexer->filename,
+    syntax_error("expected function name after 'def'", parser->lexer.filename,
                  token);
     return NULL;
   }
@@ -609,7 +609,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
 
   token = next_token(parser);
   if (token == NULL || token->type != LPAR) {
-    syntax_error("expected '(' after function name", parser->lexer->filename,
+    syntax_error("expected '(' after function name", parser->lexer.filename,
                  token);
     return NULL;
   }
@@ -631,7 +631,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
 
       ASTNode_add_last(&func_node->funcdef.params, param_node);
     } else if (token->type != COMMA) {
-      syntax_error("expected parameter name or ','", parser->lexer->filename,
+      syntax_error("expected parameter name or ','", parser->lexer.filename,
                    token);
       return NULL;
     }
@@ -647,7 +647,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
 
   if (!token || token->type != COLON) {
     syntax_error("expected ':' after function parameters",
-                 parser->lexer->filename, token);
+                 parser->lexer.filename, token);
     return NULL;
   }
 
@@ -809,6 +809,5 @@ void parser_free(Parser *parser) {
     return;
 
   ASTNode_free(&parser->ast);
-  Token_free(&parser->lexer->tokens);
-  parser->lexer = NULL;
+  Token_free(&parser->lexer.tokens);
 }

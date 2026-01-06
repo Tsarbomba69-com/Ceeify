@@ -61,7 +61,7 @@ const char *datatype_to_string(DataType t) {
   case INT:
     return "int";
   case STR:
-    return "string";
+    return "str";
   case BOOL:
     return "bool";
   case FLOAT:
@@ -148,7 +148,7 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
   sa_set_error(sa, SEM_UNKNOWN, node->token, "unknown binary operator");
   return UNKNOWN;
 }
-
+// TODO: Should report operations between numeric and other types as errors
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
   ASSERT(sa != NULL, "SemanticAnalyzer cannot be NULL in sa_infer_type");
   ASSERT(node != NULL, "Cannot infer type of NULL node");
@@ -267,7 +267,7 @@ SemanticAnalyzer analyze_program(Parser *parser) {
   SemanticAnalyzer sa = {0};
   SymbolTable *global_scope = symbol_table_new(&parser->ast.allocator, NULL, 0);
   sa.current_scope = global_scope;
-  sa.parser = parser;
+  sa.parser = *parser;
   sa.last_error.type = SEM_OK;
 
   if (parser != NULL && parser->ast.size == 0) {
@@ -315,6 +315,13 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       return false;
     }
     sym->dtype = sa_infer_type(sa, node);
+    if (sym->dtype == UNKNOWN) {
+      sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
+                   "cannot infer type of variable '%s'; add a type annotation "
+                   "or initialize it",
+                   node->token->lexeme);
+      return false;
+    }
   } break;
   case BINARY_OPERATION: {
     if (!analyze_node(sa, node->bin_op.left))
@@ -332,10 +339,10 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       DataType rhs_type = sa_infer_type(sa, node->assign.value);
 
       if (!sym) {
-        sym = allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
+        sym = allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
         sym->id = sa->next_symbol_id++;
-        sym->name = arena_strdup(&sa->parser->ast.allocator.base,
-                                 target->token->lexeme);
+        sym->name =
+            arena_strdup(&sa->parser.ast.allocator.base, target->token->lexeme);
         sym->kind = VAR;
         sym->dtype = rhs_type;
         sym->decl_node = node;
@@ -358,8 +365,8 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     return analyze_node(sa, node->assign.value);
   }
   case FUNCTION_DEF: {
-    Symbol *sym = allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
-    sym->name = arena_strdup(&sa->parser->ast.allocator.base,
+    Symbol *sym = allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
+    sym->name = arena_strdup(&sa->parser.ast.allocator.base,
                              node->funcdef.name->token->lexeme);
     sym->kind = FUNCTION;
     sym->decl_node = node;
@@ -371,9 +378,9 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
          cur = node->funcdef.params.elements[cur].next) {
       ASTNode *param = node->funcdef.params.elements[cur].data;
       Symbol *param_sym =
-          allocator_alloc(&sa->parser->ast.allocator, sizeof(Symbol));
+          allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
       param_sym->name =
-          arena_strdup(&sa->parser->ast.allocator.base, param->token->lexeme);
+          arena_strdup(&sa->parser.ast.allocator.base, param->token->lexeme);
       param_sym->kind = VAR;
       param_sym->dtype = UNKNOWN;
       param_sym->decl_node = param;
@@ -483,7 +490,7 @@ void sa_define_symbol(SemanticAnalyzer *sa, Symbol *sym) {
   }
 
   SymbolTableEntry *entry =
-      allocator_alloc(&sa->parser->ast.allocator, sizeof(SymbolTableEntry));
+      allocator_alloc(&sa->parser.ast.allocator, sizeof(SymbolTableEntry));
   entry->symbol = sym;
   entry->next = sa->current_scope->entries;
   sa->current_scope->entries = entry;
@@ -538,9 +545,8 @@ frame_done:;
   /* -----------------------------------------------------------
      Extract the line of source code where the error occurred
      ----------------------------------------------------------- */
-  const char *source = sa->parser->lexer->source;
+  const char *source = sa->parser.lexer.source;
   size_t line_number = tok->line;
-
   const char *line_start = source;
   size_t curr_line = 1;
 
@@ -562,15 +568,15 @@ frame_done:;
   /* -----------------------------------------------------------
      Build caret underline: place '^' under the token column
      ----------------------------------------------------------- */
-  size_t col = tok->col > 1 ? tok->col + 1 : 1;
-  char *highlight = malloc(col + 2);
-  memset(highlight, ' ', col);
-  highlight[col] = '^';
-  highlight[col + 1] = 0;
-  const char *filename = sa->parser->lexer->filename;
+  size_t col = tok->col + 1;
+  char *highlight = malloc(col + 1);
+  memset(highlight, ' ', col - 1);
+  highlight[col - 1] = '^';
+  highlight[col] = 0;
+  const char *filename = sa->parser.lexer.filename;
   size_t buf_size =
       strlen(filename) + strlen(line_content) + strlen(highlight) + 256;
-  char *msg = allocator_alloc(&sa->parser->ast.allocator, buf_size);
+  char *msg = allocator_alloc(&sa->parser.ast.allocator, buf_size);
   snprintf(msg, buf_size,
            "  File \"%s\", line %zu, in %s\n"
            "    %s\n"
@@ -586,7 +592,7 @@ frame_done:;
 void sa_enter_scope(SemanticAnalyzer *sa) {
   ASSERT(sa != NULL, "SemanticAnalyzer pointer is NULL in sa_enter_scope");
   SymbolTable *new_scope =
-      symbol_table_new(&sa->parser->ast.allocator, sa->current_scope,
+      symbol_table_new(&sa->parser.ast.allocator, sa->current_scope,
                        sa->current_scope ? sa->current_scope->depth + 1 : 0);
   ASSERT(new_scope != NULL, "Failed to allocate memory for new scope");
   new_scope->entries = NULL;
@@ -594,9 +600,7 @@ void sa_enter_scope(SemanticAnalyzer *sa) {
   sa->current_scope = new_scope;
 }
 
-#if defined(__clang__) || defined(__GNUC__)
-__attribute__((format(printf, 4, 5)))
-#endif
+PRINTF_FORMAT(4, 5)
 void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
                   const char *fmt, ...) {
   if (!sa) {
@@ -611,7 +615,7 @@ void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
   va_end(args);
   sa->last_error.type = type;
   sa->last_error.token = tok;
-  sa->last_error.detail = arena_strdup(&sa->parser->ast.allocator.base, buf);
+  sa->last_error.detail = arena_strdup(&sa->parser.ast.allocator.base, buf);
   sa->last_error.message = sa_format_error(sa);
 }
 

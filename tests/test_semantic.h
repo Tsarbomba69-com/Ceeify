@@ -142,7 +142,7 @@ void test_semantic_reassignment_type_mismatch(void) {
 void test_semantic_function_call_arity_mismatch(void) {
     // Arrange
     Lexer lexer = tokenize(
-        "def add(x, y):\n"
+        "def add(x: int, y: int):\n"
         "    return x + y\n"
         "add(1)\n",
         "test.py"
