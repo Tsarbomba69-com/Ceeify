@@ -48,8 +48,7 @@
     "cmake.debugConfig": {
         "args": [
             "-emit", "c",
-            // "-o", "output.c",
-            "${workspaceFolder}/tests/mock/type_mismatch.py",
+            "${workspaceFolder}/tests/mock/func_type_error_int_str.py",
         ]
     }
 }

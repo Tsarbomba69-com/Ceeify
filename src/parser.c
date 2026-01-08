@@ -322,6 +322,10 @@ ASTNode *nud(Parser *parser) {
       node->bin_op.right = parse_expression(parser, rbp);
       return node;
     }
+
+    if (strcmp(token->lexeme, "None") == 0) {
+      return node_new(parser, token, LITERAL);
+    }
     break;
 
   default:

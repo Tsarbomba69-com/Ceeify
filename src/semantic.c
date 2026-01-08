@@ -68,6 +68,8 @@ const char *datatype_to_string(DataType t) {
     return "float";
   case LIST:
     return "list";
+  case NONE:
+    return "None";
   default:
     return "<unknown>";
   }
@@ -115,8 +117,8 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
 
     sa_set_error(
         sa, SEM_TYPE_MISMATCH, node->token,
-        "unsupported operand types for operator (arithmetic): '%s' and '%s'",
-        datatype_to_string(lt), datatype_to_string(rt));
+        "unsupported operand type(s) for %s: '%s' and '%s'",
+        node->token->lexeme, datatype_to_string(lt), datatype_to_string(rt));
     return UNKNOWN;
   }
 
@@ -337,6 +339,10 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       ASTNode *target = node->assign.targets.elements[cur].data;
       Symbol *sym = sa_lookup(sa, target->token->lexeme);
       DataType rhs_type = sa_infer_type(sa, node->assign.value);
+
+      if (rhs_type == UNKNOWN) {
+        return false;
+      }
 
       if (!sym) {
         sym = allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
@@ -568,7 +574,7 @@ frame_done:;
   /* -----------------------------------------------------------
      Build caret underline: place '^' under the token column
      ----------------------------------------------------------- */
-  size_t col = tok->col + 1;
+  size_t col = tok->col;
   char *highlight = malloc(col + 1);
   memset(highlight, ' ', col - 1);
   highlight[col - 1] = '^';

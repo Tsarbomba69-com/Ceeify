@@ -118,6 +118,16 @@ Lexer tokenize(const char *source, const char *filename) {
       at_line_start = false;
     }
 
+    if (character == ' ' || character == '\t') {
+      if (character == ' ') {
+        column++;
+      } else {
+        column += 4;
+      }
+      lexer.position++;
+      continue;
+    }
+
     if (character == '#') {
       while (lexer.position + 1 < lexer.source_length &&
              lexer.source[lexer.position + 1] != '\n') {

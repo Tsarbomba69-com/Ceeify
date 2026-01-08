@@ -219,4 +219,24 @@ void test_semantic_function_return_type_ok(void) {
     parser_free(&parser);
 }
 
+void test_func_type_error_int_str(void) {
+    // Arrange
+    Lexer lexer = tokenize(
+        "def fun(age: int, name: str) -> None:\n"
+        "    result = age - name\n",
+        "test.py"
+    );
+    const char* expected_msg = "TypeError: unsupported operand type(s) for -: 'int' and 'str'";
+    // Act
+    Parser parser = parse(&lexer);
+    SemanticAnalyzer sa = analyze_program(&parser);
+    SemanticError err = sa_get_error(&sa);
+    // Assert
+    TEST_ASSERT_TRUE(sa_has_error(&sa));
+    TEST_ASSERT_EQUAL(SEM_TYPE_MISMATCH, err.type);
+    TEST_ASSERT_NOT_NULL(strstr(err.message, expected_msg));
+    // Cleanup
+    parser_free(&parser);
+}
+
 #endif // TEST_SEMANTIC_H_
