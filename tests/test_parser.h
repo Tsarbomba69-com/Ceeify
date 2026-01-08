@@ -505,8 +505,8 @@ void test_parse_annotated_assignment(void) {
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, node->type);
   ASTNode *target = ASTNode_pop(&node->assign.targets);
   TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
-  TEST_ASSERT_NOT_NULL(target->annotation);
-  TEST_ASSERT_EQUAL_STRING("int", target->annotation->token->lexeme);
+  TEST_ASSERT_NOT_NULL(target->child);
+  TEST_ASSERT_EQUAL_STRING("int", target->child->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("10", node->assign.value->token->lexeme);
   // Cleanup
   parser_free(&parser);
@@ -532,9 +532,9 @@ void test_parse_function_def_with_annotations(void) {
   TEST_ASSERT_EQUAL_STRING("v", param_v->token->lexeme);
 
   // Verify the annotation on the parameter
-  TEST_ASSERT_NOT_NULL(param_v->annotation);
-  TEST_ASSERT_EQUAL_INT(VARIABLE, param_v->annotation->type);
-  TEST_ASSERT_EQUAL_STRING("float", param_v->annotation->token->lexeme);
+  TEST_ASSERT_NOT_NULL(param_v->child);
+  TEST_ASSERT_EQUAL_INT(VARIABLE, param_v->child->type);
+  TEST_ASSERT_EQUAL_STRING("float", param_v->child->token->lexeme);
   parser_free(&parser);
 }
 

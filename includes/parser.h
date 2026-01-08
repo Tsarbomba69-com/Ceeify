@@ -96,15 +96,15 @@ typedef struct ASTNode {
   NodeType type;
   size_t depth;
   Token *token;
+  ASTNode *parent;
+  Context ctx; // I'm out of ideas for this will sufice
   union {
     BinOp bin_op;
     Assign assign;
     AugAssign aug_assign;
     FunctionDef def;
     CallExpr call;
-    ASTNode *ret;
-    ASTNode *annotation;
-    Context ctx;
+    ASTNode *child;
     Compare compare;
     ASTNode_LinkedList import;
     ControlFlowStatement ctrl_stmt;
@@ -132,6 +132,8 @@ cJSON *serialize_node(ASTNode *node);
 char *dump_program(ASTNode_LinkedList *program);
 
 char *dump_node(ASTNode *node);
+
+const char *node_type_to_string(NodeType type);
 
 static inline bool is_boolean_operator(Token *t) {
   return strcmp(t->lexeme, "and") == 0 || strcmp(t->lexeme, "or") == 0 ||

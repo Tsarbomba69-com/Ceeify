@@ -54,6 +54,21 @@ static bool is_augassign_op(const char *lexeme) {
   return false;
 }
 
+const char *ctx_to_str(Context ctx) {
+  switch (ctx)
+  {
+  case STORE:
+    return "STORE";
+  case LOAD:
+    return "LOAD";
+  case DEL:
+    return "DEL";
+  default:
+    UNREACHABLE("ctx_to_str");
+    break;
+  }
+}
+
 const char *node_type_to_string(NodeType type) {
   switch (type) {
   case IMPORT:
@@ -113,7 +128,8 @@ ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
   node->type = type;
   node->token = token;
   node->depth = 1;
-  node->annotation = NULL;
+  node->child = NULL;
+  node->ctx = LOAD;
   return node;
 }
 
@@ -150,9 +166,10 @@ cJSON *serialize_node(ASTNode *node) {
   case VARIABLE:
   case LITERAL:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
-    if (node->annotation) {
+    cJSON_AddStringToObject(root, "ctx", ctx_to_str(node->ctx));
+    if (node->child) {
       cJSON_AddItemToObject(root, "annotation",
-                            serialize_node(node->annotation));
+                            serialize_node(node->child));
     }
     break;
   case BINARY_OPERATION:
@@ -193,7 +210,7 @@ cJSON *serialize_node(ASTNode *node) {
     break;
   case RETURN:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
-    cJSON_AddItemToObject(root, "ret", serialize_node(node->ret));
+    cJSON_AddItemToObject(root, "ret", serialize_node(node->child));
     break;
   case CALL:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
@@ -634,9 +651,9 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
       if (parser->next && parser->next->type == COLON) {
         advance(parser); // Consume identifier
         advance(parser); // Consume COLON
-        param_node->annotation = parse_expression(parser, 0);
+        param_node->child = parse_expression(parser, 0);
       }
-
+      param_node->parent = func_node;
       ASTNode_add_last(&func_node->def.params, param_node);
     } else if (token->type != COMMA) {
       syntax_error("expected parameter name or ','", parser->lexer.filename,
@@ -650,6 +667,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
   if (token && token->type == RARROW) {
     advance(parser);
     func_node->def.returns = parse_expression(parser, 0);
+    func_node->def.returns->parent = func_node;
     token = advance(parser);
   }
 
@@ -669,6 +687,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
     if (stmt == NULL || stmt->type == END_BLOCK)
       break;
 
+    stmt->parent = func_node;
     ASTNode_add_last(&func_node->def.body, stmt);
   }
 
@@ -691,7 +710,7 @@ ASTNode *parse_statement(Parser *parser) {
       advance(parser);
 
       // Parse the type (e.g., "int", "List", etc.)
-      var->annotation = parse_expression(parser, 0);
+      var->child = parse_expression(parser, 0);
 
       if (parser->next && strcmp(parser->next->lexeme, "=") == 0) {
         advance(parser); // Move to '='
@@ -701,6 +720,7 @@ ASTNode *parse_statement(Parser *parser) {
         ASTNode *assign_node = node_new(parser, assign_token, ASSIGNMENT);
         assign_node->assign.targets =
             ASTNode_new_with_allocator(&parser->ast.allocator, 1);
+            var->ctx = STORE;
         ASTNode_add_last(&assign_node->assign.targets, var);
         assign_node->assign.value = value;
         return assign_node;
@@ -765,6 +785,7 @@ ASTNode *parse_statement(Parser *parser) {
 
     if (strcmp(token->lexeme, "class") == 0) {
       ASTNode *node = node_new(parser, token, CLASS_DEF);
+      node->parent = NULL;
       return parse_class_declaration(parser, node); 
     }
 
@@ -773,9 +794,9 @@ ASTNode *parse_statement(Parser *parser) {
       advance(parser);
 
       if (parser->next != NULL) {
-        node->ret = parse_expression(parser, 0);
+        node->child = parse_expression(parser, 0);
       } else {
-        node->ret = NULL;
+        node->child = NULL;
       }
       return node;
     }
@@ -831,8 +852,8 @@ ASTNode *parse_class_declaration(Parser *parser, ASTNode *class_node) {
         syntax_error("expected class name after 'class'", parser->lexer.filename, token);
         return NULL;
     }
+
     class_node->def.name = node_new(parser, token, VARIABLE);
-    
     // Initialize lists
     class_node->def.params = ASTNode_new_with_allocator(&parser->ast.allocator, 2);
     class_node->def.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
@@ -844,6 +865,7 @@ ASTNode *parse_class_declaration(Parser *parser, ASTNode *class_node) {
         while (parser->next && parser->next->type != RPAR) {
             advance(parser);
             ASTNode *base = parse_expression(parser, 0);
+            base->parent = class_node;
             ASTNode_add_last(&class_node->def.params, base);
             
             if (parser->next && parser->next->type == COMMA) {
@@ -867,11 +889,12 @@ ASTNode *parse_class_declaration(Parser *parser, ASTNode *class_node) {
     advance(parser); 
     while ((token = advance(parser)) != NULL) {
         ASTNode *stmt = parse_statement(parser);
-        
         // If parse_statement hits a NEWLINE with less indentation, it returns END_BLOCK
         if (stmt == NULL || stmt->type == END_BLOCK)
             break;
-
+        
+        if (stmt->type == VARIABLE) stmt->ctx = STORE;
+        stmt->parent = class_node;
         ASTNode_add_last(&class_node->def.body, stmt);
     }
 

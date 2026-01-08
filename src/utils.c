@@ -10,9 +10,7 @@ void cleanup_file(void *p) {
 
 #include <stdio.h>
 
-#if defined(__clang__) || defined(__GNUC__)
-__attribute__((format(printf, 2, 3)))
-#endif
+PRINTF_FORMAT(2, 3)
 int safe_fprintf(FILE *f, const char *fmt, ...) {
   char buf[1024 * 1024]; // choose consciously
   va_list ap;

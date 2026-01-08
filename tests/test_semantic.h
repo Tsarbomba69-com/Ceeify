@@ -227,5 +227,71 @@ void test_func_type_error_int_str(void) {
   // Cleanup
   parser_free(&parser);
 }
+// TODO: test & implement object attributes (member access operation)
+void test_semantic_class_inheritance_and_init(void) {
+  // Arrange
+  Lexer lexer = tokenize(
+      "class Animal:\n"
+      "    name: str\n"
+      "\n"
+      "class Dog(Animal):\n"
+      "    tails: int\n"
+      "\n"
+      "    def __init__(self, name: str):\n"
+      // "        self.name = name\n"
+      // "        self.tails = 1\n",
+      ,"test.py"
+  );
+
+  Parser parser = parse(&lexer);
+  // Act
+  SemanticAnalyzer sa = analyze_program(&parser);
+  // Assert: no semantic errors
+  TEST_ASSERT_FALSE(sa_has_error(&sa));
+
+  // Assert: Animal class exists
+  Symbol *animal = sa_lookup(&sa, "Animal");
+  TEST_ASSERT_NOT_NULL(animal);
+  TEST_ASSERT_EQUAL(CLASS, animal->kind);
+
+  // Assert: Dog class exists
+  Symbol *dog = sa_lookup(&sa, "Dog");
+  TEST_ASSERT_NOT_NULL(dog);
+  TEST_ASSERT_EQUAL(CLASS, dog->kind);
+
+  // Assert: Animal has field 'name'
+  Symbol *animal_name = NULL;
+  if (animal->scope) {
+    animal_name = sa_lookup((SemanticAnalyzer *) &(SemanticAnalyzer){
+        .current_scope = animal->scope
+    }, "name");
+  }
+  TEST_ASSERT_NOT_NULL(animal_name);
+  TEST_ASSERT_EQUAL(VAR, animal_name->kind);
+  TEST_ASSERT_EQUAL(STR, animal_name->dtype);
+
+  // Assert: Dog has field 'tails'
+  Symbol *dog_tails = NULL;
+  if (dog->scope) {
+    dog_tails = sa_lookup((SemanticAnalyzer *) &(SemanticAnalyzer){
+        .current_scope = dog->scope
+    }, "tails");
+  }
+  TEST_ASSERT_NOT_NULL(dog_tails);
+  TEST_ASSERT_EQUAL(VAR, dog_tails->kind);
+  TEST_ASSERT_EQUAL(INT, dog_tails->dtype);
+
+  // Assert: inherited field is visible in Dog
+  Symbol *dog_name = NULL;
+  if (dog->scope) {
+    dog_name = sa_lookup_member(dog, "name");
+  }
+  TEST_ASSERT_NOT_NULL(dog_name);
+  TEST_ASSERT_EQUAL(STR, dog_name->dtype);
+
+  // Cleanup
+  parser_free(&parser);
+}
+
 
 #endif // TEST_SEMANTIC_H_

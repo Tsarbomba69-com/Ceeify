@@ -47,8 +47,8 @@
     },
     "cmake.debugConfig": {
         "args": [
-            "-dump-ast",
-            "-o", "output.json",
+            "-o", "output.c",
+            "-emit", "c",
             "${workspaceFolder}/tests/mock/class_def.py",
         ]
     }

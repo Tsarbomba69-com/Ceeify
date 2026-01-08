@@ -84,7 +84,7 @@ bool gen_code(Codegen *cg, ASTNode *node) {
   } break;
   case RETURN: {
     sb_appendf(&cg->output, "    return ");
-    ASTNode *ret_expr = node->ret;
+    ASTNode *ret_expr = node->child;
     cg->is_standalone = false;
     gen_code(cg, ret_expr);
     sb_appendf(&cg->output, ";\n");
@@ -117,7 +117,7 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     }
   } break;
   default:
-    UNREACHABLE("Code generation for this node type is not implemented yet");
+    slog_fatal("Code generation for \"%s\" type is not implemented yet", node_type_to_string(node->type));
     break;
   }
   return true;

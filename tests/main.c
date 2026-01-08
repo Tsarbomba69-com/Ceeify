@@ -79,6 +79,7 @@ int main(void) {
   RUN_TEST(test_semantic_function_return_type_mismatch);
   RUN_TEST(test_semantic_function_return_type_ok);
   RUN_TEST(test_func_type_error_int_str);
+  RUN_TEST(test_semantic_class_inheritance_and_init);
   // Three-address code (TAC)
   RUN_TEST(test_tac_simple_assignment);
   RUN_TEST(test_tac_binary_expression);
