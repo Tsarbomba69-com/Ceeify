@@ -58,7 +58,6 @@ void test_expression_parentheses_override_precedence(void) {
   parser_free(&parser);
 }
 
-
 // Test parsing a variable assignment
 void test_parse_variable_assignment(void) {
   Lexer lexer = tokenize("x = 42", "test_file.py");
@@ -496,47 +495,47 @@ void test_parse_call_inside_expression(void) {
 }
 
 void test_parse_annotated_assignment(void) {
-    // Arrange
-    Lexer lexer = tokenize("x: int = 10", "test_file.py");
-    // Act
-    Parser parser = parse(&lexer);
-    ASTNode *node = ASTNode_pop(&parser.ast);
-    // Assert
-    TEST_ASSERT_NOT_NULL(node);
-    TEST_ASSERT_EQUAL_INT(ASSIGNMENT, node->type);
-    ASTNode *target = ASTNode_pop(&node->assign.targets);
-    TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
-    TEST_ASSERT_NOT_NULL(target->annotation); 
-    TEST_ASSERT_EQUAL_STRING("int", target->annotation->token->lexeme);
-    TEST_ASSERT_EQUAL_STRING("10", node->assign.value->token->lexeme);
-    // Cleanup
-    parser_free(&parser);
+  // Arrange
+  Lexer lexer = tokenize("x: int = 10", "test_file.py");
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+  // Assert
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, node->type);
+  ASTNode *target = ASTNode_pop(&node->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
+  TEST_ASSERT_NOT_NULL(target->annotation);
+  TEST_ASSERT_EQUAL_STRING("int", target->annotation->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("10", node->assign.value->token->lexeme);
+  // Cleanup
+  parser_free(&parser);
 }
 
 void test_parse_function_def_with_annotations(void) {
-    // Arrange
-    Lexer lexer = tokenize("def scale(v: float):\n"
-                           "    return v\n", 
-                           "test_file.py");
-    // Act
-    Parser parser = parse(&lexer);
-    ASTNode *node = ASTNode_pop(&parser.ast);
+  // Arrange
+  Lexer lexer = tokenize("def scale(v: float):\n"
+                         "    return v\n",
+                         "test_file.py");
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
 
-    // Assert
-    TEST_ASSERT_NOT_NULL(node);
-    TEST_ASSERT_EQUAL_INT(FUNCTION_DEF, node->type);
-    
-    // Check parameter list
-    ASTNode *param_v = ASTNode_pop(&node->funcdef.params);
-    TEST_ASSERT_NOT_NULL(param_v);
-    TEST_ASSERT_EQUAL_INT(VARIABLE, param_v->type);
-    TEST_ASSERT_EQUAL_STRING("v", param_v->token->lexeme);
+  // Assert
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(FUNCTION_DEF, node->type);
 
-    // Verify the annotation on the parameter
-    TEST_ASSERT_NOT_NULL(param_v->annotation);
-    TEST_ASSERT_EQUAL_INT(VARIABLE, param_v->annotation->type); 
-    TEST_ASSERT_EQUAL_STRING("float", param_v->annotation->token->lexeme);
-    parser_free(&parser);
+  // Check parameter list
+  ASTNode *param_v = ASTNode_pop(&node->funcdef.params);
+  TEST_ASSERT_NOT_NULL(param_v);
+  TEST_ASSERT_EQUAL_INT(VARIABLE, param_v->type);
+  TEST_ASSERT_EQUAL_STRING("v", param_v->token->lexeme);
+
+  // Verify the annotation on the parameter
+  TEST_ASSERT_NOT_NULL(param_v->annotation);
+  TEST_ASSERT_EQUAL_INT(VARIABLE, param_v->annotation->type);
+  TEST_ASSERT_EQUAL_STRING("float", param_v->annotation->token->lexeme);
+  parser_free(&parser);
 }
 
 #endif

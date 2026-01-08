@@ -30,6 +30,7 @@ typedef struct Codegen {
   SemanticAnalyzer sa;
   StringBuilder output;
   CodegenError last_error;
+  bool is_standalone; // Tracks if the current node should be treated as a statement
 } Codegen;
 
 /* -----------------------------

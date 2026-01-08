@@ -60,14 +60,32 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     for (size_t cur = node->funcdef.body.head; cur != SIZE_MAX;
          cur = node->funcdef.body.elements[cur].next) {
       ASTNode *body_node = node->funcdef.body.elements[cur].data;
+      cg->is_standalone = true;
       gen_code(cg, body_node);
     }
 
     sb_appendf(&cg->output, "}\n");
   } break;
+  case CALL: {
+    sb_appendf(&cg->output, "%s(", node->call.func->token->lexeme);
+    for (size_t cur = node->call.args.head; cur != SIZE_MAX;
+         cur = node->call.args.elements[cur].next) {
+      ASTNode *arg = node->call.args.elements[cur].data;
+      gen_code(cg, arg);
+      if (cur != node->call.args.tail) {
+        sb_appendf(&cg->output, ", ");
+      }
+    }
+    sb_appendf(&cg->output, ")");
+
+    if (cg->is_standalone) {
+      sb_appendf(&cg->output, ";\n");
+    }
+  } break;
   case RETURN: {
     sb_appendf(&cg->output, "    return ");
     ASTNode *ret_expr = node->ret;
+    cg->is_standalone = false;
     gen_code(cg, ret_expr);
     sb_appendf(&cg->output, ";\n");
   } break;
@@ -76,6 +94,7 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     sb_appendf(&cg->output, "%s", node->token->lexeme);
     break;
   case BINARY_OPERATION: {
+    cg->is_standalone = false;
     int8_t current_prec = get_infix_precedence(node->token->lexeme);
     int8_t left_prec = get_node_precedence(node->bin_op.left);
     int8_t right_prec = get_node_precedence(node->bin_op.right);
@@ -118,7 +137,7 @@ bool codegen_program(Codegen *cg) {
   for (size_t current = program->head; current != SIZE_MAX;
        current = program->elements[current].next) {
     ASTNode *node = program->elements[current].data;
-
+    cg->is_standalone = true;
     if (!gen_code(cg, node)) {
       return false;
     }

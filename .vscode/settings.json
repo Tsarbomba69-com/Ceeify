@@ -48,7 +48,8 @@
     "cmake.debugConfig": {
         "args": [
             "-emit", "c",
-            "${workspaceFolder}/tests/mock/func_type_error_int_str.py",
+            "-o", "output.c",
+            "${workspaceFolder}/tests/mock/return_function_call.py",
         ]
     }
 }

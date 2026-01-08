@@ -115,10 +115,10 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
       return (lt == FLOAT || rt == FLOAT) ? FLOAT : INT;
     }
 
-    sa_set_error(
-        sa, SEM_TYPE_MISMATCH, node->token,
-        "unsupported operand type(s) for %s: '%s' and '%s'",
-        node->token->lexeme, datatype_to_string(lt), datatype_to_string(rt));
+    sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
+                 "unsupported operand type(s) for %s: '%s' and '%s'",
+                 node->token->lexeme, datatype_to_string(lt),
+                 datatype_to_string(rt));
     return UNKNOWN;
   }
 
@@ -150,7 +150,7 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
   sa_set_error(sa, SEM_UNKNOWN, node->token, "unknown binary operator");
   return UNKNOWN;
 }
-// TODO: Should report operations between numeric and other types as errors
+
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
   ASSERT(sa != NULL, "SemanticAnalyzer cannot be NULL in sa_infer_type");
   ASSERT(node != NULL, "Cannot infer type of NULL node");
@@ -259,6 +259,16 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
       return annotation_type;
     }
     return ret_type;
+  } break;
+  case CALL: {
+    Symbol *sym = sa_lookup(sa, node->call.func->token->lexeme);
+    if (sym) {
+      return sym->dtype;
+    } else {
+      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->call.func->token,
+                   "name '%s' is not defined", node->call.func->token->lexeme);
+      return UNKNOWN;
+    }
   } break;
   default:
     return VOID;
@@ -481,7 +491,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       if (!analyze_node(sa, else_node))
         return false;
     }
-  }
+  } break;
   default:
     break;
   }

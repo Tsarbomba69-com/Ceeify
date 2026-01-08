@@ -779,6 +779,10 @@ ASTNode *parse_statement(Parser *parser) {
   case NEWLINE: {
     Token *next = parser->next;
 
+    while (parser->next && parser->next->type == NEWLINE) {
+        next_token(parser);
+    }
+
     if (next->ident != token->ident) {
       return node_new(parser, token, END_BLOCK);
     }

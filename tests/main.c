@@ -1,8 +1,8 @@
+#include "test_codegen.h"
 #include "test_lexer.h"
 #include "test_parser.h"
 #include "test_semantic.h"
 #include "test_tac.h"
-#include "test_codegen.h"
 #ifndef ARENA_IMPLEMENTATION
 #define ARENA_IMPLEMENTATION
 #include "arena.h"
@@ -92,6 +92,7 @@ int main(void) {
   RUN_TEST(test_tac_if_else_statement);
   // Codegen (Python -> C)
   RUN_TEST(test_codegen_function_return_literal);
+  RUN_TEST(test_codegen_function_call);
   return UNITY_END();
 }
 
