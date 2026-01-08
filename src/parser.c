@@ -32,6 +32,8 @@ ASTNode *parse_expression(Parser *parser, int8_t min_precedence);
 
 ASTNode *parse_call(Parser *parser, ASTNode *callee);
 
+ASTNode *parse_class_declaration(Parser *parser, ASTNode *class_node);
+
 bool blacklist_tokens(TokenType type, const TokenType blacklist[], size_t size);
 
 ASTNode *bin_op_new(Parser *parser, Token *operation, ASTNode *left,
@@ -82,6 +84,8 @@ const char *node_type_to_string(NodeType type) {
     return "FOR";
   case FUNCTION_DEF:
     return "FUNCTION DEF";
+  case CLASS_DEF:
+    return "CLASS DEF";
   case RETURN:
     return "RETURN";
   case CALL:
@@ -181,10 +185,11 @@ cJSON *serialize_node(ASTNode *node) {
                           serialize_program(&node->ctrl_stmt.orelse));
     break;
   case FUNCTION_DEF:
-    cJSON_AddItemToObject(root, "name", serialize_node(node->funcdef.name));
+  case CLASS_DEF:
+    cJSON_AddItemToObject(root, "name", serialize_node(node->def.name));
     cJSON_AddItemToObject(root, "params",
-                          serialize_program(&node->funcdef.params));
-    cJSON_AddItemToObject(root, "body", serialize_program(&node->funcdef.body));
+                          serialize_program(&node->def.params));
+    cJSON_AddItemToObject(root, "body", serialize_program(&node->def.body));
     break;
   case RETURN:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
@@ -476,7 +481,6 @@ ASTNode *parse_call(Parser *parser, ASTNode *callee) {
   node->call.func = callee;
   advance(parser);
   node->call.args = parse_argument_list(parser);
-  // next_token(parser);
   return node;
 }
 
@@ -608,8 +612,8 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
   }
 
   ASTNode *name_node = node_new(parser, token, VARIABLE);
-  func_node->funcdef.name = name_node;
-  func_node->funcdef.returns = NULL;
+  func_node->def.name = name_node;
+  func_node->def.returns = NULL;
 
   token = advance(parser);
   if (token == NULL || token->type != LPAR) {
@@ -618,7 +622,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
     return NULL;
   }
 
-  func_node->funcdef.params =
+  func_node->def.params =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
 
   // Parse parameters
@@ -633,7 +637,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
         param_node->annotation = parse_expression(parser, 0);
       }
 
-      ASTNode_add_last(&func_node->funcdef.params, param_node);
+      ASTNode_add_last(&func_node->def.params, param_node);
     } else if (token->type != COMMA) {
       syntax_error("expected parameter name or ','", parser->lexer.filename,
                    token);
@@ -645,7 +649,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
   token = advance(parser);
   if (token && token->type == RARROW) {
     advance(parser);
-    func_node->funcdef.returns = parse_expression(parser, 0);
+    func_node->def.returns = parse_expression(parser, 0);
     token = advance(parser);
   }
 
@@ -656,7 +660,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
   }
 
   token = advance(parser);
-  func_node->funcdef.body =
+  func_node->def.body =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
 
   // Parse function body
@@ -665,7 +669,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
     if (stmt == NULL || stmt->type == END_BLOCK)
       break;
 
-    ASTNode_add_last(&func_node->funcdef.body, stmt);
+    ASTNode_add_last(&func_node->def.body, stmt);
   }
 
   return func_node;
@@ -702,12 +706,7 @@ ASTNode *parse_statement(Parser *parser) {
         return assign_node;
       }
 
-      ASTNode *assign_node = node_new(parser, NULL, ASSIGNMENT);
-      assign_node->assign.targets =
-          ASTNode_new_with_allocator(&parser->ast.allocator, 1);
-      ASTNode_add_last(&assign_node->assign.targets, var);
-      assign_node->assign.value = NULL;
-      return assign_node;
+      return var;
     }
 
     if (parser->next && is_augassign_op(parser->next->lexeme)) {
@@ -764,6 +763,11 @@ ASTNode *parse_statement(Parser *parser) {
       return parse_function_declaration(parser, node);
     }
 
+    if (strcmp(token->lexeme, "class") == 0) {
+      ASTNode *node = node_new(parser, token, CLASS_DEF);
+      return parse_class_declaration(parser, node); 
+    }
+
     if (strcmp(token->lexeme, "return") == 0) {
       ASTNode *node = node_new(parser, token, RETURN);
       advance(parser);
@@ -818,4 +822,58 @@ void parser_free(Parser *parser) {
 
   ASTNode_free(&parser->ast);
   Token_free(&parser->lexer.tokens);
+}
+
+ASTNode *parse_class_declaration(Parser *parser, ASTNode *class_node) {
+    // 1. Consume Class Name
+    Token *token = advance(parser);
+    if (token == NULL || token->type != IDENTIFIER) {
+        syntax_error("expected class name after 'class'", parser->lexer.filename, token);
+        return NULL;
+    }
+    class_node->def.name = node_new(parser, token, VARIABLE);
+    
+    // Initialize lists
+    class_node->def.params = ASTNode_new_with_allocator(&parser->ast.allocator, 2);
+    class_node->def.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+
+    // 2. Handle Inheritance: class Dog(Animal):
+    if (parser->next && parser->next->type == LPAR) {
+        advance(parser); // Consume '('
+        
+        while (parser->next && parser->next->type != RPAR) {
+            advance(parser);
+            ASTNode *base = parse_expression(parser, 0);
+            ASTNode_add_last(&class_node->def.params, base);
+            
+            if (parser->next && parser->next->type == COMMA) {
+                advance(parser); // Consume ','
+            } else {
+                break;
+            }
+        }
+        consume(parser, RPAR);
+    }
+
+    // 3. Consume Colon
+    token = advance(parser);
+    if (!token || token->type != COLON) {
+        syntax_error("expected ':' after class definition", parser->lexer.filename, token);
+        return NULL;
+    }
+
+    // 4. Parse Class Body
+    // Expect a NEWLINE then increased indentation
+    advance(parser); 
+    while ((token = advance(parser)) != NULL) {
+        ASTNode *stmt = parse_statement(parser);
+        
+        // If parse_statement hits a NEWLINE with less indentation, it returns END_BLOCK
+        if (stmt == NULL || stmt->type == END_BLOCK)
+            break;
+
+        ASTNode_add_last(&class_node->def.body, stmt);
+    }
+
+    return class_node;
 }

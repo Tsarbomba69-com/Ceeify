@@ -47,9 +47,9 @@
     },
     "cmake.debugConfig": {
         "args": [
-            "-emit", "c",
-            "-o", "output.c",
-            "${workspaceFolder}/tests/mock/return_function_call.py",
+            "-dump-ast",
+            "-o", "output.json",
+            "${workspaceFolder}/tests/mock/class_def.py",
         ]
     }
 }

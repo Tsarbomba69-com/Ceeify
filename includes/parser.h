@@ -26,6 +26,7 @@ typedef enum NodeType {
   FUNCTION_DEF,
   RETURN,
   CALL,
+  CLASS_DEF,
   END_BLOCK
 } NodeType;
 
@@ -99,7 +100,7 @@ typedef struct ASTNode {
     BinOp bin_op;
     Assign assign;
     AugAssign aug_assign;
-    FunctionDef funcdef;
+    FunctionDef def;
     CallExpr call;
     ASTNode *ret;
     ASTNode *annotation;

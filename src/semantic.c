@@ -238,18 +238,18 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
   case FUNCTION_DEF: {
     DataType ret_type = NONE;
 
-    for (size_t cur = node->funcdef.body.head; cur != SIZE_MAX;
-         cur = node->funcdef.body.elements[cur].next) {
-      ASTNode *body_node = node->funcdef.body.elements[cur].data;
+    for (size_t cur = node->def.body.head; cur != SIZE_MAX;
+         cur = node->def.body.elements[cur].next) {
+      ASTNode *body_node = node->def.body.elements[cur].data;
       if (body_node->type == RETURN) {
         ret_type = sa_infer_type(sa, body_node->ret);
       }
     }
 
-    if (node->funcdef.returns) {
-      DataType annotation_type = sa_infer_type(sa, node->funcdef.returns);
+    if (node->def.returns) {
+      DataType annotation_type = sa_infer_type(sa, node->def.returns);
       if (ret_type != annotation_type) {
-        sa_set_error(sa, SEM_TYPE_MISMATCH, node->funcdef.returns->token,
+        sa_set_error(sa, SEM_TYPE_MISMATCH, node->def.returns->token,
                      "function return type annotation '%s' does not match "
                      "inferred return type '%s'",
                      datatype_to_string(annotation_type),
@@ -383,16 +383,16 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
   case FUNCTION_DEF: {
     Symbol *sym = allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
     sym->name = arena_strdup(&sa->parser.ast.allocator.base,
-                             node->funcdef.name->token->lexeme);
+                             node->def.name->token->lexeme);
     sym->kind = FUNCTION;
     sym->decl_node = node;
     sym->scope_level = node->depth;
     sa_define_symbol(sa, sym);
     sa_enter_scope(sa);
     sym->scope = sa->current_scope;
-    for (size_t cur = node->funcdef.params.head; cur != SIZE_MAX;
-         cur = node->funcdef.params.elements[cur].next) {
-      ASTNode *param = node->funcdef.params.elements[cur].data;
+    for (size_t cur = node->def.params.head; cur != SIZE_MAX;
+         cur = node->def.params.elements[cur].next) {
+      ASTNode *param = node->def.params.elements[cur].data;
       Symbol *param_sym =
           allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
       param_sym->name =
@@ -405,9 +405,9 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       param_sym->dtype = sa_infer_type(sa, param);
     }
 
-    for (size_t cur = node->funcdef.body.head; cur != SIZE_MAX;
-         cur = node->funcdef.body.elements[cur].next) {
-      ASTNode *body_node = node->funcdef.body.elements[cur].data;
+    for (size_t cur = node->def.body.head; cur != SIZE_MAX;
+         cur = node->def.body.elements[cur].next) {
+      ASTNode *body_node = node->def.body.elements[cur].data;
       if (!analyze_node(sa, body_node)) {
         return false;
       }
@@ -435,7 +435,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     }
 
     size_t num_args = node->call.args.size;
-    size_t num_params = sym->decl_node->funcdef.params.size;
+    size_t num_params = sym->decl_node->def.params.size;
 
     if (num_args != num_params) {
       sa_set_error(sa, SEM_ARITY_MISMATCH, node->call.func->token,
@@ -449,8 +449,8 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       ASTNode *arg_node =
           node->call.args.elements[node->call.args.head + i].data;
       ASTNode *param_node =
-          sym->decl_node->funcdef.params
-              .elements[sym->decl_node->funcdef.params.head + i]
+          sym->decl_node->def.params
+              .elements[sym->decl_node->def.params.head + i]
               .data;
       DataType arg_type = sa_infer_type(sa, arg_node);
       DataType param_type = sa_infer_type(sa, param_node);

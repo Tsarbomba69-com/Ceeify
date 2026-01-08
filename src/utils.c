@@ -14,7 +14,7 @@ void cleanup_file(void *p) {
 __attribute__((format(printf, 2, 3)))
 #endif
 int safe_fprintf(FILE *f, const char *fmt, ...) {
-  char buf[1024]; // choose consciously
+  char buf[1024 * 1024]; // choose consciously
   va_list ap;
 
   va_start(ap, fmt);
@@ -22,7 +22,8 @@ int safe_fprintf(FILE *f, const char *fmt, ...) {
   va_end(ap);
 
   if (n < 0 || n >= (int)sizeof buf) {
-    return -1; // truncated or error
+    slog_warn("Buffer overlow: buffer size: %d, fmt size: %d", sizeof buf, n);
+    return -1;
   }
 
   return fputs(buf, f) < 0 ? -1 : n;

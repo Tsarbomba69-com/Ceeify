@@ -64,6 +64,7 @@ int main(void) {
   RUN_TEST(test_parse_call_inside_expression);
   RUN_TEST(test_parse_annotated_assignment);
   RUN_TEST(test_parse_function_def_with_annotations);
+  RUN_TEST(test_parse_class);
   // Semantic
   RUN_TEST(test_semantic_empty_program);
   RUN_TEST(test_semantic_simple_assignment);

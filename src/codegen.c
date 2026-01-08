@@ -35,31 +35,31 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     // Function signature
     sb_appendf(
         &cg->output, "%s %s(",
-        datatype_to_string(node->funcdef.returns
-                               ? sa_infer_type(&cg->sa, node->funcdef.returns)
+        datatype_to_string(node->def.returns
+                               ? sa_infer_type(&cg->sa, node->def.returns)
                                : NONE),
-        node->funcdef.name->token->lexeme);
+        node->def.name->token->lexeme);
 
-    if (node->funcdef.params.size == 0) {
+    if (node->def.params.size == 0) {
       sb_appendf(&cg->output, "void");
     }
 
     // Parameters
-    for (size_t cur = node->funcdef.params.head; cur != SIZE_MAX;
-         cur = node->funcdef.params.elements[cur].next) {
-      ASTNode *param = node->funcdef.params.elements[cur].data;
+    for (size_t cur = node->def.params.head; cur != SIZE_MAX;
+         cur = node->def.params.elements[cur].next) {
+      ASTNode *param = node->def.params.elements[cur].data;
       DataType param_type = sa_infer_type(&cg->sa, param);
       sb_appendf(&cg->output, "%s %s", datatype_to_string(param_type),
                  param->token->lexeme);
-      if (cur != node->funcdef.params.tail) {
+      if (cur != node->def.params.tail) {
         sb_appendf(&cg->output, ", ");
       }
     }
     sb_appendf(&cg->output, ") {\n");
     // Function body
-    for (size_t cur = node->funcdef.body.head; cur != SIZE_MAX;
-         cur = node->funcdef.body.elements[cur].next) {
-      ASTNode *body_node = node->funcdef.body.elements[cur].data;
+    for (size_t cur = node->def.body.head; cur != SIZE_MAX;
+         cur = node->def.body.elements[cur].next) {
+      ASTNode *body_node = node->def.body.elements[cur].data;
       cg->is_standalone = true;
       gen_code(cg, body_node);
     }

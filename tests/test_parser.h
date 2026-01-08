@@ -381,22 +381,22 @@ void test_parse_function_declaration(void) {
   TEST_ASSERT_EQUAL_INT(FUNCTION_DEF, node->type);
   // Function name
   TEST_ASSERT_NOT_NULL(node->token);
-  TEST_ASSERT_EQUAL_STRING("add", node->funcdef.name->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("add", node->def.name->token->lexeme);
   //
   // ---- PARAMETERS ----
   //
-  ASTNode *param_y = ASTNode_pop(&node->funcdef.params);
+  ASTNode *param_y = ASTNode_pop(&node->def.params);
   TEST_ASSERT_NOT_NULL(param_y);
   TEST_ASSERT_EQUAL_INT(VARIABLE, param_y->type);
   TEST_ASSERT_EQUAL_STRING("y", param_y->token->lexeme);
-  ASTNode *param_x = ASTNode_pop(&node->funcdef.params);
+  ASTNode *param_x = ASTNode_pop(&node->def.params);
   TEST_ASSERT_NOT_NULL(param_x);
   TEST_ASSERT_EQUAL_INT(VARIABLE, param_x->type);
   TEST_ASSERT_EQUAL_STRING("x", param_x->token->lexeme);
   //
   // ---- BODY ----
   //
-  ASTNode *body_stmt = ASTNode_pop(&node->funcdef.body);
+  ASTNode *body_stmt = ASTNode_pop(&node->def.body);
   TEST_ASSERT_NOT_NULL(body_stmt);
   // Body should begin with a return statement
   TEST_ASSERT_EQUAL_INT(RETURN, body_stmt->type);
@@ -526,7 +526,7 @@ void test_parse_function_def_with_annotations(void) {
   TEST_ASSERT_EQUAL_INT(FUNCTION_DEF, node->type);
 
   // Check parameter list
-  ASTNode *param_v = ASTNode_pop(&node->funcdef.params);
+  ASTNode *param_v = ASTNode_pop(&node->def.params);
   TEST_ASSERT_NOT_NULL(param_v);
   TEST_ASSERT_EQUAL_INT(VARIABLE, param_v->type);
   TEST_ASSERT_EQUAL_STRING("v", param_v->token->lexeme);
@@ -535,6 +535,47 @@ void test_parse_function_def_with_annotations(void) {
   TEST_ASSERT_NOT_NULL(param_v->annotation);
   TEST_ASSERT_EQUAL_INT(VARIABLE, param_v->annotation->type);
   TEST_ASSERT_EQUAL_STRING("float", param_v->annotation->token->lexeme);
+  parser_free(&parser);
+}
+
+void test_parse_class(void) {
+  // Arrange
+  Lexer lexer = tokenize(
+      "class Point:\n"
+      "    x: int\n"
+      "    y: int\n",
+      "test_file.py"
+  );
+
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+
+  // Assert: node exists and is a class
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL(CLASS_DEF, node->type);
+
+  // Assert: class name
+  TEST_ASSERT_NOT_NULL(node->def.name);
+  TEST_ASSERT_EQUAL(VARIABLE, node->def.name->type);
+  TEST_ASSERT_EQUAL_STRING("Point", node->def.name->token->lexeme);
+
+  // Assert: params unused for class
+  TEST_ASSERT_EQUAL(0, node->def.params.size);
+
+  // Assert: class body exists
+  ASTNode *y = ASTNode_pop(&node->def.body);
+  ASTNode *x = ASTNode_pop(&node->def.body);
+
+  TEST_ASSERT_NOT_NULL(x);
+  TEST_ASSERT_NOT_NULL(y);
+
+  TEST_ASSERT_EQUAL(VARIABLE, x->type);
+  TEST_ASSERT_EQUAL(VARIABLE, y->type);
+  TEST_ASSERT_EQUAL_STRING("x", x->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("y", y->token->lexeme);
+
+  // Cleanup
   parser_free(&parser);
 }
 

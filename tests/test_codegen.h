@@ -52,4 +52,26 @@ void test_codegen_function_call(void) {
   codegen_free(&cg);
 }
 
+void test_codegen_class_to_struct(void) {
+  // Arrange
+  const char *expected =
+      "typedef struct {\n"
+      "    int x;\n"
+      "    int y;\n"
+      "} Point;\n";
+
+  // Act
+  Codegen cg = compile_to_c(
+      "class Point:\n"
+      "    x: int\n"
+      "    y: int\n"
+  );
+
+  // Assert
+  TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
+
+  // Cleanup
+  codegen_free(&cg);
+}
+
 #endif // TEST_CODEGEN_H_
