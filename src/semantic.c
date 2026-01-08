@@ -236,7 +236,7 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
     }
   } break;
   case FUNCTION_DEF: {
-    DataType ret_type = VOID;
+    DataType ret_type = NONE;
 
     for (size_t cur = node->funcdef.body.head; cur != SIZE_MAX;
          cur = node->funcdef.body.elements[cur].next) {
@@ -271,7 +271,7 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
     }
   } break;
   default:
-    return VOID;
+    return NONE;
   }
 }
 

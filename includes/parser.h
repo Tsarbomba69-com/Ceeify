@@ -40,7 +40,6 @@ typedef enum DataType {
   LIST,
   OBJECT,
   NONE,
-  VOID,
   UNKNOWN
 } DataType;
 
@@ -117,7 +116,7 @@ ASTNode *node_new(Parser *parser, Token *token, NodeType type);
 
 void parser_free(Parser *parser);
 
-Token *next_token(Parser *parser);
+Token *advance(Parser *parser);
 
 Token *consume(Parser *parser, TokenType expected_type);
 

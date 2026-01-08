@@ -37,7 +37,7 @@ bool gen_code(Codegen *cg, ASTNode *node) {
         &cg->output, "%s %s(",
         datatype_to_string(node->funcdef.returns
                                ? sa_infer_type(&cg->sa, node->funcdef.returns)
-                               : VOID),
+                               : NONE),
         node->funcdef.name->token->lexeme);
 
     if (node->funcdef.params.size == 0) {
@@ -131,18 +131,40 @@ void codegen_free(Codegen *cg) {
 }
 
 bool codegen_program(Codegen *cg) {
-  ASSERT(cg != NULL, "Codegen context cannot be NULL in codegen_program");
-
+  ASSERT(cg != NULL, "Codegen context cannot be NULL");
   ASTNode_LinkedList *program = &cg->sa.parser.ast;
+  ASTNode_LinkedList main =
+      ASTNode_new_with_allocator(&cg->sa.parser.ast.allocator, 4);
+
   for (size_t current = program->head; current != SIZE_MAX;
        current = program->elements[current].next) {
     ASTNode *node = program->elements[current].data;
-    cg->is_standalone = true;
-    if (!gen_code(cg, node)) {
-      return false;
+    if (node->type == FUNCTION_DEF) {
+      cg->is_standalone = true;
+      if (!gen_code(cg, node))
+        return false;
+      continue;
     }
+
+    ASTNode_add_first(&main, node);
   }
 
+  if (main.size == 0)
+    return true; // No standalone statements to generate
+
+  sb_appendf(&cg->output, "\nint main(void) {\n");
+
+  for (size_t current = main.head; current != SIZE_MAX;
+       current = main.elements[current].next) {
+    ASTNode *node = main.elements[current].data;
+    cg->is_standalone = true;
+    sb_appendf(&cg->output, "    ");
+
+    if (!gen_code(cg, node))
+      return false;
+  }
+
+  sb_appendf(&cg->output, "    return 0;\n}\n");
   return true;
 }
 

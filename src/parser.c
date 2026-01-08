@@ -5,7 +5,7 @@ const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
 const char *AUG_ASSIGN_OPS[] = {"+=", "-=", "*=",  "@=",  "/=",  "%=", "&=",
                                 "|=", "^=", "<<=", ">>=", "**=", "//="};
 
-Token *next_token(Parser *parser) {
+Token *advance(Parser *parser) {
   if (parser->lexer.token_idx >= parser->lexer.tokens.size) {
     parser->current = NULL;
     parser->next = NULL;
@@ -308,15 +308,15 @@ ASTNode *nud(Parser *parser) {
     }
     return node_new(parser, token, VARIABLE);
   case LPAR: {
-    next_token(parser);
+    advance(parser);
     ASTNode *expr = parse_expression(parser, 0);
-    next_token(parser);
+    advance(parser);
     return expr;
   }
   case KEYWORD:
   case OPERATOR:
     if (is_prefix_operator(token)) {
-      next_token(parser);
+      advance(parser);
       ASTNode *node = node_new(parser, token, UNARY_OPERATION);
       int8_t rbp = get_prefix_precedence(token->lexeme);
       node->bin_op.right = parse_expression(parser, rbp);
@@ -362,14 +362,14 @@ ASTNode *led(Parser *parser, ASTNode *left) {
       comp->compare.ops = Token_new_with_allocator(&parser->ast.allocator, 3);
     }
 
-    next_token(parser);
+    advance(parser);
     right = parse_expression(parser, lbp + 1);
     ASTNode_add_last(&comp->compare.comparators, right);
     Token_push(&comp->compare.ops, op_token);
     return comp;
   }
   // Regular binary operation
-  next_token(parser);
+  advance(parser);
   right = parse_expression(parser, rbp);
   ASTNode *node = bin_op_new(parser, op_token, left, right);
   return node;
@@ -385,7 +385,7 @@ ASTNode *parse_expression(Parser *parser, int8_t rbp) {
       break;
     }
 
-    next_token(parser);
+    advance(parser);
     left = led(parser, left);
   }
 
@@ -401,19 +401,19 @@ ASTNode_LinkedList parse_argument_list(Parser *parser) {
     return args;
   }
 
-  next_token(parser);
+  advance(parser);
 
   do {
     ASTNode *arg = parse_expression(parser, 0);
     ASTNode_add_last(&args, arg);
-    next_token(parser);
+    advance(parser);
 
     // Check the token immediately after the expression
     if (parser->current == NULL)
       break;
 
     if (parser->current->type == COMMA) {
-      next_token(parser); // Consume COMMA
+      advance(parser); // Consume COMMA
     } else if (parser->current->type == RPAR ||
                parser->current->type == ENDMARKER) {
       break; // Done with arguments
@@ -447,15 +447,15 @@ ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token) {
       ASTNode_new_with_allocator(&parser->ast.allocator, 1);
   ASTNode *var = node_new(parser, token, VARIABLE);
   ASTNode_add_last(&targets, var);
-  Token *next = next_token(parser);
+  Token *next = advance(parser);
 
-  for (; next != NULL && next->type == COMMA; next = next_token(parser)) {
+  for (; next != NULL && next->type == COMMA; next = advance(parser)) {
     if (token == NULL || token->type != IDENTIFIER) {
       syntax_error("expected identifier after comma", parser->lexer.filename,
                    token);
     }
 
-    token = next_token(parser);
+    token = advance(parser);
     var = node_new(parser, token, VARIABLE);
     ASTNode_add_last(&targets, var);
   }
@@ -464,7 +464,7 @@ ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token) {
 }
 
 Token *consume(Parser *parser, TokenType expected) {
-  Token *token = next_token(parser);
+  Token *token = advance(parser);
   if (!token || token->type != expected) {
     syntax_error("unexpected token", parser->lexer.filename, token);
   }
@@ -474,7 +474,7 @@ Token *consume(Parser *parser, TokenType expected) {
 ASTNode *parse_call(Parser *parser, ASTNode *callee) {
   ASTNode *node = node_new(parser, callee->token, CALL);
   node->call.func = callee;
-  next_token(parser);
+  advance(parser);
   node->call.args = parse_argument_list(parser);
   // next_token(parser);
   return node;
@@ -487,7 +487,7 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
   while_node->ctrl_stmt.orelse =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
-  next_token(parser);
+  advance(parser);
 
   if (parser->next == NULL || parser->next->type != NEWLINE) {
     syntax_error("expected newline after ':' in 'while' statement",
@@ -495,8 +495,8 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
     return NULL;
   }
 
-  next_token(parser);
-  while (next_token(parser) != NULL) {
+  advance(parser);
+  while (advance(parser) != NULL) {
     ASTNode *stmt = parse_statement(parser);
 
     if (stmt == NULL || stmt->type == END_BLOCK) {
@@ -506,10 +506,10 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
     ASTNode_add_last(&while_node->ctrl_stmt.body, stmt);
   }
 
-  next_token(parser);
+  advance(parser);
   if (parser->current && parser->current->type == KEYWORD &&
       strcmp(parser->current->lexeme, "else") == 0) {
-    next_token(parser);
+    advance(parser);
     if (parser->current == NULL || parser->current->type != COLON) {
       syntax_error("expected ':' after 'else'", parser->lexer.filename,
                    parser->current);
@@ -523,8 +523,8 @@ ASTNode *parse_while_statement(Parser *parser, ASTNode *while_node) {
     }
 
     // Parse the 'else' block
-    next_token(parser);
-    while (next_token(parser) != NULL) {
+    advance(parser);
+    while (advance(parser) != NULL) {
       ASTNode *stmt = parse_statement(parser);
       if (stmt == NULL || stmt->type == END_BLOCK)
         break;
@@ -542,7 +542,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
   if_node->ctrl_stmt.orelse =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
-  next_token(parser);
+  advance(parser);
 
   if (!parser->current || !parser->next || parser->current->type != COLON ||
       parser->next->type != NEWLINE) {
@@ -551,8 +551,8 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
     return NULL;
   }
 
-  next_token(parser);
-  while (next_token(parser) != NULL) {
+  advance(parser);
+  while (advance(parser) != NULL) {
     ASTNode *stmt = parse_statement(parser);
 
     if (stmt == NULL || stmt->type == END_BLOCK) {
@@ -562,16 +562,16 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
     ASTNode_add_last(&if_node->ctrl_stmt.body, stmt);
   }
 
-  next_token(parser);
+  advance(parser);
   if (parser->current && parser->current->type == KEYWORD &&
       strcmp(parser->current->lexeme, "elif") == 0) {
-    next_token(parser);
+    advance(parser);
     ASTNode *elif_node = node_new(parser, parser->current, IF);
     ASTNode *parsed_elif = parse_if_statement(parser, elif_node);
     ASTNode_add_last(&if_node->ctrl_stmt.orelse, parsed_elif);
   } else if (parser->current && parser->current->type == KEYWORD &&
              strcmp(parser->current->lexeme, "else") == 0) {
-    next_token(parser);
+    advance(parser);
 
     if (parser->current == NULL || parser->current->type != COLON) {
       syntax_error("expected ':' after 'else'", parser->lexer.filename,
@@ -580,7 +580,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
     }
 
     // Expect NEWLINE
-    next_token(parser);
+    advance(parser);
 
     if (parser->current == NULL || parser->current->type != NEWLINE) {
       syntax_error("expected newline after ':' in 'else' statement",
@@ -589,7 +589,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
     }
 
     // Parse the 'else' block
-    while (next_token(parser) != NULL) {
+    while (advance(parser) != NULL) {
       ASTNode *stmt = parse_statement(parser);
       if (stmt == NULL || stmt->type == END_BLOCK)
         break;
@@ -600,7 +600,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
 }
 
 ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
-  Token *token = next_token(parser);
+  Token *token = advance(parser);
   if (token == NULL || token->type != IDENTIFIER) {
     syntax_error("expected function name after 'def'", parser->lexer.filename,
                  token);
@@ -611,7 +611,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
   func_node->funcdef.name = name_node;
   func_node->funcdef.returns = NULL;
 
-  token = next_token(parser);
+  token = advance(parser);
   if (token == NULL || token->type != LPAR) {
     syntax_error("expected '(' after function name", parser->lexer.filename,
                  token);
@@ -622,14 +622,14 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
 
   // Parse parameters
-  token = next_token(parser);
+  token = advance(parser);
   while (token != NULL && token->type != RPAR) {
     if (token->type == IDENTIFIER) {
       ASTNode *param_node = node_new(parser, token, VARIABLE);
 
       if (parser->next && parser->next->type == COLON) {
-        next_token(parser); // Consume identifier
-        next_token(parser); // Consume COLON
+        advance(parser); // Consume identifier
+        advance(parser); // Consume COLON
         param_node->annotation = parse_expression(parser, 0);
       }
 
@@ -639,14 +639,14 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
                    token);
       return NULL;
     }
-    token = next_token(parser);
+    token = advance(parser);
   }
 
-  token = next_token(parser);
+  token = advance(parser);
   if (token && token->type == RARROW) {
-    next_token(parser);
+    advance(parser);
     func_node->funcdef.returns = parse_expression(parser, 0);
-    token = next_token(parser);
+    token = advance(parser);
   }
 
   if (!token || token->type != COLON) {
@@ -655,12 +655,12 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
     return NULL;
   }
 
-  token = next_token(parser);
+  token = advance(parser);
   func_node->funcdef.body =
       ASTNode_new_with_allocator(&parser->ast.allocator, 4);
 
   // Parse function body
-  while ((token = next_token(parser)) != NULL) {
+  while ((token = advance(parser)) != NULL) {
     ASTNode *stmt = parse_statement(parser);
     if (stmt == NULL || stmt->type == END_BLOCK)
       break;
@@ -683,16 +683,16 @@ ASTNode *parse_statement(Parser *parser) {
   case IDENTIFIER: {
     if (parser->next && parser->next->type == COLON) {
       ASTNode *var = node_new(parser, token, VARIABLE);
-      next_token(parser);
-      next_token(parser);
+      advance(parser);
+      advance(parser);
 
       // Parse the type (e.g., "int", "List", etc.)
       var->annotation = parse_expression(parser, 0);
 
       if (parser->next && strcmp(parser->next->lexeme, "=") == 0) {
-        next_token(parser); // Move to '='
+        advance(parser); // Move to '='
         Token *assign_token = parser->current;
-        next_token(parser); // Move to value
+        advance(parser); // Move to value
         ASTNode *value = parse_expression(parser, 0);
         ASTNode *assign_node = node_new(parser, assign_token, ASSIGNMENT);
         assign_node->assign.targets =
@@ -713,7 +713,7 @@ ASTNode *parse_statement(Parser *parser) {
     if (parser->next && is_augassign_op(parser->next->lexeme)) {
       ASTNode_LinkedList targets = parse_identifier_list(parser, token);
       ASTNode *node = node_new(parser, parser->current, AUG_ASSIGNMENT);
-      next_token(parser);
+      advance(parser);
       ASTNode *expr = parse_expression(parser, 0);
       ASTNode *target = ASTNode_pop(&targets);
       node->aug_assign =
@@ -725,7 +725,7 @@ ASTNode *parse_statement(Parser *parser) {
                          strcmp(parser->next->lexeme, ",") == 0)) {
       ASTNode_LinkedList targets = parse_identifier_list(parser, token);
       ASTNode *node = node_new(parser, parser->current, ASSIGNMENT);
-      next_token(parser);
+      advance(parser);
       ASTNode *expr = parse_expression(parser, 0);
       node->assign = (Assign){.targets = targets, .value = expr};
       return node;
@@ -736,14 +736,14 @@ ASTNode *parse_statement(Parser *parser) {
   case KEYWORD: {
     if (strcmp(token->lexeme, "import") == 0) {
       ASTNode *node = node_new(parser, token, IMPORT);
-      token = next_token(parser);
+      token = advance(parser);
       node->import = parse_identifier_list(parser, token);
       return node;
     }
 
     if (strcmp(token->lexeme, "if") == 0) {
       ASTNode *node = node_new(parser, token, IF);
-      token = next_token(parser);
+      token = advance(parser);
       return parse_if_statement(parser, node);
     }
 
@@ -755,7 +755,7 @@ ASTNode *parse_statement(Parser *parser) {
 
     if (strcmp(token->lexeme, "while") == 0) {
       ASTNode *node = node_new(parser, token, WHILE);
-      token = next_token(parser);
+      token = advance(parser);
       return parse_while_statement(parser, node);
     }
 
@@ -766,7 +766,7 @@ ASTNode *parse_statement(Parser *parser) {
 
     if (strcmp(token->lexeme, "return") == 0) {
       ASTNode *node = node_new(parser, token, RETURN);
-      next_token(parser);
+      advance(parser);
 
       if (parser->next != NULL) {
         node->ret = parse_expression(parser, 0);
@@ -780,14 +780,14 @@ ASTNode *parse_statement(Parser *parser) {
     Token *next = parser->next;
 
     while (parser->next && parser->next->type == NEWLINE) {
-        next_token(parser);
+      advance(parser);
     }
 
     if (next->ident != token->ident) {
       return node_new(parser, token, END_BLOCK);
     }
 
-    next_token(parser);
+    advance(parser);
     return parse_statement(parser);
   } break;
   case LPAR:
@@ -802,7 +802,7 @@ ASTNode *parse_statement(Parser *parser) {
 Parser parse(Lexer *lexer) {
   Parser parser = parser_new(lexer);
 
-  while (next_token(&parser) != NULL) {
+  while (advance(&parser) != NULL) {
     ASTNode *stmt = parse_statement(&parser);
     if (stmt == NULL || stmt->type == END_BLOCK)
       break;
