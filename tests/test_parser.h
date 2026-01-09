@@ -540,12 +540,10 @@ void test_parse_function_def_with_annotations(void) {
 
 void test_parse_class(void) {
   // Arrange
-  Lexer lexer = tokenize(
-      "class Point:\n"
-      "    x: int\n"
-      "    y: int\n",
-      "test_file.py"
-  );
+  Lexer lexer = tokenize("class Point:\n"
+                         "    x: int\n"
+                         "    y: int\n",
+                         "test_file.py");
 
   // Act
   Parser parser = parse(&lexer);

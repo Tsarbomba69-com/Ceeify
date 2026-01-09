@@ -33,12 +33,11 @@ bool gen_code(Codegen *cg, ASTNode *node) {
   switch (node->type) {
   case FUNCTION_DEF: {
     // Function signature
-    sb_appendf(
-        &cg->output, "%s %s(",
-        datatype_to_string(node->def.returns
-                               ? sa_infer_type(&cg->sa, node->def.returns)
-                               : NONE),
-        node->def.name->token->lexeme);
+    sb_appendf(&cg->output, "%s %s(",
+               datatype_to_string(
+                   node->def.returns ? sa_infer_type(&cg->sa, node->def.returns)
+                                     : NONE),
+               node->def.name->token->lexeme);
 
     if (node->def.params.size == 0) {
       sb_appendf(&cg->output, "void");
@@ -117,7 +116,8 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     }
   } break;
   default:
-    slog_fatal("Code generation for \"%s\" type is not implemented yet", node_type_to_string(node->type));
+    slog_fatal("Code generation for \"%s\" type is not implemented yet",
+               node_type_to_string(node->type));
     break;
   }
   return true;

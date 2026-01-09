@@ -55,8 +55,7 @@ static bool is_augassign_op(const char *lexeme) {
 }
 
 const char *ctx_to_str(Context ctx) {
-  switch (ctx)
-  {
+  switch (ctx) {
   case STORE:
     return "STORE";
   case LOAD:
@@ -129,6 +128,7 @@ ASTNode *node_new(Parser *parser, Token *token, NodeType type) {
   node->token = token;
   node->depth = 1;
   node->child = NULL;
+  node->parent = NULL;
   node->ctx = LOAD;
   return node;
 }
@@ -166,10 +166,9 @@ cJSON *serialize_node(ASTNode *node) {
   case VARIABLE:
   case LITERAL:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
-    cJSON_AddStringToObject(root, "ctx", ctx_to_str(node->ctx));
+    // cJSON_AddStringToObject(root, "ctx", ctx_to_str(node->ctx));
     if (node->child) {
-      cJSON_AddItemToObject(root, "annotation",
-                            serialize_node(node->child));
+      cJSON_AddItemToObject(root, "annotation", serialize_node(node->child));
     }
     break;
   case BINARY_OPERATION:
@@ -204,8 +203,7 @@ cJSON *serialize_node(ASTNode *node) {
   case FUNCTION_DEF:
   case CLASS_DEF:
     cJSON_AddItemToObject(root, "name", serialize_node(node->def.name));
-    cJSON_AddItemToObject(root, "params",
-                          serialize_program(&node->def.params));
+    cJSON_AddItemToObject(root, "params", serialize_program(&node->def.params));
     cJSON_AddItemToObject(root, "body", serialize_program(&node->def.body));
     break;
   case RETURN:
@@ -639,8 +637,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
     return NULL;
   }
 
-  func_node->def.params =
-      ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  func_node->def.params = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
 
   // Parse parameters
   token = advance(parser);
@@ -678,8 +675,7 @@ ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
   }
 
   token = advance(parser);
-  func_node->def.body =
-      ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  func_node->def.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
 
   // Parse function body
   while ((token = advance(parser)) != NULL) {
@@ -720,7 +716,7 @@ ASTNode *parse_statement(Parser *parser) {
         ASTNode *assign_node = node_new(parser, assign_token, ASSIGNMENT);
         assign_node->assign.targets =
             ASTNode_new_with_allocator(&parser->ast.allocator, 1);
-            var->ctx = STORE;
+        var->ctx = STORE;
         ASTNode_add_last(&assign_node->assign.targets, var);
         assign_node->assign.value = value;
         return assign_node;
@@ -786,7 +782,7 @@ ASTNode *parse_statement(Parser *parser) {
     if (strcmp(token->lexeme, "class") == 0) {
       ASTNode *node = node_new(parser, token, CLASS_DEF);
       node->parent = NULL;
-      return parse_class_declaration(parser, node); 
+      return parse_class_declaration(parser, node);
     }
 
     if (strcmp(token->lexeme, "return") == 0) {
@@ -802,13 +798,11 @@ ASTNode *parse_statement(Parser *parser) {
     }
   } break;
   case NEWLINE: {
-    Token *next = parser->next;
-
     while (parser->next && parser->next->type == NEWLINE) {
       advance(parser);
     }
 
-    if (next->ident != token->ident) {
+    if (parser->next->ident != token->ident) {
       return node_new(parser, token, END_BLOCK);
     }
 
@@ -846,57 +840,62 @@ void parser_free(Parser *parser) {
 }
 
 ASTNode *parse_class_declaration(Parser *parser, ASTNode *class_node) {
-    // 1. Consume Class Name
-    Token *token = advance(parser);
-    if (token == NULL || token->type != IDENTIFIER) {
-        syntax_error("expected class name after 'class'", parser->lexer.filename, token);
-        return NULL;
+  // 1. Consume Class Name
+  Token *token = advance(parser);
+  if (token == NULL || token->type != IDENTIFIER) {
+    syntax_error("expected class name after 'class'", parser->lexer.filename,
+                 token);
+    return NULL;
+  }
+
+  class_node->def.name = node_new(parser, token, VARIABLE);
+  // Initialize lists
+  class_node->def.params =
+      ASTNode_new_with_allocator(&parser->ast.allocator, 2);
+  class_node->def.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+
+  // 2. Handle Inheritance: class Dog(Animal):
+  if (parser->next && parser->next->type == LPAR) {
+    advance(parser); // Consume '('
+
+    while (parser->next && parser->next->type != RPAR) {
+      advance(parser);
+      ASTNode *base = parse_expression(parser, 0);
+      base->parent = class_node;
+      ASTNode_add_last(&class_node->def.params, base);
+
+      if (parser->next && parser->next->type == COMMA) {
+        advance(parser); // Consume ','
+      } else {
+        break;
+      }
     }
+    consume(parser, RPAR);
+  }
 
-    class_node->def.name = node_new(parser, token, VARIABLE);
-    // Initialize lists
-    class_node->def.params = ASTNode_new_with_allocator(&parser->ast.allocator, 2);
-    class_node->def.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  // 3. Consume Colon
+  token = advance(parser);
+  if (!token || token->type != COLON) {
+    syntax_error("expected ':' after class definition", parser->lexer.filename,
+                 token);
+    return NULL;
+  }
 
-    // 2. Handle Inheritance: class Dog(Animal):
-    if (parser->next && parser->next->type == LPAR) {
-        advance(parser); // Consume '('
-        
-        while (parser->next && parser->next->type != RPAR) {
-            advance(parser);
-            ASTNode *base = parse_expression(parser, 0);
-            base->parent = class_node;
-            ASTNode_add_last(&class_node->def.params, base);
-            
-            if (parser->next && parser->next->type == COMMA) {
-                advance(parser); // Consume ','
-            } else {
-                break;
-            }
-        }
-        consume(parser, RPAR);
-    }
+  // 4. Parse Class Body
+  // Expect a NEWLINE then increased indentation
+  advance(parser);
+  while ((token = advance(parser)) != NULL) {
+    ASTNode *stmt = parse_statement(parser);
+    // If parse_statement hits a NEWLINE with less indentation, it returns
+    // END_BLOCK
+    if (stmt == NULL || stmt->type == END_BLOCK)
+      break;
 
-    // 3. Consume Colon
-    token = advance(parser);
-    if (!token || token->type != COLON) {
-        syntax_error("expected ':' after class definition", parser->lexer.filename, token);
-        return NULL;
-    }
+    if (stmt->type == VARIABLE)
+      stmt->ctx = STORE;
+    stmt->parent = class_node;
+    ASTNode_add_last(&class_node->def.body, stmt);
+  }
 
-    // 4. Parse Class Body
-    // Expect a NEWLINE then increased indentation
-    advance(parser); 
-    while ((token = advance(parser)) != NULL) {
-        ASTNode *stmt = parse_statement(parser);
-        // If parse_statement hits a NEWLINE with less indentation, it returns END_BLOCK
-        if (stmt == NULL || stmt->type == END_BLOCK)
-            break;
-        
-        if (stmt->type == VARIABLE) stmt->ctx = STORE;
-        stmt->parent = class_node;
-        ASTNode_add_last(&class_node->def.body, stmt);
-    }
-
-    return class_node;
+  return class_node;
 }

@@ -230,18 +230,16 @@ void test_func_type_error_int_str(void) {
 // TODO: test & implement object attributes (member access operation)
 void test_semantic_class_inheritance_and_init(void) {
   // Arrange
-  Lexer lexer = tokenize(
-      "class Animal:\n"
-      "    name: str\n"
-      "\n"
-      "class Dog(Animal):\n"
-      "    tails: int\n"
-      "\n"
-      "    def __init__(self, name: str):\n"
-      // "        self.name = name\n"
-      // "        self.tails = 1\n",
-      ,"test.py"
-  );
+  Lexer lexer = tokenize("class Animal:\n"
+                         "    name: str\n"
+                         "\n"
+                         "class Dog(Animal):\n"
+                         "    tails: int\n"
+                         "\n"
+                         "    def __init__(self, name: str):\n"
+                        //  "        self.name = name\n"
+                        //  "        self.tails = 1\n",
+                         ,"test.py");
 
   Parser parser = parse(&lexer);
   // Act
@@ -262,9 +260,9 @@ void test_semantic_class_inheritance_and_init(void) {
   // Assert: Animal has field 'name'
   Symbol *animal_name = NULL;
   if (animal->scope) {
-    animal_name = sa_lookup((SemanticAnalyzer *) &(SemanticAnalyzer){
-        .current_scope = animal->scope
-    }, "name");
+    animal_name = sa_lookup(
+        (SemanticAnalyzer *)&(SemanticAnalyzer){.current_scope = animal->scope},
+        "name");
   }
   TEST_ASSERT_NOT_NULL(animal_name);
   TEST_ASSERT_EQUAL(VAR, animal_name->kind);
@@ -273,9 +271,9 @@ void test_semantic_class_inheritance_and_init(void) {
   // Assert: Dog has field 'tails'
   Symbol *dog_tails = NULL;
   if (dog->scope) {
-    dog_tails = sa_lookup((SemanticAnalyzer *) &(SemanticAnalyzer){
-        .current_scope = dog->scope
-    }, "tails");
+    dog_tails = sa_lookup(
+        (SemanticAnalyzer *)&(SemanticAnalyzer){.current_scope = dog->scope},
+        "tails");
   }
   TEST_ASSERT_NOT_NULL(dog_tails);
   TEST_ASSERT_EQUAL(VAR, dog_tails->kind);
@@ -289,9 +287,10 @@ void test_semantic_class_inheritance_and_init(void) {
   TEST_ASSERT_NOT_NULL(dog_name);
   TEST_ASSERT_EQUAL(STR, dog_name->dtype);
 
+  Symbol *init_method = sa_lookup_member(dog, "__init__");
+  TEST_ASSERT_NOT_NULL(init_method);
   // Cleanup
   parser_free(&parser);
 }
-
 
 #endif // TEST_SEMANTIC_H_

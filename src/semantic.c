@@ -155,7 +155,8 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
 }
 
 bool analyze_class_def(SemanticAnalyzer *sa, ASTNode *node) {
-  Symbol *class_sym = sa_create_symbol(sa, node->parent, node->def.name, OBJECT);
+  Symbol *class_sym =
+      sa_create_symbol(sa, node->parent, node->def.name, OBJECT);
   class_sym->kind = CLASS;
   sa_define_symbol(sa, class_sym);
   sa_enter_scope(sa);
@@ -204,6 +205,7 @@ bool analyze_func_def(SemanticAnalyzer *sa, ASTNode *node) {
 
   for (size_t cur = node->def.params.head; cur != SIZE_MAX;
        cur = node->def.params.elements[cur].next) {
+    // TODO: it will need to check for static also to not set it to object automatically
     ASTNode *param = node->def.params.elements[cur].data;
     Symbol *param_sym =
         allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
@@ -214,7 +216,10 @@ bool analyze_func_def(SemanticAnalyzer *sa, ASTNode *node) {
     param_sym->decl_node = param;
     param_sym->scope_level = sa->current_scope->depth;
     sa_define_symbol(sa, param_sym);
-    param_sym->dtype = sa_infer_type(sa, param);
+    param_sym->dtype =
+        (node->parent && node->parent->type == CLASS_DEF) && (cur == 0)
+            ? OBJECT
+            : sa_infer_type(sa, param);
   }
 
   for (size_t cur = node->def.body.head; cur != SIZE_MAX;

@@ -39,7 +39,7 @@ typedef struct Symbol {
   DataType dtype;            // INT, STR, BOOL, LIST, etc.
   ASTNode *decl_node;        // node where it was declared
   size_t scope_level;        // lexical depth / nesting
-  struct SymbolTable *scope; // for FUNCTION, CLASS, 
+  struct SymbolTable *scope; // for FUNCTION, CLASS,
   struct Symbol *base_class;
 } Symbol;
 
