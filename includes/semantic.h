@@ -63,6 +63,7 @@ typedef struct SemanticAnalyzer {
   SymbolTable *current_scope;
   SemanticError last_error;
   Parser parser;
+  Symbol *current_class;
 } SemanticAnalyzer;
 
 /* -----------------------------
@@ -71,11 +72,17 @@ typedef struct SemanticAnalyzer {
 
 void semantic_analyzer_free(SemanticAnalyzer *sa);
 
-/* Scope management */
+/* -----------------------------
+ * SCOPE MANAGEMENT
+ * ----------------------------- */
+
 void sa_enter_scope(SemanticAnalyzer *sa);
 void sa_exit_scope(SemanticAnalyzer *sa);
 
-/* Symbol table operations */
+/* -----------------------------
+ * SYMBOL TABLE OPERATIONS
+ * ----------------------------- */
+
 void sa_define_symbol(SemanticAnalyzer *sa, Symbol *sym);
 Symbol *sa_lookup(SemanticAnalyzer *sa, const char *name);
 Symbol *sa_lookup_member(Symbol *class_sym, const char *name);
@@ -86,7 +93,20 @@ SemanticAnalyzer analyze_program(Parser *parser);
 /* Analyze a single AST node */
 bool analyze_node(SemanticAnalyzer *sa, ASTNode *node);
 
-/* Error helpers */
+// Error helpers
+/**
+ * @brief Records a semantic error and generates a formatted error message.
+ * * This function captures the error type, the specific token where the error
+ * occurred, and a custom formatted message. The resulting error is stored in
+ * the `SemanticAnalyzer`'s `last_error` field.
+ *
+ * @param sa    Pointer to the SemanticAnalyzer instance.
+ * @param type  The category of semantic error (e.g., UNDEFINED_VARIABLE).
+ * @param tok   The token associated with the error location.
+ * @param fmt   A printf-style format string for the error detail.
+ * @param ...   Additional arguments for the format string.
+ * * @note This function uses an internal arena allocator for the error strings.
+ */
 void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
                   const char *fmt, ...);
 
@@ -101,5 +121,11 @@ static inline bool is_primitive(DataType type) {
 }
 
 const char *datatype_to_string(DataType t);
+
+/* -----------------------------
+ *  DIAGNOSTICS
+ * ----------------------------- */
+
+char *dump_symbol_table(SymbolTable *st);
 
 #endif // SEMANTIC_H_

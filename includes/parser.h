@@ -27,6 +27,7 @@ typedef enum NodeType {
   RETURN,
   CALL,
   CLASS_DEF,
+  ATTRIBUTE,
   END_BLOCK
 } NodeType;
 
@@ -60,6 +61,11 @@ typedef struct {
   Token *op;
   ASTNode *value;
 } AugAssign;
+
+typedef struct Attribute {
+  ASTNode *value; // The object (e.g., the 'snake' Name node)
+  char *attr;     // The name of the attribute (e.g., "bite")
+} Attribute;
 
 typedef struct Compare {
   ASTNode *left;
@@ -104,10 +110,11 @@ typedef struct ASTNode {
     AugAssign aug_assign;
     FunctionDef def;
     CallExpr call;
-    ASTNode *child;
+    ASTNode *child; // Types that use this: RETURN
     Compare compare;
     ASTNode_LinkedList import;
     ControlFlowStatement ctrl_stmt;
+    Attribute attribute;
   };
 } ASTNode;
 

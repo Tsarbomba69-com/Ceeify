@@ -227,7 +227,7 @@ void test_func_type_error_int_str(void) {
   // Cleanup
   parser_free(&parser);
 }
-// TODO: test & implement object attributes (member access operation)
+
 void test_semantic_class_inheritance_and_init(void) {
   // Arrange
   Lexer lexer = tokenize("class Animal:\n"
@@ -237,9 +237,9 @@ void test_semantic_class_inheritance_and_init(void) {
                          "    tails: int\n"
                          "\n"
                          "    def __init__(self, name: str):\n"
-                        //  "        self.name = name\n"
-                        //  "        self.tails = 1\n",
-                         ,"test.py");
+                         "        self.name = name\n"
+                         "        self.butt = 1\n",
+                         "test.py");
 
   Parser parser = parse(&lexer);
   // Act

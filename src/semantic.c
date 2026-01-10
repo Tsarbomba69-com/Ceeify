@@ -9,9 +9,11 @@ const char *COMPARISON_OPS[] = {
 };
 
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
-
 Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *parent, ASTNode *node,
                          DataType type);
+cJSON *serialize_symbol(Symbol *sym);
+cJSON *serialize_symbol_table(SymbolTable *st);
+cJSON *serialize_symbol(Symbol *sym);
 
 static SymbolTable *symbol_table_new(Allocator *allocator, SymbolTable *parent,
                                      size_t depth) {
@@ -73,6 +75,8 @@ const char *datatype_to_string(DataType t) {
     return "list";
   case NONE:
     return "None";
+  case OBJECT:
+    return "OBJECT";
   default:
     return "<unknown>";
   }
@@ -161,6 +165,8 @@ bool analyze_class_def(SemanticAnalyzer *sa, ASTNode *node) {
   sa_define_symbol(sa, class_sym);
   sa_enter_scope(sa);
   class_sym->scope = sa->current_scope;
+  Symbol *previous_class = sa->current_class;
+  sa->current_class = class_sym;
 
   for (size_t cur = node->def.params.head; cur != SIZE_MAX;
        cur = node->def.params.elements[cur].next) {
@@ -187,7 +193,65 @@ bool analyze_class_def(SemanticAnalyzer *sa, ASTNode *node) {
   }
 
   sa_exit_scope(sa);
+  sa->current_class = previous_class;
   return true;
+}
+
+/**
+ * @brief Checks if the current analysis context is inside an __init__ method.
+ */
+bool is_inside_constructor(SemanticAnalyzer *sa) {
+  SymbolTable *st = sa->current_scope;
+  while (st) {
+    for (SymbolTableEntry *e = st->entries; e; e = e->next) {
+      if (e->symbol->kind == FUNCTION) {
+        return strcmp(e->symbol->name, "__init__") == 0;
+      }
+    }
+    st = st->parent;
+  }
+  return false;
+}
+
+/**
+ * @brief Determines if an ASTNode refers to the 'self' parameter of the current
+ * method.
+ */
+bool is_self_reference(SemanticAnalyzer *sa, ASTNode *node) {
+  if (!node || node->type != VARIABLE)
+    return false;
+
+  SymbolTable *st = sa->current_scope;
+  while (st) {
+    for (SymbolTableEntry *e = st->entries; e; e = e->next) {
+      if (e->symbol->kind == FUNCTION) {
+        // In Python, 'self' is the first parameter
+        ASTNode_LinkedList *params = &e->symbol->decl_node->def.params;
+        if (params->size > 0) {
+          ASTNode *first_param = params->elements[params->head].data;
+          return strcmp(node->token->lexeme, first_param->token->lexeme) == 0;
+        }
+        return false;
+      }
+    }
+    st = st->parent;
+  }
+  return false;
+}
+
+/**
+ * @brief Registers a new attribute symbol into a class's member scope.
+ */
+void sa_define_member(SemanticAnalyzer *sa, Symbol *class_sym,
+                      Symbol *member_sym) {
+  if (!class_sym || !class_sym->scope || !member_sym)
+    return;
+
+  SymbolTableEntry *entry =
+      allocator_alloc(&sa->parser.ast.allocator, sizeof(SymbolTableEntry));
+  entry->symbol = member_sym;
+  entry->next = class_sym->scope->entries;
+  class_sym->scope->entries = entry;
 }
 
 bool analyze_func_def(SemanticAnalyzer *sa, ASTNode *node) {
@@ -205,7 +269,8 @@ bool analyze_func_def(SemanticAnalyzer *sa, ASTNode *node) {
 
   for (size_t cur = node->def.params.head; cur != SIZE_MAX;
        cur = node->def.params.elements[cur].next) {
-    // TODO: it will need to check for static also to not set it to object automatically
+    // TODO: it will need to check for static also to not set it to object
+    // automatically
     ASTNode *param = node->def.params.elements[cur].data;
     Symbol *param_sym =
         allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
@@ -215,11 +280,15 @@ bool analyze_func_def(SemanticAnalyzer *sa, ASTNode *node) {
     param_sym->dtype = UNKNOWN;
     param_sym->decl_node = param;
     param_sym->scope_level = sa->current_scope->depth;
+
+    if (sa->current_class && cur == 0) {
+      param_sym->dtype = OBJECT;
+      param_sym->base_class = sa->current_class;
+    } else {
+      param_sym->dtype = sa_infer_type(sa, param);
+    }
+
     sa_define_symbol(sa, param_sym);
-    param_sym->dtype =
-        (node->parent && node->parent->type == CLASS_DEF) && (cur == 0)
-            ? OBJECT
-            : sa_infer_type(sa, param);
   }
 
   for (size_t cur = node->def.body.head; cur != SIZE_MAX;
@@ -354,6 +423,13 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
       return UNKNOWN;
     }
   } break;
+
+  case ATTRIBUTE: {
+    Symbol *obj_sym = sa_lookup(sa, node->attribute.value->token->lexeme);
+    Symbol *class_sym = (obj_sym) ? obj_sym->base_class : NULL;
+    Symbol *member = sa_lookup_member(class_sym, node->attribute.attr);
+    return member ? member->dtype : UNKNOWN;
+  } break;
   default:
     return NONE;
   }
@@ -405,7 +481,8 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
   switch (node->type) {
   case VARIABLE: {
     Symbol *sym;
-    if (node->ctx == STORE) {
+
+    if (node->ctx == STORE && node->parent && node->parent->type == CLASS_DEF) {
       sym = sa_create_symbol(sa, node->parent, node, sa_infer_type(sa, node));
       sa_define_symbol(sa, sym);
       return true;
@@ -451,6 +528,13 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       if (!sym) {
         sym = sa_create_symbol(sa, node, target, rhs_type);
         sa_define_symbol(sa, sym);
+
+        sym->dtype =
+            target->type == VARIABLE && target->child ? UNKNOWN : rhs_type;
+
+        if (!analyze_node(sa, target)) {
+          return false;
+        }
       } else {
         // assignment to existing variable
         if (!types_compatible(sym->dtype, rhs_type)) {
@@ -547,6 +631,40 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       ASTNode *else_node = node->ctrl_stmt.orelse.elements[cur].data;
       if (!analyze_node(sa, else_node))
         return false;
+    }
+  } break;
+  case ATTRIBUTE: {
+    if (!analyze_node(sa, node->attribute.value))
+      return false;
+
+    DataType base_dtype = sa_infer_type(sa, node->attribute.value);
+    Symbol *obj_sym = sa_lookup(sa, node->attribute.value->token->lexeme);
+    Symbol *class_sym =
+        (obj_sym && obj_sym->dtype == OBJECT) ? obj_sym->base_class : NULL;
+    Symbol *member = sa_lookup_member(class_sym, node->attribute.attr);
+
+    if (node->ctx == LOAD) {
+      if (!member) {
+        sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->token,
+                     "Object of type '%s' has no attribute '%s'",
+                     datatype_to_string(base_dtype), node->attribute.attr);
+        return false;
+      }
+    } else if (node->ctx == STORE) {
+      if (!member) {
+        if (is_inside_constructor(sa) &&
+            is_self_reference(sa, node->attribute.value)) {
+          DataType inferred = sa_infer_type(sa, node->parent->assign.value);
+          Symbol *new_attr = sa_create_symbol(sa, node, node, inferred);
+          sa_define_member(sa, class_sym, new_attr);
+        } else {
+          sa_set_error(sa, SEM_INVALID_OPERATION, node->token,
+                       "Cannot create new attribute '%s' on type '%s' outside "
+                       "constructor",
+                       node->attribute.attr, datatype_to_string(base_dtype));
+          return false;
+        }
+      }
     }
   } break;
   default:
@@ -712,12 +830,15 @@ Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *parent, ASTNode *node,
   sym->kind = VAR;
   sym->dtype = type;
   sym->decl_node = parent;
-  sym->scope_level = parent ? parent->depth : 0;
-  sym->scope = sa->current_scope;
+  sym->scope_level = sa->current_scope ? sa->current_scope->depth : 0;
+  sym->scope = NULL;
+  sym->base_class = NULL;
   return sym;
 }
 
-// In semantic.c
+/**
+ * @brief Recursively searches for an attribute in a class and its base classes.
+ */
 Symbol *sa_lookup_member(Symbol *class_sym, const char *name) {
   if (!class_sym || class_sym->kind != CLASS)
     return NULL;
@@ -735,4 +856,71 @@ Symbol *sa_lookup_member(Symbol *class_sym, const char *name) {
   }
 
   return NULL;
+}
+
+const char *symbol_kind_to_string(SymbolType kind) {
+  switch (kind) {
+  case CLASS:
+    return "CLASS";
+  case MODULE:
+    return "MODULE";
+  case FUNCTION:
+    return "FUNCTION";
+  case BLOCK:
+    return "BLOCK";
+  case VAR:
+    return "VAR";
+  default:
+    return "UNKNOWN";
+  }
+}
+
+cJSON *serialize_symbol(Symbol *sym) {
+  if (sym == NULL)
+    return NULL;
+
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddStringToObject(root, "name", sym->name);
+  cJSON_AddStringToObject(root, "kind", symbol_kind_to_string(sym->kind));
+  cJSON_AddStringToObject(root, "dtype", datatype_to_string(sym->dtype));
+  cJSON_AddNumberToObject(root, "scope_level", sym->scope_level);
+
+  // If it's a class with a base class, record the name to avoid circular
+  // recursion
+  if (sym->base_class) {
+    cJSON_AddStringToObject(root, "base_class", sym->base_class->name);
+  }
+
+  // Recursively serialize nested scopes (for functions and classes)
+  if (sym->scope) {
+    cJSON_AddItemToObject(root, "inner_scope",
+                          serialize_symbol_table(sym->scope));
+  }
+
+  return root;
+}
+
+cJSON *serialize_symbol_table(SymbolTable *st) {
+  if (st == NULL)
+    return NULL;
+
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddNumberToObject(root, "depth", st->depth);
+
+  cJSON *entries = cJSON_CreateArray();
+  SymbolTableEntry *curr = st->entries;
+  while (curr) {
+    cJSON_AddItemToArray(entries, serialize_symbol(curr->symbol));
+    curr = curr->next;
+  }
+  cJSON_AddItemToObject(root, "entries", entries);
+
+  return root;
+}
+
+char *dump_symbol_table(SymbolTable *st) {
+  cJSON *json = serialize_symbol_table(st);
+  char *dump = cJSON_Print(json);
+  cJSON_Delete(json);
+  return dump;
 }

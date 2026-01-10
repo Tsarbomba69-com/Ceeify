@@ -108,6 +108,6 @@ int main2(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_tac_if_else_statement);
+  RUN_TEST(test_semantic_class_inheritance_and_init);
   return UNITY_END();
 }

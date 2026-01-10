@@ -32,7 +32,7 @@ ASTNode *parse_expression(Parser *parser, int8_t min_precedence);
 
 ASTNode *parse_call(Parser *parser, ASTNode *callee);
 
-ASTNode *parse_class_declaration(Parser *parser, ASTNode *class_node);
+ASTNode *parse_class_def(Parser *parser, ASTNode *class_node);
 
 bool blacklist_tokens(TokenType type, const TokenType blacklist[], size_t size);
 
@@ -104,6 +104,8 @@ const char *node_type_to_string(NodeType type) {
     return "RETURN";
   case CALL:
     return "CALL";
+  case ATTRIBUTE:
+    return "ATTRIBUTE";
   default:
     return "UNKNOWN";
   }
@@ -162,6 +164,10 @@ cJSON *serialize_node(ASTNode *node) {
     cJSON_AddItemToObject(root, "op", serialize_token(node->aug_assign.op));
     cJSON_AddItemToObject(root, "value",
                           serialize_node(node->aug_assign.value));
+    break;
+  case ATTRIBUTE:
+    cJSON_AddItemToObject(root, "value", serialize_node(node->attribute.value));
+    cJSON_AddStringToObject(root, "attr", node->attribute.attr);
     break;
   case VARIABLE:
   case LITERAL:
@@ -275,6 +281,9 @@ int8_t get_infix_precedence(const char *op) {
   if (strcmp(op, "(") == 0)
     return 70;
 
+  if (strcmp(op, ".") == 0)
+    return 80;
+
   return 0;
 }
 
@@ -312,6 +321,36 @@ static inline bool is_comparison_operator(Token *t) {
 }
 
 ASTNode_LinkedList parse_argument_list(Parser *parser);
+
+ASTNode *parse_assign(Parser *parser, ASTNode *target) {
+  advance(parser); // Move to '='
+  Token *assign_token = parser->current;
+  advance(parser); // Move to value
+  ASTNode *value = parse_expression(parser, 0);
+  ASTNode *assign_node = node_new(parser, assign_token, ASSIGNMENT);
+  assign_node->ctx = STORE;
+  assign_node->assign.targets =
+      ASTNode_new_with_allocator(&parser->ast.allocator, 1);
+  target->ctx = STORE;
+  ASTNode_add_last(&assign_node->assign.targets, target);
+  assign_node->assign.value = value;
+  return assign_node;
+}
+
+ASTNode *parse_attribute(Parser *parser, ASTNode *left) {
+  advance(parser);
+  ASTNode *node = node_new(parser, parser->current, ATTRIBUTE);
+  node->attribute.value = left;
+  node->attribute.attr =
+      arena_strdup(&parser->ast.allocator.base, parser->current->lexeme);
+  if (strcmp(parser->next->lexeme, "=") == 0) {
+    ASTNode *assign = parse_assign(parser, node);
+    node->parent = assign;
+    return assign;
+  }
+  node->ctx = LOAD;
+  return node;
+}
 
 // NUD (Null Denotation) - Parses a token that starts an expression
 ASTNode *nud(Parser *parser) {
@@ -362,6 +401,10 @@ ASTNode *led(Parser *parser, ASTNode *left) {
   Token *op_token = parser->current;
   if (op_token->type == LPAR) {
     return parse_call(parser, left);
+  }
+
+  if (strcmp(op_token->lexeme, ".") == 0) {
+    return parse_attribute(parser, left);
   }
 
   int8_t lbp = get_infix_precedence(op_token->lexeme);
@@ -462,10 +505,12 @@ bool blacklist_tokens(TokenType type, const TokenType blacklist[],
   return false;
 }
 
-ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token) {
+ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token,
+                                         Context ctx) {
   ASTNode_LinkedList targets =
       ASTNode_new_with_allocator(&parser->ast.allocator, 1);
   ASTNode *var = node_new(parser, token, VARIABLE);
+  var->ctx = ctx;
   ASTNode_add_last(&targets, var);
   Token *next = advance(parser);
 
@@ -477,6 +522,7 @@ ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token) {
 
     token = advance(parser);
     var = node_new(parser, token, VARIABLE);
+    var->ctx = ctx;
     ASTNode_add_last(&targets, var);
   }
 
@@ -618,7 +664,7 @@ ASTNode *parse_if_statement(Parser *parser, ASTNode *if_node) {
   return if_node;
 }
 
-ASTNode *parse_function_declaration(Parser *parser, ASTNode *func_node) {
+ASTNode *parse_function_def(Parser *parser, ASTNode *func_node) {
   Token *token = advance(parser);
   if (token == NULL || token->type != IDENTIFIER) {
     syntax_error("expected function name after 'def'", parser->lexer.filename,
@@ -709,24 +755,14 @@ ASTNode *parse_statement(Parser *parser) {
       var->child = parse_expression(parser, 0);
 
       if (parser->next && strcmp(parser->next->lexeme, "=") == 0) {
-        advance(parser); // Move to '='
-        Token *assign_token = parser->current;
-        advance(parser); // Move to value
-        ASTNode *value = parse_expression(parser, 0);
-        ASTNode *assign_node = node_new(parser, assign_token, ASSIGNMENT);
-        assign_node->assign.targets =
-            ASTNode_new_with_allocator(&parser->ast.allocator, 1);
-        var->ctx = STORE;
-        ASTNode_add_last(&assign_node->assign.targets, var);
-        assign_node->assign.value = value;
-        return assign_node;
+        return parse_assign(parser, var);
       }
 
       return var;
     }
 
     if (parser->next && is_augassign_op(parser->next->lexeme)) {
-      ASTNode_LinkedList targets = parse_identifier_list(parser, token);
+      ASTNode_LinkedList targets = parse_identifier_list(parser, token, STORE);
       ASTNode *node = node_new(parser, parser->current, AUG_ASSIGNMENT);
       advance(parser);
       ASTNode *expr = parse_expression(parser, 0);
@@ -738,11 +774,12 @@ ASTNode *parse_statement(Parser *parser) {
 
     if (parser->next && (strcmp(parser->next->lexeme, "=") == 0 ||
                          strcmp(parser->next->lexeme, ",") == 0)) {
-      ASTNode_LinkedList targets = parse_identifier_list(parser, token);
+      ASTNode_LinkedList targets = parse_identifier_list(parser, token, STORE);
       ASTNode *node = node_new(parser, parser->current, ASSIGNMENT);
       advance(parser);
       ASTNode *expr = parse_expression(parser, 0);
       node->assign = (Assign){.targets = targets, .value = expr};
+      node->ctx = STORE;
       return node;
     }
 
@@ -752,7 +789,7 @@ ASTNode *parse_statement(Parser *parser) {
     if (strcmp(token->lexeme, "import") == 0) {
       ASTNode *node = node_new(parser, token, IMPORT);
       token = advance(parser);
-      node->import = parse_identifier_list(parser, token);
+      node->import = parse_identifier_list(parser, token, LOAD);
       return node;
     }
 
@@ -776,13 +813,13 @@ ASTNode *parse_statement(Parser *parser) {
 
     if (strcmp(token->lexeme, "def") == 0) {
       ASTNode *node = node_new(parser, token, FUNCTION_DEF);
-      return parse_function_declaration(parser, node);
+      return parse_function_def(parser, node);
     }
 
     if (strcmp(token->lexeme, "class") == 0) {
       ASTNode *node = node_new(parser, token, CLASS_DEF);
       node->parent = NULL;
-      return parse_class_declaration(parser, node);
+      return parse_class_def(parser, node);
     }
 
     if (strcmp(token->lexeme, "return") == 0) {
@@ -839,7 +876,7 @@ void parser_free(Parser *parser) {
   Token_free(&parser->lexer.tokens);
 }
 
-ASTNode *parse_class_declaration(Parser *parser, ASTNode *class_node) {
+ASTNode *parse_class_def(Parser *parser, ASTNode *class_node) {
   // 1. Consume Class Name
   Token *token = advance(parser);
   if (token == NULL || token->type != IDENTIFIER) {
