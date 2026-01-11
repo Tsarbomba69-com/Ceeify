@@ -43,6 +43,11 @@ typedef struct Symbol {
   struct Symbol *base_class;
 } Symbol;
 
+typedef enum {
+  ATTR_OWN_CURRENT,
+  ATTR_OWN_BASE
+} AttrOwnership;
+
 typedef struct SymbolTableEntry {
   Symbol *symbol;
   struct SymbolTableEntry *next;
@@ -78,6 +83,13 @@ void semantic_analyzer_free(SemanticAnalyzer *sa);
 
 void sa_enter_scope(SemanticAnalyzer *sa);
 void sa_exit_scope(SemanticAnalyzer *sa);
+AttrOwnership resolve_attribute_owner(SemanticAnalyzer *sa, ASTNode *attr_node);
+
+/**
+ * @brief Determines if an ASTNode refers to the 'self' parameter of the current
+ * method.
+ */
+bool is_self_reference(SemanticAnalyzer *sa, ASTNode *node);
 
 /* -----------------------------
  * SYMBOL TABLE OPERATIONS
@@ -86,6 +98,7 @@ void sa_exit_scope(SemanticAnalyzer *sa);
 void sa_define_symbol(SemanticAnalyzer *sa, Symbol *sym);
 Symbol *sa_lookup(SemanticAnalyzer *sa, const char *name);
 Symbol *sa_lookup_member(Symbol *class_sym, const char *name);
+Symbol *resolve_symbol(SemanticAnalyzer *sa, ASTNode *node);
 
 /* Main entrypoint */
 SemanticAnalyzer analyze_program(Parser *parser);

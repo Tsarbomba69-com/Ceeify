@@ -38,3 +38,9 @@ int sb_appendf(StringBuilder *sb, const char *fmt, ...) {
   sb->count += n;
   return n;
 }
+
+void sb_append_padding(StringBuilder *sb, char pad_char, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        sb_appendf(sb, "%c", pad_char);
+    }
+}

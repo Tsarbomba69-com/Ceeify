@@ -1,6 +1,13 @@
 #include "codegen.h"
 
 /* -----------------------------
+ *  INTERNAL API
+ * ----------------------------- */
+
+void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix,
+                      const char *self_type);
+
+/* -----------------------------
  *  CODEGEN IMPLEMENTATION
  * ----------------------------- */
 
@@ -19,6 +26,32 @@ int8_t get_node_precedence(ASTNode *node) {
   return 127;
 }
 
+const char *ctype_to_string(Codegen *cg, ASTNode *node) {
+  DataType t = sa_infer_type(&cg->sa, node);
+  switch (t) {
+  case INT:
+    return "int";
+  case STR:
+    return "char*";
+  case BOOL:
+    return "bool";
+  case FLOAT:
+    return "float";
+  case LIST:
+    return "list";
+  case NONE:
+    return "void";
+  case OBJECT: {
+    Symbol *obj_sym = sa_lookup(&cg->sa, node->token->lexeme);
+    Symbol *class_sym =
+        (obj_sym && obj_sym->dtype == OBJECT) ? obj_sym->base_class : NULL;
+    return class_sym ? class_sym->base_class->name : "void*";
+  } break;
+  default:
+    return "<unknown>";
+  }
+}
+
 Codegen codegen_init(SemanticAnalyzer *sa) {
   Codegen cg;
   cg.sa = *sa;
@@ -31,40 +64,9 @@ Codegen codegen_init(SemanticAnalyzer *sa) {
 
 bool gen_code(Codegen *cg, ASTNode *node) {
   switch (node->type) {
-  case FUNCTION_DEF: {
-    // Function signature
-    sb_appendf(&cg->output, "%s %s(",
-               datatype_to_string(
-                   node->def.returns ? sa_infer_type(&cg->sa, node->def.returns)
-                                     : NONE),
-               node->def.name->token->lexeme);
-
-    if (node->def.params.size == 0) {
-      sb_appendf(&cg->output, "void");
-    }
-
-    // Parameters
-    for (size_t cur = node->def.params.head; cur != SIZE_MAX;
-         cur = node->def.params.elements[cur].next) {
-      ASTNode *param = node->def.params.elements[cur].data;
-      DataType param_type = sa_infer_type(&cg->sa, param);
-      sb_appendf(&cg->output, "%s %s", datatype_to_string(param_type),
-                 param->token->lexeme);
-      if (cur != node->def.params.tail) {
-        sb_appendf(&cg->output, ", ");
-      }
-    }
-    sb_appendf(&cg->output, ") {\n");
-    // Function body
-    for (size_t cur = node->def.body.head; cur != SIZE_MAX;
-         cur = node->def.body.elements[cur].next) {
-      ASTNode *body_node = node->def.body.elements[cur].data;
-      cg->is_standalone = true;
-      gen_code(cg, body_node);
-    }
-
-    sb_appendf(&cg->output, "}\n");
-  } break;
+  case FUNCTION_DEF:
+    gen_function_def(cg, node, NULL, NULL);
+    break;
   case CALL: {
     sb_appendf(&cg->output, "%s(", node->call.func->token->lexeme);
     for (size_t cur = node->call.args.head; cur != SIZE_MAX;
@@ -88,9 +90,26 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     gen_code(cg, ret_expr);
     sb_appendf(&cg->output, ";\n");
   } break;
-  case VARIABLE:
+  case VARIABLE: {
+    if (node->ctx == STORE) {
+      // DEFINITION: Output "type name" (e.g., "int x")
+      sb_appendf(&cg->output, "%s %s", ctype_to_string(cg, node),
+                 node->token->lexeme);
+    } else {
+      // USAGE: Output just the name (e.g., "x")
+      sb_appendf(&cg->output, "%s", node->token->lexeme);
+    }
+
+    if (cg->is_standalone) {
+      sb_appendf(&cg->output, ";\n");
+    }
+    cg->is_standalone = false;
+  } break;
   case LITERAL:
     sb_appendf(&cg->output, "%s", node->token->lexeme);
+    if (cg->is_standalone) {
+      sb_appendf(&cg->output, ";\n");
+    }
     break;
   case BINARY_OPERATION: {
     cg->is_standalone = false;
@@ -113,6 +132,68 @@ bool gen_code(Codegen *cg, ASTNode *node) {
       sb_appendf(&cg->output, ")");
     } else {
       gen_code(cg, node->bin_op.right);
+    }
+  } break;
+  case CLASS_DEF: {
+    const char *class_name = node->def.name->token->lexeme;
+    sb_appendf(&cg->output, "typedef struct {\n");
+
+    // Handle Inheritance (Composition)
+    if (node->def.params.size == 1) {
+      ASTNode *base = ASTNode_pop(&node->def.params);
+      sb_appendf(&cg->output, "  %s* base;\n", base->token->lexeme);
+    } else {
+      for (size_t cur = node->def.params.head; cur != SIZE_MAX;
+           cur = node->def.params.elements[cur].next) {
+        ASTNode *base = node->call.args.elements[cur].data;
+        sb_appendf(&cg->output, "  %s* base%zu;\n", base->token->lexeme, cur);
+      }
+    }
+
+    ASTNode_LinkedList methods =
+        ASTNode_new_with_allocator(&cg->sa.parser.ast.allocator, DEFAULT_CAP);
+
+    for (size_t cur = node->def.body.head; cur != SIZE_MAX;
+         cur = node->def.body.elements[cur].next) {
+      ASTNode *member = node->def.body.elements[cur].data;
+      if (member->type == FUNCTION_DEF) {
+        ASTNode_add_first(&methods, member);
+        cg->is_standalone = true;
+        continue;
+      } else {
+        sb_append_padding(&cg->output, ' ', member->token->ident);
+        gen_code(cg, member);
+      }
+    }
+
+    sb_appendf(&cg->output, "} %s;\n\n", class_name);
+
+    for (size_t cur = methods.head; cur != SIZE_MAX;
+         cur = methods.elements[cur].next) {
+      ASTNode *method = methods.elements[cur].data;
+      gen_function_def(cg, method, class_name, class_name);
+    }
+  } break;
+  case ASSIGNMENT: {
+    sb_append_padding(&cg->output, ' ', node->token->ident);
+    for (size_t cur = node->assign.targets.head; cur != SIZE_MAX;
+         cur = node->assign.targets.elements[cur].next) {
+      ASTNode *target = node->assign.targets.elements[cur].data;
+      cg->is_standalone = false;
+      gen_code(cg, target);
+      sb_appendf(&cg->output, " = ");
+      cg->is_standalone = true;
+      gen_code(cg, node->assign.value);
+    }
+  } break;
+  case ATTRIBUTE: {
+    gen_code(cg, node->attribute.value);
+    AttrOwnership owner = resolve_attribute_owner(&cg->sa, node);
+
+    if (owner == ATTR_OWN_BASE) {
+      sb_appendf(&cg->output, "->base->%s", node->attribute.attr);
+    } else {
+      sb_appendf(&cg->output, "->%s", node->attribute.attr);
     }
   } break;
   default:
@@ -139,7 +220,7 @@ bool codegen_program(Codegen *cg) {
   for (size_t current = program->head; current != SIZE_MAX;
        current = program->elements[current].next) {
     ASTNode *node = program->elements[current].data;
-    if (node->type == FUNCTION_DEF) {
+    if (node->type == FUNCTION_DEF || node->type == CLASS_DEF) {
       cg->is_standalone = true;
       if (!gen_code(cg, node))
         return false;
@@ -171,3 +252,49 @@ bool codegen_program(Codegen *cg) {
 bool codegen_has_error(Codegen *cg) { return cg->last_error.type != CG_OK; }
 
 CodegenError codegen_get_error(Codegen *cg) { return cg->last_error; }
+
+void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix,
+                      const char *self_type) {
+  // 1. Return Type
+  sb_appendf(&cg->output, "%s ", ctype_to_string(cg, node->def.returns));
+
+  // 2. Name (with optional prefix for methods)
+  if (prefix) {
+    sb_appendf(&cg->output, "%s_%s(", prefix, node->def.name->token->lexeme);
+  } else {
+    sb_appendf(&cg->output, "%s(", node->def.name->token->lexeme);
+  }
+
+  // 3. Parameters
+  if (node->def.params.size == 0 && !self_type) {
+    sb_appendf(&cg->output, "void");
+  }
+
+  for (size_t cur = node->def.params.head; cur != SIZE_MAX;
+       cur = node->def.params.elements[cur].next) {
+    ASTNode *param = node->def.params.elements[cur].data;
+
+    // If this is the first param and we have a self_type override
+    if (cur == node->def.params.head && self_type) {
+      sb_appendf(&cg->output, "%s* %s", self_type, param->token->lexeme);
+    } else {
+      const char *p_type = ctype_to_string(cg, param);
+      sb_appendf(&cg->output, "%s %s", p_type, param->token->lexeme);
+    }
+
+    if (cur != node->def.params.tail) {
+      sb_appendf(&cg->output, ", ");
+    }
+  }
+  sb_appendf(&cg->output, ") {\n");
+
+  // 4. Body
+  for (size_t cur = node->def.body.head; cur != SIZE_MAX;
+       cur = node->def.body.elements[cur].next) {
+    ASTNode *body_node = node->def.body.elements[cur].data;
+    cg->is_standalone = true;
+    gen_code(cg, body_node);
+  }
+
+  sb_appendf(&cg->output, "}\n");
+}

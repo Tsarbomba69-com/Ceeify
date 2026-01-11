@@ -160,7 +160,7 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
 
 bool analyze_class_def(SemanticAnalyzer *sa, ASTNode *node) {
   Symbol *class_sym =
-      sa_create_symbol(sa, node->parent, node->def.name, OBJECT);
+      sa_create_symbol(sa, node, node->def.name, OBJECT);
   class_sym->kind = CLASS;
   sa_define_symbol(sa, class_sym);
   sa_enter_scope(sa);
@@ -218,25 +218,62 @@ bool is_inside_constructor(SemanticAnalyzer *sa) {
  * method.
  */
 bool is_self_reference(SemanticAnalyzer *sa, ASTNode *node) {
-  if (!node || node->type != VARIABLE)
-    return false;
-
-  SymbolTable *st = sa->current_scope;
-  while (st) {
-    for (SymbolTableEntry *e = st->entries; e; e = e->next) {
-      if (e->symbol->kind == FUNCTION) {
-        // In Python, 'self' is the first parameter
-        ASTNode_LinkedList *params = &e->symbol->decl_node->def.params;
-        if (params->size > 0) {
-          ASTNode *first_param = params->elements[params->head].data;
-          return strcmp(node->token->lexeme, first_param->token->lexeme) == 0;
-        }
+    if (!node || node->type != VARIABLE)
         return false;
-      }
+
+    SymbolTable *st = sa->current_scope;
+
+    while (st) {
+        for (SymbolTableEntry *e = st->entries; e; e = e->next) {
+            Symbol *sym = e->symbol;
+
+            // Case 1: class → traverse its inner scope
+            if (sym->kind == CLASS && sym->scope) {
+                SymbolTable *class_scope = sym->scope;
+
+                for (SymbolTableEntry *ce = class_scope->entries; ce; ce = ce->next) {
+                    Symbol *cs = ce->symbol;
+
+                    // Case 2: function inside class → check first param
+                    if (cs->kind == FUNCTION) {
+                        ASTNode_LinkedList *params =
+                            &cs->decl_node->def.params;
+
+                        if (params->size > 0) {
+                            ASTNode *first_param =
+                                params->elements[params->head].data;
+
+                            if (strcmp(node->token->lexeme,
+                                       first_param->token->lexeme) == 0) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Case 3: function in current scope (already inside class scope)
+            if (sym->kind == FUNCTION && sym->base_class) {
+                ASTNode_LinkedList *params =
+                    &sym->decl_node->def.params;
+
+                if (params->size > 0) {
+                    ASTNode *first_param =
+                        params->elements[params->head].data;
+
+                    return strcmp(node->token->lexeme,
+                                  first_param->token->lexeme) == 0;
+                }
+
+                return false;
+            }
+        }
+
+        // Otherwise go up one scope
+        st = st->parent;
     }
-    st = st->parent;
-  }
-  return false;
+
+    return false;
 }
 
 /**
@@ -306,7 +343,7 @@ bool analyze_func_def(SemanticAnalyzer *sa, ASTNode *node) {
 
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
   ASSERT(sa != NULL, "SemanticAnalyzer cannot be NULL in sa_infer_type");
-  ASSERT(node != NULL, "Cannot infer type of NULL node");
+  if (!node) return NONE;
 
   switch (node->type) {
   case LITERAL: {
@@ -375,11 +412,15 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
 
     DataType dtype = string_to_datatype(node->token->lexeme);
 
-    if (dtype != UNKNOWN) {
-      return dtype;
+    if (is_self_reference(sa, node)) {
+      return OBJECT;
     }
 
-    Symbol *sym = sa_lookup(sa, node->token->lexeme);
+    if (dtype != UNKNOWN) {
+      return dtype;
+    } 
+
+    Symbol *sym = resolve_symbol(sa, node);
     if (sym) {
       return sym->dtype;
     } else {
@@ -498,7 +539,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
 
     sym->dtype = sa_infer_type(sa, node);
 
-    if (sym->dtype == UNKNOWN) {
+    if (sym->dtype == UNKNOWN && !is_self_reference(sa, node)) {
       sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
                    "cannot infer type of variable '%s'; add a type annotation "
                    "or initialize it",
@@ -655,7 +696,20 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
         if (is_inside_constructor(sa) &&
             is_self_reference(sa, node->attribute.value)) {
           DataType inferred = sa_infer_type(sa, node->parent->assign.value);
-          Symbol *new_attr = sa_create_symbol(sa, node, node, inferred);
+          char *inferred_str = (char*)datatype_to_string(inferred);
+          Token *tok_var = create_token_from_str(&sa->parser.lexer, node->token->lexeme, IDENTIFIER);
+          tok_var->ident = node->parent->parent->token->ident;
+          tok_var->line = node->token->line;
+          tok_var->col = node->token->col;
+          ASTNode *var = node_new(&sa->parser, tok_var, VARIABLE);
+          var->ctx = STORE;
+          Token *t = create_token_from_str(&sa->parser.lexer, inferred_str, IDENTIFIER);
+          t->ident = node->parent->parent->token->ident;
+          t->line = node->token->line;
+          t->col = node->token->col + 1;
+          var->child = node_new(&sa->parser, t, VARIABLE);
+          Symbol *new_attr = sa_create_symbol(sa, class_sym->decl_node, var, inferred);
+          ASTNode_add_last(&class_sym->decl_node->def.body, var);
           sa_define_member(sa, class_sym, new_attr);
         } else {
           sa_set_error(sa, SEM_INVALID_OPERATION, node->token,
@@ -923,4 +977,88 @@ char *dump_symbol_table(SymbolTable *st) {
   char *dump = cJSON_Print(json);
   cJSON_Delete(json);
   return dump;
+}
+
+Symbol *resolve_symbol(SemanticAnalyzer *sa, ASTNode *node) {
+  if (node->parent && node->parent->type == CLASS_DEF) {
+    Symbol *class_sym = sa_lookup(sa, node->parent->def.name->token->lexeme);
+    Symbol *sym = sa_lookup_member(class_sym, node->token->lexeme);
+    return sym;
+  }
+
+  return sa_lookup(sa, node->token->lexeme);
+}
+
+static Symbol *find_enclosing_class(SemanticAnalyzer *sa) {
+    SymbolTable *st = sa->current_scope;
+
+    while (st) {
+        for (SymbolTableEntry *e = st->entries; e; e = e->next) {
+            if (e->symbol->kind == CLASS)
+                return e->symbol;
+        }
+        st = st->parent;
+    }
+    return NULL;
+}
+
+static bool class_has_field(Symbol *cls, const char *name) {
+    if (!cls || !cls->scope)
+        return false;
+
+    for (SymbolTableEntry *e = cls->scope->entries; e; e = e->next) {
+        if (e->symbol->kind == VAR &&
+            strcmp(e->symbol->name, name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static Symbol *resolve_base_class(SemanticAnalyzer *sa, Symbol *cls) {
+    if (!cls || !cls->base_class)
+        return NULL;
+
+    SymbolTable *st = sa->current_scope;
+    while (st) {
+        for (SymbolTableEntry *e = st->entries; e; e = e->next) {
+            if (e->symbol->kind == CLASS &&
+                strcmp(e->symbol->name, cls->base_class->name) == 0) {
+                return e->symbol;
+            }
+        }
+        st = st->parent;
+    }
+    return NULL;
+}
+
+AttrOwnership resolve_attribute_owner(
+    SemanticAnalyzer *sa,
+    ASTNode *attr_node
+) {
+    if (!sa || !attr_node || attr_node->type != ATTRIBUTE)
+        return ATTR_OWN_CURRENT;
+
+    const char *attr = attr_node->attribute.attr;
+
+    // Rule 1: assignment ALWAYS creates / writes on current class
+    if (attr_node->type == ASSIGNMENT) {
+        return ATTR_OWN_CURRENT;
+    }
+
+    // Rule 2: resolve by class layout
+    Symbol *cls = find_enclosing_class(sa);
+    if (!cls)
+        return ATTR_OWN_CURRENT;
+
+    // Field defined on current class?
+    if (class_has_field(cls, attr))
+        return ATTR_OWN_CURRENT;
+
+    // Field inherited from base?
+    Symbol *base = resolve_base_class(sa, cls);
+    if (class_has_field(base, attr))
+        return ATTR_OWN_BASE;
+
+    return ATTR_OWN_CURRENT;
 }

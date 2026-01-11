@@ -151,6 +151,7 @@ cJSON *serialize_node(ASTNode *node) {
   cJSON *root = cJSON_CreateObject();
   cJSON_AddStringToObject(root, "type", node_type_to_string(node->type));
   cJSON_AddNumberToObject(root, "depth", node->depth);
+  cJSON_AddStringToObject(root, "ctx", ctx_to_str(node->ctx));
 
   switch (node->type) {
   case ASSIGNMENT:
@@ -890,6 +891,7 @@ ASTNode *parse_class_def(Parser *parser, ASTNode *class_node) {
   class_node->def.params =
       ASTNode_new_with_allocator(&parser->ast.allocator, 2);
   class_node->def.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  class_node->def.returns = NULL;
 
   // 2. Handle Inheritance: class Dog(Animal):
   if (parser->next && parser->next->type == LPAR) {

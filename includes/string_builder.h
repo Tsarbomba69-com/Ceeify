@@ -15,4 +15,6 @@ StringBuilder sb_init(Allocator *allocator, size_t capacity);
 
 int sb_appendf(StringBuilder *sb, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 
+void sb_append_padding(StringBuilder *sb, char pad_char, size_t count);
+
 #endif // STRING_BUILDER_H_

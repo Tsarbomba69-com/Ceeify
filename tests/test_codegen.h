@@ -71,4 +71,37 @@ void test_codegen_class_to_struct(void) {
   codegen_free(&cg);
 }
 
+void test_codegen_class_inheritance_and_init(void) {
+  // Arrange
+  const char *expected = "typedef struct {\n"
+                         "  char* name;\n"
+                         "} Animal;\n"
+                         "\n"
+                         "typedef struct {\n"
+                         "  Animal* base;\n"
+                         "  int tails;\n"
+                         "  int butt;\n"
+                         "} Dog;\n"
+                         "\n"
+                         "void Dog___init__(Dog* self, char* name) {\n"
+                         "    self->base->name = name;\n"
+                         "    self->butt = 1;\n"
+                         "}\n";
+  // Act
+  Codegen cg = compile_to_c("class Animal:\n"
+                            "    name: str\n"
+                            "\n"
+                            "class Dog(Animal):\n"
+                            "    tails: int\n"
+                            "\n"
+                            "    def __init__(self, name: str):\n"
+                            "        self.name = name\n"
+                            "        self.butt = 1\n");
+  // Assert
+  TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
+
+  // Cleanup
+  codegen_free(&cg);
+}
+
 #endif // TEST_CODEGEN_H_
