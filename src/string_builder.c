@@ -40,7 +40,73 @@ int sb_appendf(StringBuilder *sb, const char *fmt, ...) {
 }
 
 void sb_append_padding(StringBuilder *sb, char pad_char, size_t count) {
-    for (size_t i = 0; i < count; i++) {
-        sb_appendf(sb, "%c", pad_char);
+  for (size_t i = 0; i < count; i++) {
+    sb_appendf(sb, "%c", pad_char);
+  }
+}
+
+int sb_replace(StringBuilder *sb, const char *old_value, const char *new_value) {
+  if (sb == NULL || old_value == NULL || new_value == NULL) {
+    return 0;
+  }
+
+  size_t old_len = strlen(old_value);
+  size_t new_len = strlen(new_value);
+  
+  if (old_len == 0) {
+    return 0;
+  }
+
+  // Count occurrences to calculate new capacity needed
+  int count = 0;
+  char *pos = sb->items;
+  while ((pos = strstr(pos, old_value)) != NULL) {
+    count++;
+    pos += old_len;
+  }
+
+  if (count == 0) {
+    return 0;
+  }
+
+  // Calculate new size and reserve space if needed
+  size_t new_count = sb->count + count * (new_len - old_len);
+  
+  if (new_len > old_len) {
+    sb_reserve(sb, new_count + 1);
+  }
+
+  // Perform replacements from end to start to avoid overwriting
+  if (new_len != old_len) {
+    // Need to shift content
+    for (int i = count - 1; i >= 0; i--) {
+      // Find the i-th occurrence
+      pos = sb->items;
+      for (int j = 0; j <= i; j++) {
+        pos = strstr(pos, old_value);
+        if (j < i) pos += old_len;
+      }
+      
+      size_t pos_idx = pos - sb->items;
+      size_t tail_len = sb->count - pos_idx - old_len;
+      
+      // Move tail
+      memmove(pos + new_len, pos + old_len, tail_len);
+      
+      // Copy new value
+      memcpy(pos, new_value, new_len);
+      
+      // Update count
+      sb->count += (new_len - old_len);
     }
+  } else {
+    // Same length, simple replacement
+    pos = sb->items;
+    while ((pos = strstr(pos, old_value)) != NULL) {
+      memcpy(pos, new_value, new_len);
+      pos += new_len;
+    }
+  }
+
+  return count;
 }

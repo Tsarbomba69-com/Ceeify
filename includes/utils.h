@@ -30,6 +30,7 @@ enum {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 typedef enum {
   LOG_ALL = 0, // Display all logs
@@ -49,6 +50,8 @@ bool save_file_text(const char *filename, char *text);
 char *slice(Allocator *allocator, const char *source, size_t start, size_t end);
 
 int safe_fprintf(FILE *f, const char *fmt, ...);
+
+void normalize_whitespace(char* str);
 
 static inline int safe_memcpy(void *dest, size_t destsz, const void *src,
                               size_t count) {

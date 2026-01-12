@@ -104,4 +104,27 @@ void test_codegen_class_inheritance_and_init(void) {
   codegen_free(&cg);
 }
 
+void test_codegen_if_else_statement(void) {
+  // Arrange
+  char expected[] = "int f(int x) {\n"
+                         "  if (x) {\n"
+                         "    return 1;\n"
+                         "  } else {\n"
+                         "    return 0;\n"
+                         "  }\n"
+                         "}\n";
+  normalize_whitespace(expected);
+  // Act
+  Codegen cg = compile_to_c("def f(x: int) -> int:\n"
+                            "  if x:\n"
+                            "    return 1\n"
+                            "  else:\n"
+                            "    return 0\n");
+  normalize_whitespace(cg.output.items);
+  // Assert
+  TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
+  // Cleanup
+  codegen_free(&cg);
+}
+
 #endif // TEST_CODEGEN_H_

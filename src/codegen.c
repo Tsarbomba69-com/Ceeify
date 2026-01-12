@@ -196,6 +196,41 @@ bool gen_code(Codegen *cg, ASTNode *node) {
       sb_appendf(&cg->output, "->%s", node->attribute.attr);
     }
   } break;
+  case IF: {
+    sb_append_padding(&cg->output, ' ', node->token->ident);
+    sb_appendf(&cg->output, "if (");
+    cg->is_standalone = false;
+    gen_code(cg, node->ctrl_stmt.test);
+    cg->is_standalone = true;
+    sb_appendf(&cg->output, ") {\n");
+
+    for (size_t cur = node->ctrl_stmt.body.head; cur != SIZE_MAX;
+         cur = node->ctrl_stmt.body.elements[cur].next) {
+      ASTNode *stmt = node->ctrl_stmt.body.elements[cur].data;
+      gen_code(cg, stmt);
+    }
+
+    sb_append_padding(&cg->output, ' ', node->token->ident);
+
+    if (node->ctrl_stmt.orelse.size > 0) {
+      sb_appendf(&cg->output, "}");
+      ASTNode *last =
+          node->ctrl_stmt.orelse.elements[node->ctrl_stmt.orelse.head].data;
+      sb_append_padding(&cg->output, ' ',
+                        last->type == IF ? 0 : node->token->ident);
+      sb_appendf(&cg->output, last->type == IF ? "else " : "else {\n");
+      for (size_t cur = node->ctrl_stmt.orelse.head; cur != SIZE_MAX;
+           cur = node->ctrl_stmt.orelse.elements[cur].next) {
+        ASTNode *stmt = node->ctrl_stmt.orelse.elements[cur].data;
+        gen_code(cg, stmt);
+      }
+
+      sb_append_padding(&cg->output, ' ', node->token->ident);
+      sb_appendf(&cg->output, "}\n");
+    } else {
+      sb_appendf(&cg->output, "}\n");
+    }
+  } break;
   default:
     slog_fatal("Code generation for \"%s\" type is not implemented yet",
                node_type_to_string(node->type));

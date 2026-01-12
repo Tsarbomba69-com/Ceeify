@@ -17,4 +17,6 @@ int sb_appendf(StringBuilder *sb, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 
 void sb_append_padding(StringBuilder *sb, char pad_char, size_t count);
 
+int sb_replace(StringBuilder *sb, const char *old_value, const char *new_value);
+
 #endif // STRING_BUILDER_H_

@@ -68,7 +68,8 @@ add_executable(test_ceeify tests/main.c ${SOURCES})
 target_link_libraries(test_ceeify unity cjson slog)
 
 # Apply sanitizer flags to all targets after they're defined
-if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+option(ENABLE_SANITIERS "Enable ASan" ON)
+if(ENABLE_SANITIERS AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang"))
      set(SANITIZER_FLAGS "-fsanitize=address")
      foreach(target ceeify test_ceeify)
          target_compile_options(${target} PRIVATE 

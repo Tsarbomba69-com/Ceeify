@@ -96,6 +96,7 @@ int main(void) {
   RUN_TEST(test_codegen_function_return_literal);
   RUN_TEST(test_codegen_function_call);
   RUN_TEST(test_codegen_class_inheritance_and_init);
+  RUN_TEST(test_codegen_if_else_statement);
   return UNITY_END();
 }
 

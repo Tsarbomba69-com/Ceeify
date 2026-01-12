@@ -43,10 +43,7 @@ typedef struct Symbol {
   struct Symbol *base_class;
 } Symbol;
 
-typedef enum {
-  ATTR_OWN_CURRENT,
-  ATTR_OWN_BASE
-} AttrOwnership;
+typedef enum { ATTR_OWN_CURRENT, ATTR_OWN_BASE } AttrOwnership;
 
 typedef struct SymbolTableEntry {
   Symbol *symbol;

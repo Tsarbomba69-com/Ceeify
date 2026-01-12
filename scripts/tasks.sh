@@ -61,11 +61,9 @@ ikos() {
   fi
 
   echo "Configuring project with IKOS…"
-  # Reject interactive prompt
-  printf "n\n" | ikos-scan cmake -S . -B "$BUILD_DIR"
+  echo "n" | ikos-scan cmake -S . -B "$BUILD_DIR" -DENABLE_SANITIZERS=OFF
   echo "Building project with IKOS…"
-  # Confirm interactive prompt
-  printf "Y\n" ikos-scan cmake --build "$BUILD_DIR"
+  echo "Y" | ikos-scan cmake --build "$BUILD_DIR"
   echo "Generating IKOS report…"
   ikos-view "$BUILD_DIR/ceeify.db"
 }
