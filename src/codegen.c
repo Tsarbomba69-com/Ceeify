@@ -7,6 +7,8 @@
 void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix,
                       const char *self_type);
 
+void gen_ctrl_flow(Codegen *cg, ASTNode *node);
+
 /* -----------------------------
  *  CODEGEN IMPLEMENTATION
  * ----------------------------- */
@@ -91,7 +93,14 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     sb_appendf(&cg->output, ";\n");
   } break;
   case VARIABLE: {
-    if (node->ctx == STORE) {
+    Symbol *var_sym = sa_lookup(&cg->sa, node->token->lexeme);
+    Symbol *class_sym = var_sym ? NULL : find_enclosing_class(&cg->sa);
+    var_sym = !var_sym && class_sym
+                  ? sa_lookup_member(class_sym, node->token->lexeme)
+                  : var_sym;
+
+    if (var_sym && ((node->ctx == STORE && var_sym->decl_node == node) ||
+                    var_sym->base_class)) {
       // DEFINITION: Output "type name" (e.g., "int x")
       sb_appendf(&cg->output, "%s %s", ctype_to_string(cg, node),
                  node->token->lexeme);
@@ -112,6 +121,7 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     }
     break;
   case BINARY_OPERATION: {
+    bool saved = cg->is_standalone;
     cg->is_standalone = false;
     int8_t current_prec = get_infix_precedence(node->token->lexeme);
     int8_t left_prec = get_node_precedence(node->bin_op.left);
@@ -132,6 +142,11 @@ bool gen_code(Codegen *cg, ASTNode *node) {
       sb_appendf(&cg->output, ")");
     } else {
       gen_code(cg, node->bin_op.right);
+    }
+
+    cg->is_standalone = saved;
+    if (cg->is_standalone) {
+      sb_appendf(&cg->output, ";\n");
     }
   } break;
   case CLASS_DEF: {
@@ -231,6 +246,57 @@ bool gen_code(Codegen *cg, ASTNode *node) {
       sb_appendf(&cg->output, "}\n");
     }
   } break;
+  case WHILE:
+    gen_ctrl_flow(cg, node);
+    break;
+  case COMPARE: {
+    bool saved = cg->is_standalone;
+    cg->is_standalone = false;
+
+    // Python comparison chaining: a < b < c  => (a < b && b < c)
+    // We'll use parentheses to ensure C precedence doesn't break logic
+    bool chained = node->compare.comparators.size > 1;
+    if (chained)
+      sb_appendf(&cg->output, "(");
+
+    ASTNode *left_side = node->compare.left;
+
+    size_t op_idx = 0;
+    for (size_t cur = node->compare.comparators.head; cur != SIZE_MAX;
+         cur = node->compare.comparators.elements[cur].next) {
+
+      if (op_idx > 0) {
+        sb_appendf(&cg->output, " && ");
+      }
+
+      // Generate the sub-expression: left_side OP right_side
+      gen_code(cg, left_side);
+
+      Token *op = node->compare.ops.elements[op_idx];
+      // Map Python '==' to C '==', 'is' to '==', etc.
+      const char *c_op = op->lexeme;
+      if (strcmp(c_op, "is") == 0)
+        c_op = "==";
+
+      sb_appendf(&cg->output, " %s ", c_op);
+
+      ASTNode *right_side = node->compare.comparators.elements[cur].data;
+      gen_code(cg, right_side);
+
+      // In chained comparison, the right of the current becomes the left of the
+      // next
+      left_side = right_side;
+      op_idx++;
+    }
+
+    if (chained)
+      sb_appendf(&cg->output, ")");
+
+    cg->is_standalone = saved;
+    if (cg->is_standalone) {
+      sb_appendf(&cg->output, ";\n");
+    }
+  } break;
   default:
     slog_fatal("Code generation for \"%s\" type is not implemented yet",
                node_type_to_string(node->type));
@@ -322,7 +388,8 @@ void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix,
     }
   }
   sb_appendf(&cg->output, ") {\n");
-
+  Symbol *fun_sym = sa_lookup(&cg->sa, node->def.name->token->lexeme);
+  cg->sa.current_scope = fun_sym ? fun_sym->scope : cg->sa.current_scope;
   // 4. Body
   for (size_t cur = node->def.body.head; cur != SIZE_MAX;
        cur = node->def.body.elements[cur].next) {
@@ -331,5 +398,28 @@ void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix,
     gen_code(cg, body_node);
   }
 
+  sb_appendf(&cg->output, "}\n");
+  sa_exit_scope(&cg->sa);
+}
+
+void gen_ctrl_flow(Codegen *cg, ASTNode *node) {
+  ASSERT(cg, "Codegen context cannot be NULL");
+  ASSERT(node, "Node cannot be null");
+
+  sb_append_padding(&cg->output, ' ', node->token->ident);
+
+  sb_appendf(&cg->output, "while (");
+  cg->is_standalone = false;
+  gen_code(cg, node->ctrl_stmt.test);
+  cg->is_standalone = true;
+  sb_appendf(&cg->output, ") {\n");
+
+  for (size_t cur = node->ctrl_stmt.body.head; cur != SIZE_MAX;
+       cur = node->ctrl_stmt.body.elements[cur].next) {
+    ASTNode *stmt = node->ctrl_stmt.body.elements[cur].data;
+    gen_code(cg, stmt);
+  }
+
+  sb_append_padding(&cg->output, ' ', node->token->ident);
   sb_appendf(&cg->output, "}\n");
 }

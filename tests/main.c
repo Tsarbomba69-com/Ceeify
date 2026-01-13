@@ -97,6 +97,7 @@ int main(void) {
   RUN_TEST(test_codegen_function_call);
   RUN_TEST(test_codegen_class_inheritance_and_init);
   RUN_TEST(test_codegen_if_else_statement);
+  RUN_TEST(test_codegen_while_loop);
   return UNITY_END();
 }
 
@@ -110,6 +111,6 @@ int main2(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_codegen_function_call);
+  RUN_TEST(test_codegen_class_inheritance_and_init);
   return UNITY_END();
 }

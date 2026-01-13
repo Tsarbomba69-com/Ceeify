@@ -96,6 +96,7 @@ void sa_define_symbol(SemanticAnalyzer *sa, Symbol *sym);
 Symbol *sa_lookup(SemanticAnalyzer *sa, const char *name);
 Symbol *sa_lookup_member(Symbol *class_sym, const char *name);
 Symbol *resolve_symbol(SemanticAnalyzer *sa, ASTNode *node);
+Symbol *find_enclosing_class(SemanticAnalyzer *sa);
 
 /* Main entrypoint */
 SemanticAnalyzer analyze_program(Parser *parser);

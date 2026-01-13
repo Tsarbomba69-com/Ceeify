@@ -9,8 +9,7 @@ const char *COMPARISON_OPS[] = {
 };
 
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
-Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *parent, ASTNode *node,
-                         DataType type);
+Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type, SymbolType kind);
 cJSON *serialize_symbol(Symbol *sym);
 cJSON *serialize_symbol_table(SymbolTable *st);
 cJSON *serialize_symbol(Symbol *sym);
@@ -159,8 +158,8 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
 }
 
 bool analyze_class_def(SemanticAnalyzer *sa, ASTNode *node) {
-  Symbol *class_sym = sa_create_symbol(sa, node, node->def.name, OBJECT);
-  class_sym->kind = CLASS;
+  node->def.name->parent = node;
+  Symbol *class_sym = sa_create_symbol(sa, node->def.name, OBJECT, CLASS);
   sa_define_symbol(sa, class_sym);
   sa_enter_scope(sa);
   class_sym->scope = sa->current_scope;
@@ -235,7 +234,7 @@ bool is_self_reference(SemanticAnalyzer *sa, ASTNode *node) {
 
           // Case 2: function inside class → check first param
           if (cs->kind == FUNCTION) {
-            ASTNode_LinkedList *params = &cs->decl_node->def.params;
+            ASTNode_LinkedList *params = &cs->decl_node->parent->def.params;
 
             if (params->size > 0) {
               ASTNode *first_param = params->elements[params->head].data;
@@ -251,7 +250,7 @@ bool is_self_reference(SemanticAnalyzer *sa, ASTNode *node) {
 
       // Case 3: function in current scope (already inside class scope)
       if (sym->kind == FUNCTION && sym->base_class) {
-        ASTNode_LinkedList *params = &sym->decl_node->def.params;
+        ASTNode_LinkedList *params = &sym->decl_node->parent->def.params;
 
         if (params->size > 0) {
           ASTNode *first_param = params->elements[params->head].data;
@@ -288,12 +287,8 @@ void sa_define_member(SemanticAnalyzer *sa, Symbol *class_sym,
 bool analyze_func_def(SemanticAnalyzer *sa, ASTNode *node) {
   ASSERT(sa, "Semantic Analyzer context not provided");
   ASSERT(node, "Node not provided");
-  Symbol *sym = allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
-  sym->name = arena_strdup(&sa->parser.ast.allocator.base,
-                           node->def.name->token->lexeme);
-  sym->kind = FUNCTION;
-  sym->decl_node = node;
-  sym->scope_level = node->depth;
+  node->def.name->parent = node;
+  Symbol *sym = sa_create_symbol(sa, node->def.name, UNKNOWN, FUNCTION);
   sa_define_symbol(sa, sym);
   sa_enter_scope(sa);
   sym->scope = sa->current_scope;
@@ -517,7 +512,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     Symbol *sym;
 
     if (node->ctx == STORE && node->parent && node->parent->type == CLASS_DEF) {
-      sym = sa_create_symbol(sa, node->parent, node, sa_infer_type(sa, node));
+      sym = sa_create_symbol(sa, node, sa_infer_type(sa, node), VAR);
       sa_define_symbol(sa, sym);
       return true;
     }
@@ -560,7 +555,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       }
 
       if (!sym) {
-        sym = sa_create_symbol(sa, node, target, rhs_type);
+        sym = sa_create_symbol(sa, target, rhs_type, VAR);
         sa_define_symbol(sa, sym);
 
         sym->dtype =
@@ -611,7 +606,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     }
 
     size_t num_args = node->call.args.size;
-    size_t num_params = sym->decl_node->def.params.size;
+    size_t num_params = sym->decl_node->parent->def.params.size;
 
     if (num_args != num_params) {
       sa_set_error(sa, SEM_ARITY_MISMATCH, node->call.func->token,
@@ -624,8 +619,8 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     for (size_t i = 0; i < num_args; i++) {
       ASTNode *arg_node =
           node->call.args.elements[node->call.args.head + i].data;
-      ASTNode *param_node = sym->decl_node->def.params
-                                .elements[sym->decl_node->def.params.head + i]
+      ASTNode *param_node = sym->decl_node->parent->def.params
+                                .elements[sym->decl_node->parent->def.params.head + i]
                                 .data;
       DataType arg_type = sa_infer_type(sa, arg_node);
       DataType param_type = sa_infer_type(sa, param_node);
@@ -649,6 +644,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     }
   } break;
 
+  case WHILE:
   case IF: {
     if (!analyze_node(sa, node->ctrl_stmt.test))
       return false;
@@ -703,9 +699,8 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
           t->line = node->token->line;
           t->col = node->token->col + 1;
           var->child = node_new(&sa->parser, t, VARIABLE);
-          Symbol *new_attr =
-              sa_create_symbol(sa, class_sym->decl_node, var, inferred);
-          ASTNode_add_last(&class_sym->decl_node->def.body, var);
+          Symbol *new_attr = sa_create_symbol(sa, var, inferred, VAR);
+          ASTNode_add_last(&class_sym->decl_node->parent->def.body, var);
           sa_define_member(sa, class_sym, new_attr);
         } else {
           sa_set_error(sa, SEM_INVALID_OPERATION, node->token,
@@ -872,14 +867,13 @@ SemanticError sa_get_error(SemanticAnalyzer *sa) {
   return sa->last_error;
 }
 
-Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *parent, ASTNode *node,
-                         DataType type) {
+Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type, SymbolType kind) {
   Symbol *sym = allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
   sym->id = sa->next_symbol_id++;
   sym->name = arena_strdup(&sa->parser.ast.allocator.base, node->token->lexeme);
-  sym->kind = VAR;
+  sym->kind = kind;
   sym->dtype = type;
-  sym->decl_node = parent;
+  sym->decl_node = node;
   sym->scope_level = sa->current_scope ? sa->current_scope->depth : 0;
   sym->scope = NULL;
   sym->base_class = NULL;
@@ -943,8 +937,7 @@ cJSON *serialize_symbol(Symbol *sym) {
 
   // Recursively serialize nested scopes (for functions and classes)
   if (sym->scope) {
-    cJSON_AddItemToObject(root, "inner_scope",
-                          serialize_symbol_table(sym->scope));
+    cJSON_AddItemToObject(root, "scope", serialize_symbol_table(sym->scope));
   }
 
   return root;
@@ -985,7 +978,7 @@ Symbol *resolve_symbol(SemanticAnalyzer *sa, ASTNode *node) {
   return sa_lookup(sa, node->token->lexeme);
 }
 
-static Symbol *find_enclosing_class(SemanticAnalyzer *sa) {
+Symbol *find_enclosing_class(SemanticAnalyzer *sa) {
   SymbolTable *st = sa->current_scope;
 
   while (st) {

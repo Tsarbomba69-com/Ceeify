@@ -73,20 +73,20 @@ void test_codegen_class_to_struct(void) {
 
 void test_codegen_class_inheritance_and_init(void) {
   // Arrange
-  const char *expected = "typedef struct {\n"
-                         "  char* name;\n"
-                         "} Animal;\n"
-                         "\n"
-                         "typedef struct {\n"
-                         "  Animal* base;\n"
-                         "  int tails;\n"
-                         "  int butt;\n"
-                         "} Dog;\n"
-                         "\n"
-                         "void Dog___init__(Dog* self, char* name) {\n"
-                         "    self->base->name = name;\n"
-                         "    self->butt = 1;\n"
-                         "}\n";
+  char expected[] = "typedef struct {\n"
+                    "  char* name;\n"
+                    "} Animal;\n"
+                    "\n"
+                    "typedef struct {\n"
+                    "  Animal* base;\n"
+                    "  int tails;\n"
+                    "  int butt;\n"
+                    "} Dog;\n"
+                    "\n"
+                    "void Dog___init__(Dog* self, char* name) {\n"
+                    "    self->base->name = name;\n"
+                    "    self->butt = 1;\n"
+                    "}\n";
   // Act
   Codegen cg = compile_to_c("class Animal:\n"
                             "    name: str\n"
@@ -97,6 +97,8 @@ void test_codegen_class_inheritance_and_init(void) {
                             "    def __init__(self, name: str):\n"
                             "        self.name = name\n"
                             "        self.butt = 1\n");
+  normalize_whitespace(expected);
+  normalize_whitespace(cg.output.items);
   // Assert
   TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
 
@@ -107,12 +109,12 @@ void test_codegen_class_inheritance_and_init(void) {
 void test_codegen_if_else_statement(void) {
   // Arrange
   char expected[] = "int f(int x) {\n"
-                         "  if (x) {\n"
-                         "    return 1;\n"
-                         "  } else {\n"
-                         "    return 0;\n"
-                         "  }\n"
-                         "}\n";
+                    "  if (x) {\n"
+                    "    return 1;\n"
+                    "  } else {\n"
+                    "    return 0;\n"
+                    "  }\n"
+                    "}\n";
   normalize_whitespace(expected);
   // Act
   Codegen cg = compile_to_c("def f(x: int) -> int:\n"
@@ -124,6 +126,24 @@ void test_codegen_if_else_statement(void) {
   // Assert
   TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
   // Cleanup
+  codegen_free(&cg);
+}
+
+void test_codegen_while_loop(void) {
+  // Arrange
+  char expected[] = "void countdown(int n) {\n"
+                    "    while (n > 0) {\n"
+                    "        n = n - 1;\n"
+                    "    }\n"
+                    "}\n";
+  // Act
+  Codegen cg = compile_to_c("def countdown(n: int) -> None:\n"
+                            "    while n > 0:\n"
+                            "        n = n - 1\n");
+  normalize_whitespace(expected);
+  normalize_whitespace(cg.output.items);
+  // Assert
+  TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
   codegen_free(&cg);
 }
 

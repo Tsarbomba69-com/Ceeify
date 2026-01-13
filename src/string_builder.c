@@ -45,14 +45,15 @@ void sb_append_padding(StringBuilder *sb, char pad_char, size_t count) {
   }
 }
 
-int sb_replace(StringBuilder *sb, const char *old_value, const char *new_value) {
+int sb_replace(StringBuilder *sb, const char *old_value,
+               const char *new_value) {
   if (sb == NULL || old_value == NULL || new_value == NULL) {
     return 0;
   }
 
   size_t old_len = strlen(old_value);
   size_t new_len = strlen(new_value);
-  
+
   if (old_len == 0) {
     return 0;
   }
@@ -71,7 +72,7 @@ int sb_replace(StringBuilder *sb, const char *old_value, const char *new_value) 
 
   // Calculate new size and reserve space if needed
   size_t new_count = sb->count + count * (new_len - old_len);
-  
+
   if (new_len > old_len) {
     sb_reserve(sb, new_count + 1);
   }
@@ -84,18 +85,19 @@ int sb_replace(StringBuilder *sb, const char *old_value, const char *new_value) 
       pos = sb->items;
       for (int j = 0; j <= i; j++) {
         pos = strstr(pos, old_value);
-        if (j < i) pos += old_len;
+        if (j < i)
+          pos += old_len;
       }
-      
+
       size_t pos_idx = pos - sb->items;
       size_t tail_len = sb->count - pos_idx - old_len;
-      
+
       // Move tail
       memmove(pos + new_len, pos + old_len, tail_len);
-      
+
       // Copy new value
       memcpy(pos, new_value, new_len);
-      
+
       // Update count
       sb->count += (new_len - old_len);
     }

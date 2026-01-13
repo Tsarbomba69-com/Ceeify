@@ -109,33 +109,34 @@ bool save_file_text(const char *filename, char *text) {
   return true;
 }
 
-void normalize_whitespace(char* str) {
-    if (str == NULL) return;
-    
-    char* read = str;
-    char* write = str;
-    bool in_whitespace = false;
-    bool at_start = true;
-    
-    while (*read) {
-        if (isspace((unsigned char)*read)) {
-            if (!in_whitespace && !at_start) {
-                *write++ = ' ';
-                in_whitespace = true;
-            }
-            // Skip all consecutive whitespace
-            read++;
-        } else {
-            *write++ = *read++;
-            in_whitespace = false;
-            at_start = false;
-        }
+void normalize_whitespace(char *str) {
+  if (str == NULL)
+    return;
+
+  char *read = str;
+  char *write = str;
+  bool in_whitespace = false;
+  bool at_start = true;
+
+  while (*read) {
+    if (isspace((unsigned char)*read)) {
+      if (!in_whitespace && !at_start) {
+        *write++ = ' ';
+        in_whitespace = true;
+      }
+      // Skip all consecutive whitespace
+      read++;
+    } else {
+      *write++ = *read++;
+      in_whitespace = false;
+      at_start = false;
     }
-    
-    // Remove trailing space if we added one at the end
-    if (write > str && *(write - 1) == ' ') {
-        write--;
-    }
-    
-    *write = '\0';
+  }
+
+  // Remove trailing space if we added one at the end
+  if (write > str && *(write - 1) == ' ') {
+    write--;
+  }
+
+  *write = '\0';
 }
