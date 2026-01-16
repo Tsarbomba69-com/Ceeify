@@ -20,6 +20,7 @@ ASTNode_LinkedList ASTNode_new(size_t capacity) {
 
 ASTNode_LinkedList ASTNode_new_with_allocator(Allocator *allocator,
                                               size_t capacity) {
+  ASSERT(capacity > 0, "Capacity was not provided");
   ASTNode_LinkedList list = {0};
   list.capacity = capacity;
   list.head = SIZE_MAX;

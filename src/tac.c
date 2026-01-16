@@ -12,6 +12,8 @@ static TACValue gen_binary_op(Tac *tac, ASTNode *node);
 
 static TACValue gen_unary_op(Tac *tac, ASTNode *node);
 
+static void gen_function_def(Tac *tac, ASTNode *node);
+
 TACValue gen_const_value(Tac *tac, ASTNode *node);
 
 size_t tac_add_constant(TACProgram *program, ConstantValue value,
@@ -76,7 +78,7 @@ static const char *type_to_str(DataType type) {
   }
 }
 
-static const char *op_to_str(TACOp op) {
+const char *op_to_str(TACOp op) {
   switch (op) {
   case TAC_CONST:
     return "CONST";
@@ -106,6 +108,8 @@ static const char *op_to_str(TACOp op) {
     return "JZ";
   case TAC_LABEL:
     return "LABEL";
+  case TAC_ARG:
+    return "ARG";
   default:
     return "UNKNOWN";
   }
@@ -154,8 +158,12 @@ static void gen_stmt(Tac *tac, ASTNode *node) {
   case IF:
     gen_if(tac, node);
     break;
+  case FUNCTION_DEF:
+    gen_function_def(tac, node);
+    break;
   default:
-    slog_warn("TAC generation for node type %d not implemented", node->type);
+    slog_warn("TAC generation for node type \"%s\" not implemented",
+              node_type_to_string(node->type));
     break;
   }
 }
@@ -372,6 +380,7 @@ StringBuilder tac_generate_code(TACProgram *program) {
   sb_appendf(&sb, "Instructions: %zu\n\n", program->count);
 
   // Process each instruction
+
   for (size_t i = 0; i < program->count; i++) {
     TACInstruction *instr = &program->instructions[i];
 
@@ -495,6 +504,13 @@ StringBuilder tac_generate_code(TACProgram *program) {
       break;
     }
 
+    case TAC_ARG: {
+      StringBuilder res_sb = {.allocator = program->allocator};
+      format_value(&res_sb, instr->result, "v");
+      sb_appendf(&sb, "    %.*s = ARG %zu\n", (int)res_sb.count, res_sb.items,
+                 instr->lhs.id);
+      break;
+    }
     default:
       sb_appendf(&sb, "    UNKNOWN\n");
       break;
@@ -502,127 +518,6 @@ StringBuilder tac_generate_code(TACProgram *program) {
   }
 
   sb_appendf(&sb, "\n=== End TAC Program ===\n");
-  return sb;
-}
-
-// Alternative version that returns pretty formatted code with comments
-StringBuilder tac_generate_pretty_code(TACProgram *program) {
-  StringBuilder sb = {0};
-
-  if (!program) {
-    return sb;
-  }
-
-  // Append header with comments
-  sb_appendf(&sb, "; === Three-Address Code ===\n");
-  sb_appendf(&sb, "; Generated from source program\n");
-  sb_appendf(&sb, "; Total instructions: %zu\n\n", program->count);
-
-  // Process each instruction
-  for (size_t i = 0; i < program->count; i++) {
-    TACInstruction *instr = &program->instructions[i];
-
-    // Handle labels specially
-    if (instr->op == TAC_LABEL) {
-      sb_appendf(&sb, "\n%s:\n", instr->label ? instr->label : "unnamed");
-      continue;
-    }
-
-    // Indent regular instructions
-    sb_appendf(&sb, "    ");
-
-    // Format based on operation type
-    switch (instr->op) {
-    case TAC_CONST: {
-      StringBuilder res_sb = {0};
-      format_value(&res_sb, instr->result, "t");
-      sb_appendf(&sb, "%.*s = CONST %lu", (int)res_sb.count, res_sb.items,
-                 instr->lhs.id);
-      free(res_sb.items);
-      break;
-    }
-
-    case TAC_LOAD: {
-      StringBuilder src_sb = {.allocator = program->allocator};
-      StringBuilder dst_sb = {.allocator = program->allocator};
-      format_value(&src_sb, instr->lhs, "v");
-      format_value(&dst_sb, instr->result, "t");
-      sb_appendf(&sb, "    %.*s = %.*s\n", (int)dst_sb.count, dst_sb.items,
-                 (int)src_sb.count, src_sb.items);
-      break;
-    }
-
-    case TAC_STORE: {
-      StringBuilder lhs_sb = {.allocator = program->allocator},
-                    res_sb = {.allocator = program->allocator};
-      format_value(&lhs_sb, instr->lhs, "t");
-      format_value(&res_sb, instr->result, "v");
-      sb_appendf(&sb, "%.*s = STORE %.*s", (int)res_sb.count, res_sb.items,
-                 (int)lhs_sb.count, lhs_sb.items);
-      break;
-    }
-
-    case TAC_ADD:
-    case TAC_SUB:
-    case TAC_MUL:
-    case TAC_DIV:
-    case TAC_CMP: {
-      StringBuilder lhs_sb = {0}, rhs_sb = {0}, res_sb = {0};
-      format_value(&lhs_sb, instr->lhs, "t");
-      format_value(&rhs_sb, instr->rhs, "t");
-      format_value(&res_sb, instr->result, "t");
-      sb_appendf(&sb, "%.*s = %s %.*s, %.*s", (int)res_sb.count, res_sb.items,
-                 op_to_str(instr->op), (int)lhs_sb.count, lhs_sb.items,
-                 (int)rhs_sb.count, rhs_sb.items);
-      free(lhs_sb.items);
-      free(rhs_sb.items);
-      free(res_sb.items);
-      break;
-    }
-
-    case TAC_CALL: {
-      StringBuilder res_sb = {0};
-      format_value(&res_sb, instr->result, "t");
-      sb_appendf(&sb, "%.*s = CALL %s(%lu)", (int)res_sb.count, res_sb.items,
-                 instr->label ? instr->label : "unknown", instr->lhs.id);
-      free(res_sb.items);
-      break;
-    }
-
-    case TAC_RETURN:
-      if (instr->lhs.type != NONE) {
-        StringBuilder lhs_sb = {0};
-        format_value(&lhs_sb, instr->lhs, "t");
-        sb_appendf(&sb, "RETURN %.*s", (int)lhs_sb.count, lhs_sb.items);
-        free(lhs_sb.items);
-      } else {
-        sb_appendf(&sb, "RETURN");
-      }
-      break;
-
-    case TAC_JMP:
-      sb_appendf(&sb, "JUMP %s", instr->label ? instr->label : "unknown");
-      break;
-
-    case TAC_CJMP: {
-      StringBuilder lhs_sb = {0};
-      format_value(&lhs_sb, instr->lhs, "t");
-      sb_appendf(&sb, "CJUMP %.*s -> %s", (int)lhs_sb.count, lhs_sb.items,
-                 instr->label ? instr->label : "unknown");
-      free(lhs_sb.items);
-      break;
-    }
-
-    default:
-      sb_appendf(&sb, "UNKNOWN");
-      break;
-    }
-
-    // Add instruction index as comment
-    sb_appendf(&sb, "  ; #%zu\n", i);
-  }
-
-  sb_appendf(&sb, "\n; === End of TAC ===\n");
   return sb;
 }
 
@@ -800,4 +695,118 @@ static void gen_if(Tac *tac, ASTNode *node) {
                      create_instruction(TAC_LABEL, new_tac_value(0, NONE),
                                         new_tac_value(0, NONE),
                                         new_tac_value(0, NONE), end_label));
+}
+
+// TODO: Add name mangling
+static void gen_function_def(Tac *tac, ASTNode *node) {
+  ASSERT(tac != NULL, "Tac cannot be NULL");
+  ASSERT(node != NULL, "ASTNode cannot be NULL");
+  ASSERT(node->type == FUNCTION_DEF, "Expected FUNCTION_DEF node");
+
+  // 1. Function Label
+  // We use the function name as the label so CALL instructions can find it.
+  const char *func_name = node->def.name->token->lexeme;
+  append_instruction(tac,
+                     create_instruction(TAC_LABEL, new_tac_value(0, NONE),
+                                        new_tac_value(0, NONE),
+                                        new_tac_value(0, NONE), func_name));
+
+  // 2. Handle Parameters
+  // This maps the calling convention's arguments into the function's local
+  // virtual registers.
+  for (size_t cur = node->def.params.head; cur != SIZE_MAX;
+       cur = node->def.params.elements[cur].next) {
+    ASTNode *param_node = node->def.params.elements[cur].data;
+    Symbol *sym = sa_lookup(tac->sa, param_node->token->lexeme);
+    size_t arg_index = 0;
+
+    if (sym) {
+      TACValue local_var = new_tac_value(sym->id, sym->dtype);
+      TACValue idx = new_tac_value(arg_index++, NONE);
+      append_instruction(
+          tac, create_instruction(TAC_ARG,
+                                  idx, // Which argument index is this?
+                                  new_tac_value(0, NONE), // Unused
+                                  local_var, // Where to store it locally
+                                  NULL));
+    }
+  }
+
+  // 3. Generate Body
+  for (size_t cur = node->def.body.head; cur != SIZE_MAX;
+       cur = node->def.body.elements[cur].next) {
+    gen_stmt(tac, node->def.body.elements[cur].data);
+  }
+
+  // 4. Implicit Return
+  append_instruction(tac, create_instruction(TAC_RETURN, new_tac_value(0, NONE),
+                                             new_tac_value(0, NONE),
+                                             new_tac_value(0, NONE), NULL));
+}
+
+static cJSON *serialize_tac_value(TACValue val) {
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, "id", (double)val.id);
+    cJSON_AddStringToObject(root, "type", type_to_str(val.type));
+    return root;
+}
+
+static cJSON *serialize_constant(ConstantEntry *entry) {
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, "id", (double)entry->id);
+    cJSON_AddStringToObject(root, "type", type_to_str(entry->type));
+
+    switch (entry->type) {
+        case INT:   cJSON_AddNumberToObject(root, "value", (double)entry->value.int_val); break;
+        case FLOAT: cJSON_AddNumberToObject(root, "value", entry->value.float_val); break;
+        case STR:   cJSON_AddStringToObject(root, "value", entry->value.str_val); break;
+        case BOOL:  cJSON_AddBoolToObject(root, "value", entry->value.int_val != 0); break;
+        default:    cJSON_AddNullToObject(root, "value"); break;
+    }
+    return root;
+}
+
+cJSON *serialize_tac_program(TACProgram *program) {
+    if (!program) return NULL;
+
+    cJSON *root = cJSON_CreateObject();
+
+    // 1. Serialize Constants Table
+    cJSON *constants = cJSON_CreateArray();
+    cJSON_AddItemToObject(root, "constants", constants);
+    for (size_t i = 0; i < program->constants.count; i++) {
+        cJSON_AddItemToArray(constants, serialize_constant(&program->constants.entries[i]));
+    }
+
+    // 2. Serialize Instructions
+    cJSON *instructions = cJSON_CreateArray();
+    cJSON_AddItemToObject(root, "instructions", instructions);
+    for (size_t i = 0; i < program->count; i++) {
+        TACInstruction *instr = &program->instructions[i];
+        cJSON *j_instr = cJSON_CreateObject();
+        
+        cJSON_AddNumberToObject(j_instr, "index", (double)i);
+        cJSON_AddStringToObject(j_instr, "op", op_to_str(instr->op));
+        
+        // Add operands
+        cJSON_AddItemToObject(j_instr, "lhs", serialize_tac_value(instr->lhs));
+        cJSON_AddItemToObject(j_instr, "rhs", serialize_tac_value(instr->rhs));
+        cJSON_AddItemToObject(j_instr, "result", serialize_tac_value(instr->result));
+        
+        // Add label if it exists
+        if (instr->label) {
+            cJSON_AddStringToObject(j_instr, "label", instr->label);
+        }
+
+        cJSON_AddItemToArray(instructions, j_instr);
+    }
+
+    return root;
+}
+
+char *tac_dump_program(TACProgram *program) {
+  cJSON *json = serialize_tac_program(program);
+  char *dump = cJSON_Print(json);
+  cJSON_Delete(json);
+  return dump;
 }

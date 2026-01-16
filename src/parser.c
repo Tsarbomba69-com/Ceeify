@@ -39,6 +39,8 @@ bool blacklist_tokens(TokenType type, const TokenType blacklist[], size_t size);
 ASTNode *bin_op_new(Parser *parser, Token *operation, ASTNode *left,
                     ASTNode *right);
 
+bool is_python_main_check(ASTNode *node);
+
 static inline Parser parser_new(Lexer *lexer) {
   return (Parser){.lexer = *lexer,
                   .current = NULL,
@@ -333,6 +335,7 @@ ASTNode *parse_assign(Parser *parser, ASTNode *target) {
   assign_node->assign.targets =
       ASTNode_new_with_allocator(&parser->ast.allocator, 1);
   target->ctx = STORE;
+  target->parent = assign_node;
   ASTNode_add_last(&assign_node->assign.targets, target);
   assign_node->assign.value = value;
   return assign_node;
@@ -858,12 +861,43 @@ ASTNode *parse_statement(Parser *parser) {
 
 Parser parse(Lexer *lexer) {
   Parser parser = parser_new(lexer);
+  // Create a synthetic main node to collect unbound logic
+  Token *main_tok = create_token_from_str(&parser.lexer, "main", IDENTIFIER);
+  Token *def_tok = create_token_from_str(&parser.lexer, "def", KEYWORD);
+  ASTNode *name = node_new(&parser, main_tok, VARIABLE);
+  ASTNode *synthetic_main = node_new(&parser, def_tok, FUNCTION_DEF);
+  synthetic_main->def.name = name;
+  synthetic_main->def.returns = NULL;
+  synthetic_main->def.body =
+      ASTNode_new_with_allocator(&parser.ast.allocator, 4);
+  synthetic_main->def.params =
+      ASTNode_new_with_allocator(&parser.ast.allocator, 2);
+  bool explicit_main_found = false;
+  // ---
 
   while (advance(&parser) != NULL) {
     ASTNode *stmt = parse_statement(&parser);
-    if (stmt == NULL || stmt->type == END_BLOCK)
-      break;
-    ASTNode_add_last(&parser.ast, stmt);
+
+    if (!stmt) break;
+
+    if (stmt->type == FUNCTION_DEF || stmt->type == CLASS_DEF || stmt->type == IMPORT) { // TODO: This should be a function
+      ASTNode_add_last(&parser.ast, stmt);
+    } else if (stmt->type == ASSIGNMENT && !stmt->parent) {
+      ASTNode_add_last(&parser.ast, stmt);
+    } else if (is_python_main_check(stmt)) {
+      // Found 'if __name__ == "__main__":'
+      explicit_main_found = true;
+      ASTNode_add_last(&parser.ast, stmt);
+    } else {
+      // Unbound executable statements (calls, etc) move to synthetic main
+      ASTNode_add_last(&synthetic_main->def.body, stmt);
+    }
+  }
+
+  // Finalization: If we have unbound code and no explicit main, add our
+  // synthetic one
+  if (!explicit_main_found && synthetic_main->def.body.size > 0) {
+    ASTNode_add_last(&parser.ast, synthetic_main);
   }
 
   return parser;
@@ -938,3 +972,19 @@ ASTNode *parse_class_def(Parser *parser, ASTNode *class_node) {
 
   return class_node;
 }
+
+bool is_python_main_check(ASTNode *node) {
+    if (node->type != IF || !node->ctrl_stmt.test) return false;
+    ASTNode *test = node->ctrl_stmt.test;
+    // Look for: VARIABLE(__name__) == LITERAL("__main__")
+    if (test->type == COMPARE && test->compare.left->type == VARIABLE) {
+        if (strcmp(test->compare.left->token->lexeme, "__name__") == 0) {
+            ASTNode *first_comp = test->compare.comparators.elements[test->compare.comparators.head].data;
+            if (first_comp->type == LITERAL && strcmp(first_comp->token->lexeme, "\"__main__\"") == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+

@@ -147,4 +147,17 @@ static inline bool is_boolean_operator(Token *t) {
          strcmp(t->lexeme, "not") == 0;
 }
 
+static inline bool is_executable(NodeType type) {
+  switch (type) {
+  case CALL:
+  case IF:
+  case WHILE:
+  case FOR:
+  case BINARY_OPERATION: // e.g., 1 + 1 at top level
+    return true;
+  default:
+    return false;
+  }
+}
+
 #endif // PARSER_H_

@@ -11,7 +11,8 @@ void test_parser_single_number(void) {
   Lexer lexer = tokenize("123", "test_file.py");
   // Act
   Parser parser = parse(&lexer);
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   // Assert
   TEST_ASSERT_EQUAL_INT(LITERAL, node->type);
   TEST_ASSERT_EQUAL_STRING("123", node->token->lexeme);
@@ -24,7 +25,8 @@ void test_parse_arithmetic_expression(void) {
   Lexer lexer = tokenize("3 + 5 * 2", "test_file.py");
   // Act
   Parser parser = parse(&lexer);
-  ASTNode *result = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *result = ASTNode_pop(&main->def.body);
   // Assert
   TEST_ASSERT_NOT_NULL(result);
   TEST_ASSERT_EQUAL_STRING("+", result->token->lexeme);
@@ -41,8 +43,8 @@ void test_parse_arithmetic_expression(void) {
 void test_expression_parentheses_override_precedence(void) {
   Lexer lexer = tokenize("(3 + 5) * 2", "test_file.py");
   Parser parser = parse(&lexer);
-
-  ASTNode *expr = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *expr = ASTNode_pop(&main->def.body);
   TEST_ASSERT_EQUAL_INT(BINARY_OPERATION, expr->type);
   TEST_ASSERT_EQUAL_STRING("*", expr->token->lexeme);
 
@@ -118,7 +120,8 @@ void test_compare_expression(void) {
   Lexer lexer = tokenize("1 <= a < 10", "test_file.py");
   // Act
   Parser parser = parse(&lexer);
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   // Assert
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(COMPARE, node->type);
@@ -134,8 +137,8 @@ void test_if_statement(void) {
                          "\ty = 5\n",
                          "test_file.py");
   Parser parser = parse(&lexer);
-
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);  
+  ASTNode *node = ASTNode_pop(&main->def.body);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(IF, node->type);
   // Type assert
@@ -168,7 +171,8 @@ void test_if_elif_statement(void) {
   Parser parser = parse(&lexer);
 
   // Pop the top-level node
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(IF, node->type);
 
@@ -227,7 +231,8 @@ void test_if_else_statement(void) {
   Parser parser = parse(&lexer);
 
   // Pop the top-level node
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(IF, node->type);
 
@@ -275,7 +280,8 @@ void test_while_statement(void) {
                          "  x = x + 1\n",
                          "test_file.py");
   Parser parser = parse(&lexer);
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(WHILE, node->type);
   // Assert
@@ -309,7 +315,8 @@ void test_while_else_statement(void) {
                          "  y = 100\n",
                          "test_file.py");
   Parser parser = parse(&lexer);
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(WHILE, node->type);
 
@@ -347,7 +354,8 @@ void test_parse_augmented_assignment(void) {
   // Arrange & Act
   Lexer lexer = tokenize("a += 69", "test_file.py");
   Parser parser = parse(&lexer);
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   // Assert
   TEST_ASSERT_NOT_NULL(node);
   // Check node type: augmented assignment
@@ -418,7 +426,8 @@ void test_parse_function_call(void) {
   Lexer lexer = tokenize("add(1, 2)", "test_file.py");
   // Act
   Parser parser = parse(&lexer);
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   // Assert: CALL node
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(CALL, node->type);
@@ -443,7 +452,8 @@ void test_parse_function_call_no_args(void) {
   Lexer lexer = tokenize("foo()", "test_file.py");
   // Act
   Parser parser = parse(&lexer);
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   // Assert
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(CALL, node->type);
@@ -460,7 +470,8 @@ void test_parse_nested_function_call(void) {
   Lexer lexer = tokenize("foo(bar(1))", "test_file.py");
   // Act
   Parser parser = parse(&lexer);
-  ASTNode *node = ASTNode_pop(&parser.ast);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
   // Assert
   TEST_ASSERT_EQUAL_INT(CALL, node->type);
   TEST_ASSERT_EQUAL_STRING("foo", node->call.func->token->lexeme);

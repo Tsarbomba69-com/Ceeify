@@ -62,6 +62,7 @@ typedef enum {
   TAC_NEG,
   // Function operations
   TAC_CALL,
+  TAC_ARG,
   TAC_RETURN,
   // Control flow operations
   TAC_JMP,
@@ -88,5 +89,9 @@ TACProgram tac_generate(SemanticAnalyzer *sa);
 void tac_free(TACProgram *program);
 
 StringBuilder tac_generate_code(TACProgram *program);
+
+char *tac_dump_program(TACProgram *program);
+
+const char *op_to_str(TACOp op);
 
 #endif // TAC_H

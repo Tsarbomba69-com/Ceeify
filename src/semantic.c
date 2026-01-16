@@ -1,4 +1,5 @@
 #include "semantic.h"
+// TODO: Create main scope (it is different from global scope)
 
 const char *ARITHMETIC_OPS[] = {
     "+", "-", "*", "/", "%", // arithmetic
@@ -8,8 +9,9 @@ const char *COMPARISON_OPS[] = {
     "==", "!=", "<", ">", "<=", ">=", // comparison
 };
 
+Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type,
+                         SymbolType kind);
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
-Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type, SymbolType kind);
 cJSON *serialize_symbol(Symbol *sym);
 cJSON *serialize_symbol_table(SymbolTable *st);
 cJSON *serialize_symbol(Symbol *sym);
@@ -554,7 +556,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
         return false;
       }
 
-      if (!sym) {
+      if (!sym || target->child) {
         sym = sa_create_symbol(sa, target, rhs_type, VAR);
         sa_define_symbol(sa, sym);
 
@@ -619,9 +621,10 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     for (size_t i = 0; i < num_args; i++) {
       ASTNode *arg_node =
           node->call.args.elements[node->call.args.head + i].data;
-      ASTNode *param_node = sym->decl_node->parent->def.params
-                                .elements[sym->decl_node->parent->def.params.head + i]
-                                .data;
+      ASTNode *param_node =
+          sym->decl_node->parent->def.params
+              .elements[sym->decl_node->parent->def.params.head + i]
+              .data;
       DataType arg_type = sa_infer_type(sa, arg_node);
       DataType param_type = sa_infer_type(sa, param_node);
 
@@ -867,7 +870,8 @@ SemanticError sa_get_error(SemanticAnalyzer *sa) {
   return sa->last_error;
 }
 
-Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type, SymbolType kind) {
+Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type,
+                         SymbolType kind) {
   Symbol *sym = allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
   sym->id = sa->next_symbol_id++;
   sym->name = arena_strdup(&sa->parser.ast.allocator.base, node->token->lexeme);

@@ -189,7 +189,7 @@ void test_tac_if_statement_no_else(void) {
   TACProgram tac = tac_generate(&sa);
   // Assert
   TEST_ASSERT_NOT_NULL(tac.instructions);
-  TEST_ASSERT_TRUE(tac.count >= 7);
+  TEST_ASSERT_TRUE(tac.count >= 8);
 
   // 0: CONST 1
   TEST_ASSERT_EQUAL_INT(TAC_CONST, tac.instructions[0].op);
@@ -197,24 +197,27 @@ void test_tac_if_statement_no_else(void) {
   // 1: STORE x
   TEST_ASSERT_EQUAL_INT(TAC_STORE, tac.instructions[1].op);
 
-  // 2: LOAD x
-  TEST_ASSERT_EQUAL_INT(TAC_LOAD, tac.instructions[2].op);
-
+  // 2: LABEL 
+  TEST_ASSERT_EQUAL_INT(TAC_LABEL, tac.instructions[2].op);
+  
+  // 3: LOAD x
+  TEST_ASSERT_EQUAL_INT(TAC_LOAD, tac.instructions[3].op);
+  
   // 3: JZ L0
-  TEST_ASSERT_EQUAL_INT(TAC_JZ, tac.instructions[3].op);
+  TEST_ASSERT_EQUAL_INT(TAC_JZ, tac.instructions[4].op);
 
   // 4: CONST 2
-  TEST_ASSERT_EQUAL_INT(TAC_CONST, tac.instructions[4].op);
+  TEST_ASSERT_EQUAL_INT(TAC_CONST, tac.instructions[5].op);
 
   // 5: STORE y
-  TEST_ASSERT_EQUAL_INT(TAC_STORE, tac.instructions[5].op);
+  TEST_ASSERT_EQUAL_INT(TAC_LABEL, tac.instructions[6].op);
 
   // 6: LABEL L0
-  TEST_ASSERT_EQUAL_INT(TAC_LABEL, tac.instructions[6].op);
+  TEST_ASSERT_EQUAL_INT(TAC_RETURN, tac.instructions[7].op);
 
   // Jump must target the label
   TEST_ASSERT_EQUAL_STRING(tac.instructions[6].label,
-                           tac.instructions[3].label);
+                           tac.instructions[4].label);
   // Cleanup
   parser_free(&parser);
 }
@@ -291,7 +294,7 @@ void test_tac_if_else_statement(void) {
 
   TEST_ASSERT_TRUE(jz >= 0);
   TEST_ASSERT_TRUE(jmp >= 0);
-  TEST_ASSERT_TRUE(label_count == 2);
+  TEST_ASSERT_TRUE(label_count == 3);
 
   // Labels must exist
   TEST_ASSERT_NOT_NULL(jz_label);

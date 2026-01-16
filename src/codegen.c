@@ -99,8 +99,9 @@ bool gen_code(Codegen *cg, ASTNode *node) {
                   ? sa_lookup_member(class_sym, node->token->lexeme)
                   : var_sym;
 
-    if (var_sym && ((node->ctx == STORE && var_sym->decl_node == node) ||
-                    var_sym->base_class)) {
+    if (var_sym &&
+        ((node->ctx == STORE && var_sym->decl_node == node) ||
+         var_sym->base_class)) {
       // DEFINITION: Output "type name" (e.g., "int x")
       sb_appendf(&cg->output, "%s %s", ctype_to_string(cg, node),
                  node->token->lexeme);
@@ -315,38 +316,16 @@ void codegen_free(Codegen *cg) {
 bool codegen_program(Codegen *cg) {
   ASSERT(cg != NULL, "Codegen context cannot be NULL");
   ASTNode_LinkedList *program = &cg->sa.parser.ast;
-  ASTNode_LinkedList main =
-      ASTNode_new_with_allocator(&cg->sa.parser.ast.allocator, 4);
 
   for (size_t current = program->head; current != SIZE_MAX;
        current = program->elements[current].next) {
     ASTNode *node = program->elements[current].data;
-    if (node->type == FUNCTION_DEF || node->type == CLASS_DEF) {
-      cg->is_standalone = true;
-      if (!gen_code(cg, node))
-        return false;
-      continue;
-    }
-
-    ASTNode_add_first(&main, node);
-  }
-
-  if (main.size == 0)
-    return true; // No standalone statements to generate
-
-  sb_appendf(&cg->output, "\nint main(void) {\n");
-
-  for (size_t current = main.head; current != SIZE_MAX;
-       current = main.elements[current].next) {
-    ASTNode *node = main.elements[current].data;
     cg->is_standalone = true;
-    sb_appendf(&cg->output, "    ");
-
+    
     if (!gen_code(cg, node))
       return false;
   }
 
-  sb_appendf(&cg->output, "    return 0;\n}\n");
   return true;
 }
 
