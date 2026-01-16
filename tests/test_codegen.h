@@ -148,22 +148,23 @@ void test_codegen_while_loop(void) {
 }
 
 void test_codegen_variable_shadowing(void) {
-    // Arrange
-    char expected[] = "int x = 10;\n"
-                           "void f(void) {\n"
-                           "    int x = 5;\n" // Should have 'int' because it's a new scope
-                           "    x = 2;\n"     // Should NOT have 'int'
-                           "}\n";
-    // Act
-    Codegen cg = compile_to_c("x: int = 10\n"
-                              "def f():\n"
-                              "    x: int = 5\n"
-                              "    x = 2\n");
-    normalize_whitespace(expected);
-    normalize_whitespace(cg.output.items);
-    // Assert
-    TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
-    codegen_free(&cg);
+  // Arrange
+  char expected[] =
+      "int x = 10;\n"
+      "void f(void) {\n"
+      "    int x = 5;\n" // Should have 'int' because it's a new scope
+      "    x = 2;\n"     // Should NOT have 'int'
+      "}\n";
+  // Act
+  Codegen cg = compile_to_c("x: int = 10\n"
+                            "def f():\n"
+                            "    x: int = 5\n"
+                            "    x = 2\n");
+  normalize_whitespace(expected);
+  normalize_whitespace(cg.output.items);
+  // Assert
+  TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
+  codegen_free(&cg);
 }
 
 #endif // TEST_CODEGEN_H_

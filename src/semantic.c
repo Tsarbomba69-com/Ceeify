@@ -505,6 +505,17 @@ Symbol *sa_lookup(SemanticAnalyzer *sa, const char *name) {
   return NULL;
 }
 
+Symbol *sa_lookup_local(SemanticAnalyzer *sa, const char *name) {
+  SymbolTable *scope = sa->current_scope;
+
+  for (SymbolTableEntry *e = scope->entries; e; e = e->next) {
+    if (strcmp(e->symbol->name, name) == 0)
+      return e->symbol;
+  }
+
+  return NULL;
+}
+
 bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
   if (!sa || !node)
     return true;
@@ -550,32 +561,47 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
          cur = node->assign.targets.elements[cur].next) {
       ASTNode *target = node->assign.targets.elements[cur].data;
       Symbol *sym = sa_lookup(sa, target->token->lexeme);
+      Symbol *local_sym = sa_lookup_local(sa, target->token->lexeme);
       DataType rhs_type = sa_infer_type(sa, node->assign.value);
 
       if (rhs_type == UNKNOWN) {
         return false;
       }
 
-      if (!sym || target->child) {
+      if (target->type == ATTRIBUTE) {
+        if (!analyze_node(sa, target))
+          return false;
+
+        continue;
+      }
+
+      if (target->child) {
+        if (local_sym) {
+          sa_set_error(sa, SEM_REDECLARATION, target->token,
+                       "variable '%s' already declared in this scope",
+                       target->token->lexeme);
+          return false;
+        }
+
+      define_sym:
         sym = sa_create_symbol(sa, target, rhs_type, VAR);
         sa_define_symbol(sa, sym);
-
         sym->dtype =
             target->type == VARIABLE && target->child ? UNKNOWN : rhs_type;
 
         if (!analyze_node(sa, target)) {
           return false;
         }
-      } else {
-        // assignment to existing variable
-        if (!types_compatible(sym->dtype, rhs_type)) {
-          sa_set_error(
-              sa, SEM_TYPE_MISMATCH, sym->decl_node->token,
-              "cannot assign value of type '%s' to variable '%s' of type '%s'",
-              datatype_to_string(rhs_type), sym->name,
-              datatype_to_string(sym->dtype));
-          return false;
-        }
+      } else if (!sym) {
+        goto define_sym;
+      } else if (sym && !types_compatible(sym->dtype, rhs_type)) {
+        // Type compatibility check
+        sa_set_error(
+            sa, SEM_TYPE_MISMATCH, sym->decl_node->token,
+            "cannot assign value of type '%s' to variable '%s' of type '%s'",
+            datatype_to_string(rhs_type), sym->name,
+            datatype_to_string(sym->dtype));
+        return false;
       }
     }
     // Analyze value

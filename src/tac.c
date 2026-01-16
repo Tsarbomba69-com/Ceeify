@@ -745,63 +745,76 @@ static void gen_function_def(Tac *tac, ASTNode *node) {
 }
 
 static cJSON *serialize_tac_value(TACValue val) {
-    cJSON *root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "id", (double)val.id);
-    cJSON_AddStringToObject(root, "type", type_to_str(val.type));
-    return root;
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddNumberToObject(root, "id", (double)val.id);
+  cJSON_AddStringToObject(root, "type", type_to_str(val.type));
+  return root;
 }
 
 static cJSON *serialize_constant(ConstantEntry *entry) {
-    cJSON *root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "id", (double)entry->id);
-    cJSON_AddStringToObject(root, "type", type_to_str(entry->type));
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddNumberToObject(root, "id", (double)entry->id);
+  cJSON_AddStringToObject(root, "type", type_to_str(entry->type));
 
-    switch (entry->type) {
-        case INT:   cJSON_AddNumberToObject(root, "value", (double)entry->value.int_val); break;
-        case FLOAT: cJSON_AddNumberToObject(root, "value", entry->value.float_val); break;
-        case STR:   cJSON_AddStringToObject(root, "value", entry->value.str_val); break;
-        case BOOL:  cJSON_AddBoolToObject(root, "value", entry->value.int_val != 0); break;
-        default:    cJSON_AddNullToObject(root, "value"); break;
-    }
-    return root;
+  switch (entry->type) {
+  case INT:
+    cJSON_AddNumberToObject(root, "value", (double)entry->value.int_val);
+    break;
+  case FLOAT:
+    cJSON_AddNumberToObject(root, "value", entry->value.float_val);
+    break;
+  case STR:
+    cJSON_AddStringToObject(root, "value", entry->value.str_val);
+    break;
+  case BOOL:
+    cJSON_AddBoolToObject(root, "value", entry->value.int_val != 0);
+    break;
+  default:
+    cJSON_AddNullToObject(root, "value");
+    break;
+  }
+  return root;
 }
 
 cJSON *serialize_tac_program(TACProgram *program) {
-    if (!program) return NULL;
+  if (!program)
+    return NULL;
 
-    cJSON *root = cJSON_CreateObject();
+  cJSON *root = cJSON_CreateObject();
 
-    // 1. Serialize Constants Table
-    cJSON *constants = cJSON_CreateArray();
-    cJSON_AddItemToObject(root, "constants", constants);
-    for (size_t i = 0; i < program->constants.count; i++) {
-        cJSON_AddItemToArray(constants, serialize_constant(&program->constants.entries[i]));
+  // 1. Serialize Constants Table
+  cJSON *constants = cJSON_CreateArray();
+  cJSON_AddItemToObject(root, "constants", constants);
+  for (size_t i = 0; i < program->constants.count; i++) {
+    cJSON_AddItemToArray(constants,
+                         serialize_constant(&program->constants.entries[i]));
+  }
+
+  // 2. Serialize Instructions
+  cJSON *instructions = cJSON_CreateArray();
+  cJSON_AddItemToObject(root, "instructions", instructions);
+  for (size_t i = 0; i < program->count; i++) {
+    TACInstruction *instr = &program->instructions[i];
+    cJSON *j_instr = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(j_instr, "index", (double)i);
+    cJSON_AddStringToObject(j_instr, "op", op_to_str(instr->op));
+
+    // Add operands
+    cJSON_AddItemToObject(j_instr, "lhs", serialize_tac_value(instr->lhs));
+    cJSON_AddItemToObject(j_instr, "rhs", serialize_tac_value(instr->rhs));
+    cJSON_AddItemToObject(j_instr, "result",
+                          serialize_tac_value(instr->result));
+
+    // Add label if it exists
+    if (instr->label) {
+      cJSON_AddStringToObject(j_instr, "label", instr->label);
     }
 
-    // 2. Serialize Instructions
-    cJSON *instructions = cJSON_CreateArray();
-    cJSON_AddItemToObject(root, "instructions", instructions);
-    for (size_t i = 0; i < program->count; i++) {
-        TACInstruction *instr = &program->instructions[i];
-        cJSON *j_instr = cJSON_CreateObject();
-        
-        cJSON_AddNumberToObject(j_instr, "index", (double)i);
-        cJSON_AddStringToObject(j_instr, "op", op_to_str(instr->op));
-        
-        // Add operands
-        cJSON_AddItemToObject(j_instr, "lhs", serialize_tac_value(instr->lhs));
-        cJSON_AddItemToObject(j_instr, "rhs", serialize_tac_value(instr->rhs));
-        cJSON_AddItemToObject(j_instr, "result", serialize_tac_value(instr->result));
-        
-        // Add label if it exists
-        if (instr->label) {
-            cJSON_AddStringToObject(j_instr, "label", instr->label);
-        }
+    cJSON_AddItemToArray(instructions, j_instr);
+  }
 
-        cJSON_AddItemToArray(instructions, j_instr);
-    }
-
-    return root;
+  return root;
 }
 
 char *tac_dump_program(TACProgram *program) {

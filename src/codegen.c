@@ -99,9 +99,8 @@ bool gen_code(Codegen *cg, ASTNode *node) {
                   ? sa_lookup_member(class_sym, node->token->lexeme)
                   : var_sym;
 
-    if (var_sym &&
-        ((node->ctx == STORE && var_sym->decl_node == node) ||
-         var_sym->base_class)) {
+    if (var_sym && ((node->ctx == STORE && var_sym->decl_node == node) ||
+                    var_sym->base_class)) {
       // DEFINITION: Output "type name" (e.g., "int x")
       sb_appendf(&cg->output, "%s %s", ctype_to_string(cg, node),
                  node->token->lexeme);
@@ -321,7 +320,7 @@ bool codegen_program(Codegen *cg) {
        current = program->elements[current].next) {
     ASTNode *node = program->elements[current].data;
     cg->is_standalone = true;
-    
+
     if (!gen_code(cg, node))
       return false;
   }

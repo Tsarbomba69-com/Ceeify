@@ -197,12 +197,12 @@ void test_tac_if_statement_no_else(void) {
   // 1: STORE x
   TEST_ASSERT_EQUAL_INT(TAC_STORE, tac.instructions[1].op);
 
-  // 2: LABEL 
+  // 2: LABEL
   TEST_ASSERT_EQUAL_INT(TAC_LABEL, tac.instructions[2].op);
-  
+
   // 3: LOAD x
   TEST_ASSERT_EQUAL_INT(TAC_LOAD, tac.instructions[3].op);
-  
+
   // 3: JZ L0
   TEST_ASSERT_EQUAL_INT(TAC_JZ, tac.instructions[4].op);
 

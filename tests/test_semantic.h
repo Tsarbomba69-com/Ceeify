@@ -293,4 +293,24 @@ void test_semantic_class_inheritance_and_init(void) {
   parser_free(&parser);
 }
 
+void test_variable_redeclaration_error(void) {
+  // Arrange
+  Lexer lexer = tokenize("x: int = 10\n"
+                         "def f():\n"
+                         "    x: int = 5\n"
+                         "    x: int = 2\n",
+                         "test.py");
+  const char *expected_msg = "variable 'x' already declared in this scope";
+  // Act
+  Parser parser = parse(&lexer);
+  SemanticAnalyzer sa = analyze_program(&parser);
+  SemanticError err = sa_get_error(&sa);
+  // Assert
+  TEST_ASSERT_TRUE(sa_has_error(&sa));
+  TEST_ASSERT_EQUAL(SEM_REDECLARATION, err.type);
+  TEST_ASSERT_NOT_NULL(strstr(err.message, expected_msg));
+  // Cleanup
+  parser_free(&parser);
+}
+
 #endif // TEST_SEMANTIC_H_

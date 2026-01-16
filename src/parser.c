@@ -878,9 +878,11 @@ Parser parse(Lexer *lexer) {
   while (advance(&parser) != NULL) {
     ASTNode *stmt = parse_statement(&parser);
 
-    if (!stmt) break;
+    if (!stmt)
+      break;
 
-    if (stmt->type == FUNCTION_DEF || stmt->type == CLASS_DEF || stmt->type == IMPORT) { // TODO: This should be a function
+    if (stmt->type == FUNCTION_DEF || stmt->type == CLASS_DEF ||
+        stmt->type == IMPORT) { // TODO: This should be a function
       ASTNode_add_last(&parser.ast, stmt);
     } else if (stmt->type == ASSIGNMENT && !stmt->parent) {
       ASTNode_add_last(&parser.ast, stmt);
@@ -974,17 +976,20 @@ ASTNode *parse_class_def(Parser *parser, ASTNode *class_node) {
 }
 
 bool is_python_main_check(ASTNode *node) {
-    if (node->type != IF || !node->ctrl_stmt.test) return false;
-    ASTNode *test = node->ctrl_stmt.test;
-    // Look for: VARIABLE(__name__) == LITERAL("__main__")
-    if (test->type == COMPARE && test->compare.left->type == VARIABLE) {
-        if (strcmp(test->compare.left->token->lexeme, "__name__") == 0) {
-            ASTNode *first_comp = test->compare.comparators.elements[test->compare.comparators.head].data;
-            if (first_comp->type == LITERAL && strcmp(first_comp->token->lexeme, "\"__main__\"") == 0) {
-                return true;
-            }
-        }
-    }
+  if (node->type != IF || !node->ctrl_stmt.test)
     return false;
+  ASTNode *test = node->ctrl_stmt.test;
+  // Look for: VARIABLE(__name__) == LITERAL("__main__")
+  if (test->type == COMPARE && test->compare.left->type == VARIABLE) {
+    if (strcmp(test->compare.left->token->lexeme, "__name__") == 0) {
+      ASTNode *first_comp =
+          test->compare.comparators.elements[test->compare.comparators.head]
+              .data;
+      if (first_comp->type == LITERAL &&
+          strcmp(first_comp->token->lexeme, "\"__main__\"") == 0) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
-

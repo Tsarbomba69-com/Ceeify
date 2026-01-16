@@ -137,7 +137,7 @@ void test_if_statement(void) {
                          "\ty = 5\n",
                          "test_file.py");
   Parser parser = parse(&lexer);
-  ASTNode *main = ASTNode_pop(&parser.ast);  
+  ASTNode *main = ASTNode_pop(&parser.ast);
   ASTNode *node = ASTNode_pop(&main->def.body);
   TEST_ASSERT_NOT_NULL(node);
   TEST_ASSERT_EQUAL_INT(IF, node->type);
