@@ -49,7 +49,7 @@
         "args": [
             "-o", "output.json",
             "-dump-ast",
-            "${workspaceFolder}/tests/mock/class_inheritance_def.py",
+            "${workspaceFolder}/tests/mock/match_case.py",
         ]
     }
 }

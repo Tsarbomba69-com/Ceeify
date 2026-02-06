@@ -588,4 +588,50 @@ void test_parse_class(void) {
   parser_free(&parser);
 }
 
+void test_parse_match_statement(void) {
+  // Arrange
+  // We match 'x', with one case for '1' and a wildcard '_'
+  Lexer lexer = tokenize("match x:\n"
+                         "    case 1:\n"
+                         "        y = 10\n"
+                         "    case _:\n"
+                         "        y = 0\n",
+                         "test_file.py");
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *match_node = ASTNode_pop(&main->def.body);
+
+  // Assert: Match Node
+  TEST_ASSERT_NOT_NULL(match_node);
+  TEST_ASSERT_EQUAL_INT(MATCH, match_node->type);
+
+  // Assert: Match Subject (The 'test' field)
+  // match [x]:
+  TEST_ASSERT_NOT_NULL(match_node->ctrl_stmt.test);
+  TEST_ASSERT_EQUAL_INT(VARIABLE, match_node->ctrl_stmt.test->type);
+  TEST_ASSERT_EQUAL_STRING("x", match_node->ctrl_stmt.test->token->lexeme);
+  // Default case
+  ASTNode *case1 = ASTNode_pop(&match_node->ctrl_stmt.body);
+  TEST_ASSERT_NOT_NULL(case1);
+  TEST_ASSERT_EQUAL_INT(CASE, case1->type);
+  TEST_ASSERT_EQUAL_STRING("_", case1->ctrl_stmt.test->token->lexeme);
+  ASTNode *body1 = ASTNode_pop(&case1->ctrl_stmt.body);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body1->type);
+  ASTNode *target1 = ASTNode_pop(&body1->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("y", target1->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("0", body1->assign.value->token->lexeme);
+  // First case
+  ASTNode *case2 = ASTNode_pop(&match_node->ctrl_stmt.body);
+  TEST_ASSERT_NOT_NULL(case2);
+  TEST_ASSERT_EQUAL_STRING("1", case2->ctrl_stmt.test->token->lexeme);
+  ASTNode *body2 = ASTNode_pop(&case2->ctrl_stmt.body);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body2->type);
+  ASTNode *target2 = ASTNode_pop(&body2->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("y", target2->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("10", body2->assign.value->token->lexeme);
+  // Cleanup
+  parser_free(&parser);
+}
+
 #endif

@@ -28,6 +28,8 @@ typedef enum NodeType {
   CALL,
   CLASS_DEF,
   ATTRIBUTE,
+  MATCH,
+  CASE,
   END_BLOCK
 } NodeType;
 

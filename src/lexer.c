@@ -1,5 +1,5 @@
 #include "lexer.h"
-#define NUM_KEYWORDS 35
+#define NUM_KEYWORDS 37
 #define LEX_CAP 32
 
 const char *PYTHON_KEYWORD[NUM_KEYWORDS] = {
@@ -7,7 +7,8 @@ const char *PYTHON_KEYWORD[NUM_KEYWORDS] = {
     "await",  "break",  "class",   "continue", "def",      "del",    "elif",
     "else",   "except", "finally", "for",      "from",     "global", "if",
     "import", "in",     "is",      "lambda",   "nonlocal", "not",    "or",
-    "pass",   "raise",  "return",  "try",      "while",    "with",   "yield"};
+    "pass",   "raise",  "return",  "try",      "while",    "with",   "yield",
+    "match",  "case"};
 
 const char OPERATORS[] = {'+', '-', '*', '/', '%', '>', '<',
                           '!', '=', '&', '|', '^', '~', '.'};

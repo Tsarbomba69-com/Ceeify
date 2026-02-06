@@ -1,5 +1,8 @@
 #include "parser.h"
 
+// TODO: Replace strcmp with proper token type checks where possible (e.g., for
+// keywords)
+
 const char *COMPARISON_OPERATORS[] = {"==", "!=", ">", "<", ">=", "<="};
 
 const char *AUG_ASSIGN_OPS[] = {"+=", "-=", "*=",  "@=",  "/=",  "%=", "&=",
@@ -33,6 +36,8 @@ ASTNode *parse_expression(Parser *parser, int8_t min_precedence);
 ASTNode *parse_call(Parser *parser, ASTNode *callee);
 
 ASTNode *parse_class_def(Parser *parser, ASTNode *class_node);
+
+ASTNode *parse_match_stmt(Parser *parser);
 
 bool blacklist_tokens(TokenType type, const TokenType blacklist[], size_t size);
 
@@ -108,6 +113,10 @@ const char *node_type_to_string(NodeType type) {
     return "CALL";
   case ATTRIBUTE:
     return "ATTRIBUTE";
+  case MATCH:
+    return "MATCH";
+  case CASE:
+    return "CASE";
   default:
     return "UNKNOWN";
   }
@@ -222,6 +231,14 @@ cJSON *serialize_node(ASTNode *node) {
   case CALL:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
     cJSON_AddItemToObject(root, "args", serialize_program(&node->call.args));
+    break;
+  case MATCH:
+  case CASE:
+    cJSON_AddItemToObject(root, "token", serialize_token(node->token));
+    cJSON_AddItemToObject(root, "test", serialize_node(node->ctrl_stmt.test));
+    cJSON_AddItemToObject(root, "body",
+                          serialize_program(&node->ctrl_stmt.body));
+    break;
   default:
     break;
   }
@@ -837,6 +854,10 @@ ASTNode *parse_statement(Parser *parser) {
       }
       return node;
     }
+
+    if (strcmp(token->lexeme, "match") == 0) {
+      return parse_match_stmt(parser);
+    }
   } break;
   case NEWLINE: {
     while (parser->next && parser->next->type == NEWLINE) {
@@ -992,4 +1013,40 @@ bool is_python_main_check(ASTNode *node) {
     }
   }
   return false;
+}
+
+ASTNode *parse_match_stmt(Parser *parser) {
+  ASTNode *node = node_new(parser, parser->current, MATCH);
+  advance(parser); // Consume 'match' keyword
+  node->ctrl_stmt.test = parse_expression(parser, 0);
+  node->ctrl_stmt.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  advance(parser);
+  advance(parser); // Consume ':'
+  advance(parser); // Consume NEWLINE
+
+  while (parser->current && parser->current->lexeme &&
+         strcmp(parser->current->lexeme, "case") == 0) {
+    ASTNode *case_node = node_new(parser, parser->current, CASE);
+    advance(parser); // Consume 'case' keyword
+    case_node->ctrl_stmt.test = parse_expression(parser, 0);
+    case_node->ctrl_stmt.body =
+        ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+    advance(parser); // Consume ':'
+    advance(parser); // Consume NEWLINE
+
+    while (parser->current && strcmp(parser->current->lexeme, "case") != 0) {
+      ASTNode *stmt = parse_statement(parser);
+
+      if (stmt != NULL && stmt->type != END_BLOCK) {
+        stmt->parent = case_node;
+        ASTNode_add_last(&case_node->ctrl_stmt.body, stmt);
+      }
+
+      advance(parser);
+    }
+
+    ASTNode_add_last(&node->ctrl_stmt.body, case_node);
+  }
+
+  return node;
 }
