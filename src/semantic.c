@@ -15,6 +15,7 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
 cJSON *serialize_symbol(Symbol *sym);
 cJSON *serialize_symbol_table(SymbolTable *st);
 cJSON *serialize_symbol(Symbol *sym);
+bool analyze_match_stmt(SemanticAnalyzer *sa, ASTNode *node);
 
 static SymbolTable *symbol_table_new(Allocator *allocator, SymbolTable *parent,
                                      size_t depth) {
@@ -741,6 +742,8 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       }
     }
   } break;
+  case MATCH:
+    return analyze_match_stmt(sa, node);
   default:
     break;
   }
@@ -773,6 +776,23 @@ bool sa_has_error(SemanticAnalyzer *sa) {
   return sa && sa->last_error.type != SEM_OK;
 }
 
+char *error_to_string(SemanticErrorType type) {
+  switch (type) {
+  case SEM_OK:
+    return "Ok";
+  case SEM_UNDEFINED_VARIABLE:
+    return "NameError";
+  case SEM_TYPE_MISMATCH:
+    return "TypeError";
+  case SEM_INVALID_OPERATION:
+    return "TypeError";
+  case SEM_UNREACHABLE_PATTERN:
+    return "SyntaxError";
+  default:
+    return "SemanticError";
+  }
+}
+
 char *sa_format_error(SemanticAnalyzer *sa) {
   if (!sa || sa->last_error.type == SEM_OK || !sa->last_error.token) {
     slog_error("No error to format in sa_format_error");
@@ -781,10 +801,7 @@ char *sa_format_error(SemanticAnalyzer *sa) {
 
   Token *tok = sa->last_error.token;
   SemanticErrorType type = sa->last_error.type;
-  const char *error_name = (type == SEM_UNDEFINED_VARIABLE)  ? "NameError"
-                           : (type == SEM_TYPE_MISMATCH)     ? "TypeError"
-                           : (type == SEM_INVALID_OPERATION) ? "TypeError"
-                                                             : "SemanticError";
+  const char *error_name = error_to_string(type);
 
   /* -----------------------------------------------------------
      Determine frame name (Python-style)
@@ -1077,4 +1094,28 @@ AttrOwnership resolve_attribute_owner(SemanticAnalyzer *sa,
     return ATTR_OWN_BASE;
 
   return ATTR_OWN_CURRENT;
+}
+
+bool analyze_match_stmt(SemanticAnalyzer *sa, ASTNode *node) {
+  if (!analyze_node(sa, node->ctrl_stmt.test))
+    return false;
+
+  for (size_t cur = node->ctrl_stmt.body.head; cur != SIZE_MAX;
+       cur = node->ctrl_stmt.body.elements[cur].next) {
+    ASTNode *case_node = node->ctrl_stmt.body.elements[cur].data;
+
+    if (!analyze_node(sa, case_node))
+      return false;
+
+    ASTNode *pat = case_node->ctrl_stmt.test;
+    if ((pat->type == VARIABLE && strcmp(pat->token->lexeme, "_") == 0) ||
+        pat->type == VARIABLE) {
+      sa_set_error(sa, SEM_UNREACHABLE_PATTERN, pat->token,
+                   "wildcard makes remaining patterns unreachable");
+      slog_info("%s", sa->last_error.message);
+      return false;
+    }
+  }
+  UNREACHABLE("MATCH statement analysis not implemented yet");
+  return false;
 }

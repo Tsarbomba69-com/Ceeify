@@ -313,4 +313,27 @@ void test_variable_redeclaration_error(void) {
   parser_free(&parser);
 }
 
+void test_semantic_match_unreachable_after_wildcard(void) {
+  // Arrange: A case after a wildcard '_' is unreachable
+  Lexer lexer = tokenize("x = 1\n"
+                         "match x:\n"
+                         "    case _:\n"
+                         "        y = 1\n"
+                         "    case 10:\n" // Should fail here
+                         "        y = 2\n",
+                         "test.py");
+  Parser parser = parse(&lexer);
+
+  // Act
+  SemanticAnalyzer sa = analyze_program(&parser);
+  SemanticError err = sa_get_error(&sa);
+
+  // Assert
+  TEST_ASSERT_TRUE(sa_has_error(&sa));
+  TEST_ASSERT_EQUAL(SEM_UNREACHABLE_PATTERN, err.type);
+  TEST_ASSERT_NOT_NULL(strstr(err.message, "unreachable"));
+  // Cleanup
+  parser_free(&parser);
+}
+
 #endif // TEST_SEMANTIC_H_
