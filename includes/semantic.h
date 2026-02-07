@@ -20,6 +20,7 @@ typedef enum SemanticErrorType {
   SEM_ARITY_MISMATCH,
   SEM_REDECLARATION,
   SEM_UNREACHABLE_PATTERN,
+  SEM_DUPLICATE_BINDING,
   SEM_UNKNOWN
 } SemanticErrorType;
 

@@ -66,6 +66,7 @@ int main(void) {
   RUN_TEST(test_parse_function_def_with_annotations);
   RUN_TEST(test_parse_class);
   RUN_TEST(test_parse_match_statement);
+  RUN_TEST(test_parse_tuple_literal);
   // Semantic
   RUN_TEST(test_semantic_empty_program);
   RUN_TEST(test_semantic_simple_assignment);
@@ -83,6 +84,7 @@ int main(void) {
   RUN_TEST(test_semantic_class_inheritance_and_init);
   RUN_TEST(test_variable_redeclaration_error);
   RUN_TEST(test_semantic_match_unreachable_after_wildcard);
+  RUN_TEST(test_semantic_match_duplicate_binding);
   // Three-address code (TAC)
   RUN_TEST(test_tac_simple_assignment);
   RUN_TEST(test_tac_binary_expression);

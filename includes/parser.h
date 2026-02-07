@@ -30,6 +30,7 @@ typedef enum NodeType {
   ATTRIBUTE,
   MATCH,
   CASE,
+  TUPLE,
   END_BLOCK
 } NodeType;
 
@@ -114,7 +115,7 @@ typedef struct ASTNode {
     CallExpr call;
     ASTNode *child; // Types that use this: RETURN
     Compare compare;
-    ASTNode_LinkedList import;
+    ASTNode_LinkedList collection;
     ControlFlowStatement ctrl_stmt;
     Attribute attribute;
   };

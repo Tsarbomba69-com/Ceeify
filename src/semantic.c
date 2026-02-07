@@ -1,4 +1,5 @@
 #include "semantic.h"
+#include "pattern_binding.h"
 // TODO: Create main scope (it is different from global scope)
 
 const char *ARITHMETIC_OPS[] = {
@@ -1096,6 +1097,43 @@ AttrOwnership resolve_attribute_owner(SemanticAnalyzer *sa,
   return ATTR_OWN_CURRENT;
 }
 
+static bool analyze_pattern(SemanticAnalyzer *sa, ASTNode *pat,
+                            PatternBindings *pb) {
+  if (!pat)
+    return true;
+
+  switch (pat->type) {
+
+  case VARIABLE: {
+    const char *name = pat->token->lexeme;
+
+    if (strcmp(name, "_") == 0)
+      return true; // wildcard never binds
+
+    if (pb_contains(pb, name)) {
+      sa_set_error(sa, SEM_DUPLICATE_BINDING, pat->token,
+                   "multiple assignments to name '%s' in pattern", name);
+      return false;
+    }
+
+    pb_add(pb, name);
+    return true;
+  }
+
+  case TUPLE:
+    for (size_t i = 0; i < pat->collection.size; i++) {
+      if (!analyze_pattern(sa, pat->collection.elements[i].data, pb))
+        return false;
+    }
+    return true;
+
+  // extend later: LIST, STRUCT, OR, AS, etc.
+  default:
+    return true;
+  }
+}
+
+// multiple assignments to name 'x' in pattern
 bool analyze_match_stmt(SemanticAnalyzer *sa, ASTNode *node) {
   if (!analyze_node(sa, node->ctrl_stmt.test))
     return false;
@@ -1112,10 +1150,15 @@ bool analyze_match_stmt(SemanticAnalyzer *sa, ASTNode *node) {
         pat->type == VARIABLE) {
       sa_set_error(sa, SEM_UNREACHABLE_PATTERN, pat->token,
                    "wildcard makes remaining patterns unreachable");
-      slog_info("%s", sa->last_error.message);
+      return false;
+    }
+
+    PatternBindings pb;
+    pb_init(&pb, &sa->parser.ast.allocator);
+    if (!analyze_pattern(sa, pat, &pb)) {
       return false;
     }
   }
-  UNREACHABLE("MATCH statement analysis not implemented yet");
-  return false;
+
+  return true;
 }

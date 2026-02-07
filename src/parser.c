@@ -117,6 +117,8 @@ const char *node_type_to_string(NodeType type) {
     return "MATCH";
   case CASE:
     return "CASE";
+  case TUPLE:
+    return "TUPLE";
   default:
     return "UNKNOWN";
   }
@@ -196,7 +198,7 @@ cJSON *serialize_node(ASTNode *node) {
     break;
   case IMPORT:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
-    cJSON_AddItemToObject(root, "names", serialize_program(&node->import));
+    cJSON_AddItemToObject(root, "names", serialize_program(&node->collection));
     break;
   case COMPARE:
     cJSON_AddItemToObject(root, "left", serialize_node(node->compare.left));
@@ -238,6 +240,12 @@ cJSON *serialize_node(ASTNode *node) {
     cJSON_AddItemToObject(root, "test", serialize_node(node->ctrl_stmt.test));
     cJSON_AddItemToObject(root, "body",
                           serialize_program(&node->ctrl_stmt.body));
+    break;
+  case TUPLE:
+  case LIST_EXPR:
+    cJSON_AddItemToObject(root, "token", serialize_token(node->token));
+    cJSON_AddItemToObject(root, "elements",
+                          serialize_program(&node->collection));
     break;
   default:
     break;
@@ -389,9 +397,45 @@ ASTNode *nud(Parser *parser) {
     return node_new(parser, token, VARIABLE);
   case LPAR: {
     advance(parser);
-    ASTNode *expr = parse_expression(parser, 0);
+
+    // Check for empty tuple: ()
+    if (parser->current && parser->current->type == RPAR) {
+      ASTNode *tuple_node = node_new(parser, token, TUPLE);
+      tuple_node->collection =
+          ASTNode_new_with_allocator(&parser->ast.allocator, 0);
+      return tuple_node;
+    }
+
+    ASTNode *first_expr = parse_expression(parser, 0);
+
+    // Check if there's a comma after the first expression (indicates tuple)
+    if (parser->next && parser->next->type == COMMA) {
+      ASTNode *tuple_node = node_new(parser, token, TUPLE);
+      tuple_node->collection =
+          ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+      ASTNode_add_last(&tuple_node->collection, first_expr);
+
+      // Parse remaining tuple elements
+      while (parser->next && parser->next->type == COMMA) {
+        advance(parser); // consume comma
+        advance(parser); // move to next expression
+
+        // Check for trailing comma: (1, 2,)
+        if (parser->current->type == RPAR) {
+          break;
+        }
+
+        ASTNode *elem = parse_expression(parser, 0);
+        ASTNode_add_last(&tuple_node->collection, elem);
+      }
+
+      advance(parser); // consume RPAR
+      return tuple_node;
+    }
+
+    // Not a tuple, just a parenthesized expression
     advance(parser);
-    return expr;
+    return first_expr;
   }
   case KEYWORD:
   case OPERATOR:
@@ -810,7 +854,7 @@ ASTNode *parse_statement(Parser *parser) {
     if (strcmp(token->lexeme, "import") == 0) {
       ASTNode *node = node_new(parser, token, IMPORT);
       token = advance(parser);
-      node->import = parse_identifier_list(parser, token, LOAD);
+      node->collection = parse_identifier_list(parser, token, LOAD);
       return node;
     }
 

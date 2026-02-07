@@ -336,4 +336,23 @@ void test_semantic_match_unreachable_after_wildcard(void) {
   parser_free(&parser);
 }
 
+void test_semantic_match_duplicate_binding(void) {
+  // Arrange: Cannot bind the same variable 'x' twice in one pattern
+  Lexer lexer = tokenize("match (1, 2):\n"
+                         "    case (x, x):\n"
+                         "        print(x)\n",
+                         "test.py");
+  Parser parser = parse(&lexer);
+
+  // Act
+  SemanticAnalyzer sa = analyze_program(&parser);
+  SemanticError err = sa_get_error(&sa);
+
+  // Assert
+  TEST_ASSERT_TRUE(sa_has_error(&sa));
+  TEST_ASSERT_EQUAL(SEM_DUPLICATE_BINDING, err.type);
+  // Cleanup
+  parser_free(&parser);
+}
+
 #endif // TEST_SEMANTIC_H_

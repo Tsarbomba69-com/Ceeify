@@ -110,7 +110,7 @@ void test_import_assignment(void) {
     TEST_ASSERT_EQUAL_INT(VARIABLE, el->type);
   }
 
-  ASTNode *name = ASTNode_pop(&node->import);
+  ASTNode *name = ASTNode_pop(&node->collection);
   TEST_ASSERT_EQUAL_STRING("z", name->token->lexeme);
   parser_free(&parser);
 }
@@ -630,6 +630,41 @@ void test_parse_match_statement(void) {
   ASTNode *target2 = ASTNode_pop(&body2->assign.targets);
   TEST_ASSERT_EQUAL_STRING("y", target2->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("10", body2->assign.value->token->lexeme);
+  // Cleanup
+  parser_free(&parser);
+}
+
+void test_parse_tuple_literal(void) {
+  // Arrange
+  Lexer lexer = tokenize("(1, x, 3)", "test_file.py");
+
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
+
+  // Assert: node is a TUPLE
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(TUPLE, node->type);
+
+  // Assert: tuple elements (reverse pop order)
+  ASTNode *el3 = ASTNode_pop(&node->collection);
+  ASTNode *el2 = ASTNode_pop(&node->collection);
+  ASTNode *el1 = ASTNode_pop(&node->collection);
+
+  TEST_ASSERT_NOT_NULL(el1);
+  TEST_ASSERT_NOT_NULL(el2);
+  TEST_ASSERT_NOT_NULL(el3);
+
+  TEST_ASSERT_EQUAL_INT(LITERAL, el1->type);
+  TEST_ASSERT_EQUAL_STRING("1", el1->token->lexeme);
+
+  TEST_ASSERT_EQUAL_INT(VARIABLE, el2->type);
+  TEST_ASSERT_EQUAL_STRING("x", el2->token->lexeme);
+
+  TEST_ASSERT_EQUAL_INT(LITERAL, el3->type);
+  TEST_ASSERT_EQUAL_STRING("3", el3->token->lexeme);
+
   // Cleanup
   parser_free(&parser);
 }
