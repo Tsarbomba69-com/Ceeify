@@ -22,7 +22,7 @@ void cleanup(void *p) {
   slog_destroy();
 }
 
-int main(void) {
+int main2(void) {
   slog_init("ceeify", SLOG_FLAGS_ALL, 0);
   DEFER(cleanup) slog_config_t cfg;
   slog_config_get(&cfg);
@@ -104,10 +104,13 @@ int main(void) {
   RUN_TEST(test_codegen_if_else_statement);
   RUN_TEST(test_codegen_while_loop);
   RUN_TEST(test_codegen_variable_shadowing);
+  RUN_TEST(test_codegen_match_literal);
+  RUN_TEST(test_codegen_match_capture);
+  RUN_TEST(test_codegen_match_guard);
   return UNITY_END();
 }
 
-int main2(void) {
+int main(void) {
   slog_init("ceeify", SLOG_FLAGS_ALL, 0);
   DEFER(cleanup) slog_config_t cfg;
   slog_config_get(&cfg);
@@ -117,6 +120,6 @@ int main2(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_codegen_variable_shadowing);
+  RUN_TEST(test_codegen_match_guard);
   return UNITY_END();
 }

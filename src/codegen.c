@@ -9,6 +9,8 @@ void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix,
 
 void gen_ctrl_flow(Codegen *cg, ASTNode *node);
 
+void gen_match_stmt(Codegen *cg, ASTNode *node);
+
 /* -----------------------------
  *  CODEGEN IMPLEMENTATION
  * ----------------------------- */
@@ -70,6 +72,8 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     gen_function_def(cg, node, NULL, NULL);
     break;
   case CALL: {
+    bool saved_standalone = cg->is_standalone;
+    cg->is_standalone = false;
     sb_appendf(&cg->output, "%s(", node->call.func->token->lexeme);
     for (size_t cur = node->call.args.head; cur != SIZE_MAX;
          cur = node->call.args.elements[cur].next) {
@@ -81,6 +85,7 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     }
     sb_appendf(&cg->output, ")");
 
+    cg->is_standalone = saved_standalone;
     if (cg->is_standalone) {
       sb_appendf(&cg->output, ";\n");
     }
@@ -115,7 +120,11 @@ bool gen_code(Codegen *cg, ASTNode *node) {
     cg->is_standalone = false;
   } break;
   case LITERAL:
-    sb_appendf(&cg->output, "%s", node->token->lexeme);
+    if (node->token->type == STRING) {
+      sb_appendf(&cg->output, "\"%s\"", node->token->lexeme);
+    } else {
+      sb_appendf(&cg->output, "%s", node->token->lexeme);
+    }
     if (cg->is_standalone) {
       sb_appendf(&cg->output, ";\n");
     }
@@ -297,6 +306,9 @@ bool gen_code(Codegen *cg, ASTNode *node) {
       sb_appendf(&cg->output, ";\n");
     }
   } break;
+  case MATCH:
+    gen_match_stmt(cg, node);
+    break;
   default:
     slog_fatal("Code generation for \"%s\" type is not implemented yet",
                node_type_to_string(node->type));
@@ -400,4 +412,72 @@ void gen_ctrl_flow(Codegen *cg, ASTNode *node) {
 
   sb_append_padding(&cg->output, ' ', node->token->ident);
   sb_appendf(&cg->output, "}\n");
+}
+
+void gen_match_stmt(Codegen *cg, ASTNode *node) {
+  ASSERT(cg, "Codegen context cannot be NULL");
+  ASSERT(node, "Node cannot be null");
+  ASTNode *scrutinee = node->ctrl_stmt.test;
+  bool first = true;
+  static uint8_t match_depth = 0;
+  int current_tmp_id = match_depth++;
+
+  // 1. Generate the temporary variable for the scrutinee
+  sb_append_padding(&cg->output, ' ', node->token->ident);
+  sb_appendf(&cg->output, "%s _tmp%d = ", ctype_to_string(cg, scrutinee),
+             current_tmp_id);
+
+  bool saved_standalone = cg->is_standalone;
+  cg->is_standalone = false;
+  gen_code(cg, scrutinee);
+  sb_appendf(&cg->output, ";\n");
+
+  // 2. Iterate through cases
+  for (size_t cur = node->ctrl_stmt.body.head; cur != SIZE_MAX;
+       cur = node->ctrl_stmt.body.elements[cur].next) {
+
+    ASTNode *case_node = node->ctrl_stmt.body.elements[cur].data;
+    ASTNode *pattern = case_node->ctrl_stmt.test;
+    sb_append_padding(&cg->output, ' ', node->token->ident);
+
+    bool is_wildcard =
+        (pattern->type == VARIABLE && strcmp(pattern->token->lexeme, "_") == 0);
+    bool is_capture =
+        (pattern->type == VARIABLE && strcmp(pattern->token->lexeme, "_") != 0);
+
+    // Header: if / else if / else
+    if (is_wildcard || is_capture) {
+      sb_appendf(&cg->output, "else {\n");
+    } else {
+      const char *branch = first ? "if" : "else if";
+      sb_appendf(&cg->output, "%s (_tmp%d == ", branch, current_tmp_id);
+      cg->is_standalone = false;
+      gen_code(cg, pattern); // Generate the literal
+      sb_appendf(&cg->output, ") {\n");
+      first = false;
+    }
+
+    // 3. Body: Handle variable capture assignment
+    if (is_capture) {
+      sb_append_padding(&cg->output, ' ', node->token->ident + 4);
+      sb_appendf(&cg->output, "%s %s = _tmp%d;\n",
+                 ctype_to_string(cg, scrutinee), pattern->token->lexeme,
+                 current_tmp_id);
+    }
+
+    // 4. Body: Generate statements
+    for (size_t bcur = case_node->ctrl_stmt.body.head; bcur != SIZE_MAX;
+         bcur = case_node->ctrl_stmt.body.elements[bcur].next) {
+      ASTNode *stmt = case_node->ctrl_stmt.body.elements[bcur].data;
+      sb_append_padding(&cg->output, ' ', node->token->ident + 4);
+      cg->is_standalone = true;
+      gen_code(cg, stmt);
+    }
+
+    sb_append_padding(&cg->output, ' ', node->token->ident);
+    sb_appendf(&cg->output, "}\n");
+  }
+
+  cg->is_standalone = saved_standalone;
+  match_depth--; // Clean up depth for next match at same level
 }

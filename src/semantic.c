@@ -1146,8 +1146,11 @@ bool analyze_match_stmt(SemanticAnalyzer *sa, ASTNode *node) {
       return false;
 
     ASTNode *pat = case_node->ctrl_stmt.test;
-    if ((pat->type == VARIABLE && strcmp(pat->token->lexeme, "_") == 0) ||
-        pat->type == VARIABLE) {
+    bool is_first = (cur == node->ctrl_stmt.body.head);
+    bool has_more = node->ctrl_stmt.body.size > 1;
+    bool is_wildcard =
+        (pat->type == VARIABLE && strcmp(pat->token->lexeme, "_") == 0);
+    if (is_first && is_wildcard && has_more) {
       sa_set_error(sa, SEM_UNREACHABLE_PATTERN, pat->token,
                    "wildcard makes remaining patterns unreachable");
       return false;

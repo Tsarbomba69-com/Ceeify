@@ -167,4 +167,86 @@ void test_codegen_variable_shadowing(void) {
   codegen_free(&cg);
 }
 
+void test_codegen_match_literal(void) {
+  // Arrange: Simple literal matching should lower to if/else if
+  char expected[] = "void f(int x) {\n"
+                    "    int _tmp0 = x;\n"
+                    "    if (_tmp0 == 1) {\n"
+                    "        print(\"one\");\n"
+                    "    } else if (_tmp0 == 2) {\n"
+                    "        print(\"two\");\n"
+                    "    } else {\n"
+                    "        print(\"other\");\n"
+                    "    }\n"
+                    "}\n";
+
+  // Act
+  Codegen cg = compile_to_c("def f(x: int):\n"
+                            "    match x:\n"
+                            "        case 1:\n"
+                            "            print(\"one\")\n"
+                            "        case 2:\n"
+                            "            print(\"two\")\n"
+                            "        case _:\n"
+                            "            print(\"other\")\n");
+
+  normalize_whitespace(expected);
+  normalize_whitespace(cg.output.items);
+
+  // Assert
+  TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
+  codegen_free(&cg);
+}
+
+void test_codegen_match_capture(void) {
+  // Arrange: Matching with a variable capture
+  char expected[] = "int f(int x) {\n"
+                    "    int _tmp0 = x;\n"
+                    "    if (_tmp0 == 0) {\n"
+                    "        return 0;\n"
+                    "    } else {\n"
+                    "        int val = _tmp0;\n" // Capture occurs here
+                    "        return val;\n"
+                    "    }\n"
+                    "}\n";
+
+  // Act
+  Codegen cg = compile_to_c("def f(x: int) -> int:\n"
+                            "    match x:\n"
+                            "        case 0:\n"
+                            "            return 0\n"
+                            "        case val:\n"
+                            "            return val\n");
+
+  normalize_whitespace(expected);
+  normalize_whitespace(cg.output.items);
+
+  // Assert
+  TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
+  codegen_free(&cg);
+}
+
+void test_codegen_match_guard(void) {
+  // Arrange: Match with an 'if' guard
+  char expected[] = "void f(int x) {\n"
+                    "    int _tmp0 = x;\n"
+                    "    if ((_tmp0 > 0) && (_tmp0 < 10)) {\n"
+                    "        print(\"small positive\");\n"
+                    "    }\n"
+                    "}\n";
+
+  // Act
+  Codegen cg = compile_to_c("def f(x: int):\n"
+                            "    match x:\n"
+                            "        case _ if x > 0 and x < 10:\n"
+                            "            print(\"small positive\")\n");
+
+  normalize_whitespace(expected);
+  normalize_whitespace(cg.output.items);
+
+  // Assert
+  TEST_ASSERT_EQUAL_STRING(expected, cg.output.items);
+  codegen_free(&cg);
+}
+
 #endif // TEST_CODEGEN_H_
