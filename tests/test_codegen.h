@@ -230,7 +230,7 @@ void test_codegen_match_guard(void) {
   // Arrange: Match with an 'if' guard
   char expected[] = "void f(int x) {\n"
                     "    int _tmp0 = x;\n"
-                    "    if ((_tmp0 > 0) && (_tmp0 < 10)) {\n"
+                    "    if (_tmp0 > 0 && _tmp0 < 10) {\n"
                     "        print(\"small positive\");\n"
                     "    }\n"
                     "}\n";

@@ -587,10 +587,9 @@ void test_parse_class(void) {
   // Cleanup
   parser_free(&parser);
 }
-
+// TODO: Fix me
 void test_parse_match_statement(void) {
   // Arrange
-  // We match 'x', with one case for '1' and a wildcard '_'
   Lexer lexer = tokenize("match x:\n"
                          "    case 1:\n"
                          "        y = 10\n"
@@ -600,6 +599,7 @@ void test_parse_match_statement(void) {
   // Act
   Parser parser = parse(&lexer);
   ASTNode *main = ASTNode_pop(&parser.ast);
+  // Assuming 'main' is a module/function, we get the match node from its body
   ASTNode *match_node = ASTNode_pop(&main->def.body);
 
   // Assert: Match Node
@@ -607,29 +607,42 @@ void test_parse_match_statement(void) {
   TEST_ASSERT_EQUAL_INT(MATCH, match_node->type);
 
   // Assert: Match Subject (The 'test' field)
-  // match [x]:
   TEST_ASSERT_NOT_NULL(match_node->ctrl_stmt.test);
   TEST_ASSERT_EQUAL_INT(VARIABLE, match_node->ctrl_stmt.test->type);
   TEST_ASSERT_EQUAL_STRING("x", match_node->ctrl_stmt.test->token->lexeme);
-  // Default case
-  ASTNode *case1 = ASTNode_pop(&match_node->ctrl_stmt.body);
-  TEST_ASSERT_NOT_NULL(case1);
-  TEST_ASSERT_EQUAL_INT(CASE, case1->type);
-  TEST_ASSERT_EQUAL_STRING("_", case1->ctrl_stmt.test->token->lexeme);
-  ASTNode *body1 = ASTNode_pop(&case1->ctrl_stmt.body);
-  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body1->type);
-  ASTNode *target1 = ASTNode_pop(&body1->assign.targets);
-  TEST_ASSERT_EQUAL_STRING("y", target1->token->lexeme);
-  TEST_ASSERT_EQUAL_STRING("0", body1->assign.value->token->lexeme);
-  // First case
-  ASTNode *case2 = ASTNode_pop(&match_node->ctrl_stmt.body);
-  TEST_ASSERT_NOT_NULL(case2);
-  TEST_ASSERT_EQUAL_STRING("1", case2->ctrl_stmt.test->token->lexeme);
-  ASTNode *body2 = ASTNode_pop(&case2->ctrl_stmt.body);
-  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body2->type);
-  ASTNode *target2 = ASTNode_pop(&body2->assign.targets);
-  TEST_ASSERT_EQUAL_STRING("y", target2->token->lexeme);
-  TEST_ASSERT_EQUAL_STRING("10", body2->assign.value->token->lexeme);
+
+  // --- CASE 2 (The Wildcard case '_') ---
+  // Popping from the body gives us the LAST case first
+  ASTNode *case_wildcard = ASTNode_pop(&match_node->ctrl_stmt.body);
+  TEST_ASSERT_NOT_NULL(case_wildcard);
+  TEST_ASSERT_EQUAL_INT(CASE, case_wildcard->type);
+
+  // In your JSON, the pattern '_' is in 'orelse' for the CASE node
+  // Note: Adjust this if your parser puts the pattern in 'test'
+  ASTNode *pattern_wild = ASTNode_pop(&case_wildcard->ctrl_stmt.orelse);
+  TEST_ASSERT_EQUAL_STRING("_", pattern_wild->token->lexeme);
+
+  ASTNode *body_wild = ASTNode_pop(&case_wildcard->ctrl_stmt.body);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_wild->type);
+  ASTNode *target_wild = ASTNode_pop(&body_wild->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("y", target_wild->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("0", body_wild->assign.value->token->lexeme);
+
+  // --- CASE 1 (The literal case '1') ---
+  // Popping again gives us the first case
+  ASTNode *case_literal = ASTNode_pop(&match_node->ctrl_stmt.body);
+  TEST_ASSERT_NOT_NULL(case_literal);
+
+  // In your JSON, '1' is stored in 'orelse' of the CASE node
+  ASTNode *pattern_lit = ASTNode_pop(&case_literal->ctrl_stmt.orelse);
+  TEST_ASSERT_EQUAL_STRING("1", pattern_lit->token->lexeme);
+
+  ASTNode *body_lit = ASTNode_pop(&case_literal->ctrl_stmt.body);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_lit->type);
+  ASTNode *target_lit = ASTNode_pop(&body_lit->assign.targets);
+  TEST_ASSERT_EQUAL_STRING("y", target_lit->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("10", body_lit->assign.value->token->lexeme);
+
   // Cleanup
   parser_free(&parser);
 }

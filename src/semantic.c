@@ -1135,27 +1135,40 @@ static bool analyze_pattern(SemanticAnalyzer *sa, ASTNode *pat,
 
 // multiple assignments to name 'x' in pattern
 bool analyze_match_stmt(SemanticAnalyzer *sa, ASTNode *node) {
+  ASSERT(sa, "Semantic Analyzer context not provided");
+  ASSERT(node, "Node not provided");
+  // 1. Analyze the 'subject' of the match (e.g., the 'x' in 'match x:')
   if (!analyze_node(sa, node->ctrl_stmt.test))
     return false;
 
+  bool is_wildcard = false;
+
+  // 2. Iterate through the cases in the body
   for (size_t cur = node->ctrl_stmt.body.head; cur != SIZE_MAX;
        cur = node->ctrl_stmt.body.elements[cur].next) {
     ASTNode *case_node = node->ctrl_stmt.body.elements[cur].data;
 
-    if (!analyze_node(sa, case_node))
+    if (case_node->ctrl_stmt.orelse.size == 0) {
       return false;
+    }
 
-    ASTNode *pat = case_node->ctrl_stmt.test;
-    bool is_first = (cur == node->ctrl_stmt.body.head);
-    bool has_more = node->ctrl_stmt.body.size > 1;
-    bool is_wildcard =
-        (pat->type == VARIABLE && strcmp(pat->token->lexeme, "_") == 0);
-    if (is_first && is_wildcard && has_more) {
+    // Get the actual pattern node from the 'orelse' list
+    size_t pattern_idx = case_node->ctrl_stmt.orelse.head;
+    ASTNode *pat = case_node->ctrl_stmt.orelse.elements[pattern_idx].data;
+
+    // Check if we've already seen a wildcard in a previous iteration
+    if (is_wildcard) {
       sa_set_error(sa, SEM_UNREACHABLE_PATTERN, pat->token,
                    "wildcard makes remaining patterns unreachable");
       return false;
     }
 
+    // Check if current pattern is a wildcard
+    if (pat->type == VARIABLE && strcmp(pat->token->lexeme, "_") == 0) {
+      is_wildcard = true;
+    }
+
+    // 3. Analyze the pattern (for bindings/validity)
     PatternBindings pb;
     pb_init(&pb, &sa->parser.ast.allocator);
     if (!analyze_pattern(sa, pat, &pb)) {

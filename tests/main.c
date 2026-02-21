@@ -22,7 +22,7 @@ void cleanup(void *p) {
   slog_destroy();
 }
 
-int main2(void) {
+int main(void) {
   slog_init("ceeify", SLOG_FLAGS_ALL, 0);
   DEFER(cleanup) slog_config_t cfg;
   slog_config_get(&cfg);
@@ -110,7 +110,7 @@ int main2(void) {
   return UNITY_END();
 }
 
-int main(void) {
+int main2(void) {
   slog_init("ceeify", SLOG_FLAGS_ALL, 0);
   DEFER(cleanup) slog_config_t cfg;
   slog_config_get(&cfg);

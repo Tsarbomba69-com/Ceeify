@@ -213,6 +213,7 @@ cJSON *serialize_node(ASTNode *node) {
     break;
   case IF:
   case WHILE:
+  case CASE:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
     cJSON_AddItemToObject(root, "test", serialize_node(node->ctrl_stmt.test));
     cJSON_AddItemToObject(root, "body",
@@ -235,7 +236,6 @@ cJSON *serialize_node(ASTNode *node) {
     cJSON_AddItemToObject(root, "args", serialize_program(&node->call.args));
     break;
   case MATCH:
-  case CASE:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
     cJSON_AddItemToObject(root, "test", serialize_node(node->ctrl_stmt.test));
     cJSON_AddItemToObject(root, "body",
@@ -381,6 +381,11 @@ ASTNode *parse_attribute(Parser *parser, ASTNode *left) {
   return node;
 }
 
+static inline bool is_boolean_infix(Token *t) {
+  return t->type == KEYWORD &&
+         (strcmp(t->lexeme, "and") == 0 || strcmp(t->lexeme, "or") == 0);
+}
+
 // NUD (Null Denotation) - Parses a token that starts an expression
 ASTNode *nud(Parser *parser) {
   Token *token = parser->current;
@@ -509,7 +514,8 @@ ASTNode *parse_expression(Parser *parser, int8_t rbp) {
   while (parser->next &&
          (parser->next->type == OPERATOR || parser->next->type == KEYWORD) &&
          rbp < get_infix_precedence(parser->next->lexeme)) {
-    if (left->type == COMPARE && !is_comparison_operator(parser->next)) {
+    if (left->type == COMPARE && !is_comparison_operator(parser->next) &&
+        !is_boolean_infix(parser->next)) {
       break;
     }
 
@@ -1060,37 +1066,87 @@ bool is_python_main_check(ASTNode *node) {
 }
 
 ASTNode *parse_match_stmt(Parser *parser) {
-  ASTNode *node = node_new(parser, parser->current, MATCH);
-  advance(parser); // Consume 'match' keyword
-  node->ctrl_stmt.test = parse_expression(parser, 0);
-  node->ctrl_stmt.body = ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+  // current token is 'match'
+  ASTNode *match_node = node_new(parser, parser->current, MATCH);
+
+  // match <expr>
   advance(parser);
-  advance(parser); // Consume ':'
-  advance(parser); // Consume NEWLINE
+  ASTNode *subject = parse_expression(parser, 0);
+  match_node->ctrl_stmt.test = subject;
 
-  while (parser->current && parser->current->lexeme &&
-         strcmp(parser->current->lexeme, "case") == 0) {
-    ASTNode *case_node = node_new(parser, parser->current, CASE);
-    advance(parser); // Consume 'case' keyword
-    case_node->ctrl_stmt.test = parse_expression(parser, 0);
-    case_node->ctrl_stmt.body =
-        ASTNode_new_with_allocator(&parser->ast.allocator, 4);
-    advance(parser); // Consume ':'
-    advance(parser); // Consume NEWLINE
+  match_node->ctrl_stmt.body =
+      ASTNode_new_with_allocator(&parser->ast.allocator, 4);
 
-    while (parser->current && strcmp(parser->current->lexeme, "case") != 0) {
-      ASTNode *stmt = parse_statement(parser);
-
-      if (stmt != NULL && stmt->type != END_BLOCK) {
-        stmt->parent = case_node;
-        ASTNode_add_last(&case_node->ctrl_stmt.body, stmt);
-      }
-
-      advance(parser);
-    }
-
-    ASTNode_add_last(&node->ctrl_stmt.body, case_node);
+  // expect ':'
+  advance(parser);
+  if (!parser->current || parser->current->type != COLON) {
+    syntax_error("expected ':' after match subject", parser->lexer.filename,
+                 parser->current);
   }
 
-  return node;
+  // expect NEWLINE
+  advance(parser);
+  if (!parser->current || parser->current->type != NEWLINE) {
+    syntax_error("expected newline after match ':'", parser->lexer.filename,
+                 parser->current);
+  }
+
+  // parse cases
+  while (advance(parser)) {
+    if (parser->current->type == ENDMARKER)
+      break;
+
+    if (parser->current->type != KEYWORD ||
+        strcmp(parser->current->lexeme, "case") != 0) {
+      syntax_error("expected 'case' in match block", parser->lexer.filename,
+                   parser->current);
+    }
+
+    ASTNode *case_node = node_new(parser, parser->current, CASE);
+    case_node->ctrl_stmt.body =
+        ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+    case_node->ctrl_stmt.orelse =
+        ASTNode_new_with_allocator(&parser->ast.allocator, 1);
+    case_node->ctrl_stmt.test = NULL;
+
+    // case <pattern>
+    advance(parser);
+    ASTNode *pattern = parse_expression(parser, 0);
+    ASTNode_add_last(&case_node->ctrl_stmt.orelse, pattern);
+
+    // optional guard: if <expr>
+    if (parser->next && parser->next->type == KEYWORD &&
+        strcmp(parser->next->lexeme, "if") == 0) {
+      advance(parser); // move to 'if'
+      advance(parser); // move to guard expr
+      case_node->ctrl_stmt.test = parse_expression(parser, 0);
+    }
+
+    // expect ':'
+    advance(parser);
+    if (!parser->current || parser->current->type != COLON) {
+      syntax_error("expected ':' after case", parser->lexer.filename,
+                   parser->current);
+    }
+
+    // expect NEWLINE
+    advance(parser);
+    if (!parser->current || parser->current->type != NEWLINE) {
+      syntax_error("expected newline after case ':'", parser->lexer.filename,
+                   parser->current);
+    }
+
+    // parse case body
+    while (advance(parser)) {
+      ASTNode *stmt = parse_statement(parser);
+      if (!stmt || stmt->type == END_BLOCK)
+        break;
+
+      ASTNode_add_last(&case_node->ctrl_stmt.body, stmt);
+    }
+
+    ASTNode_add_last(&match_node->ctrl_stmt.body, case_node);
+  }
+
+  return match_node;
 }
