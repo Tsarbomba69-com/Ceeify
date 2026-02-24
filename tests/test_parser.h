@@ -682,4 +682,27 @@ void test_parse_tuple_literal(void) {
   parser_free(&parser);
 }
 
+void test_from_import_statement(void) {
+  // Arrange
+  Lexer lexer = tokenize("from datetime import datetime", "test_file.py");
+
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *node = ASTNode_pop(&parser.ast);
+
+  // Assert
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(IMPORT_FROM, node->type);
+  TEST_ASSERT_EQUAL_STRING("from", node->token->lexeme);
+  // The imported name should be in the collection
+  TEST_ASSERT_NOT_NULL(node->parent);
+  TEST_ASSERT_EQUAL_STRING("datetime", node->parent->token->lexeme);
+  ASTNode *imported_name = ASTNode_pop(&node->collection);
+  TEST_ASSERT_NOT_NULL(imported_name);
+  TEST_ASSERT_EQUAL_STRING("datetime", imported_name->token->lexeme);
+
+  // Cleanup
+  parser_free(&parser);
+}
+
 #endif

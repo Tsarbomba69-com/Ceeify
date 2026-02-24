@@ -49,7 +49,7 @@
         "args": [
             "-o", "output.json",
             "-dump-ast",
-            "${workspaceFolder}/tests/mock/match_case.py",
+            "${workspaceFolder}/tests/mock/budget.py",
         ]
     }
 }

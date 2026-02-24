@@ -67,6 +67,7 @@ int main(void) {
   RUN_TEST(test_parse_class);
   RUN_TEST(test_parse_match_statement);
   RUN_TEST(test_parse_tuple_literal);
+  RUN_TEST(test_from_import_statement);
   // Semantic
   RUN_TEST(test_semantic_empty_program);
   RUN_TEST(test_semantic_simple_assignment);

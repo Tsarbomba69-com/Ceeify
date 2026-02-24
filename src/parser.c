@@ -576,13 +576,11 @@ bool blacklist_tokens(TokenType type, const TokenType blacklist[],
   return false;
 }
 
-ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token,
-                                         Context ctx) {
-  ASTNode_LinkedList targets =
-      ASTNode_new_with_allocator(&parser->ast.allocator, 1);
+void parse_identifiers_into_list(Parser *parser, ASTNode_LinkedList *list,
+                                 Token *token, Context ctx) {
   ASTNode *var = node_new(parser, token, VARIABLE);
   var->ctx = ctx;
-  ASTNode_add_last(&targets, var);
+  ASTNode_add_last(list, var);
   Token *next = advance(parser);
 
   for (; next != NULL && next->type == COMMA; next = advance(parser)) {
@@ -594,9 +592,15 @@ ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token,
     token = advance(parser);
     var = node_new(parser, token, VARIABLE);
     var->ctx = ctx;
-    ASTNode_add_last(&targets, var);
+    ASTNode_add_last(list, var);
   }
+}
 
+ASTNode_LinkedList parse_identifier_list(Parser *parser, Token *token,
+                                         Context ctx) {
+  ASTNode_LinkedList targets =
+      ASTNode_new_with_allocator(&parser->ast.allocator, 1);
+  parse_identifiers_into_list(parser, &targets, token, ctx);
   return targets;
 }
 
@@ -864,6 +868,17 @@ ASTNode *parse_statement(Parser *parser) {
       return node;
     }
 
+    if (strcmp(token->lexeme, "from") == 0) {
+      ASTNode *node = node_new(parser, token, IMPORT_FROM);
+      token = advance(parser);
+      ASTNode *module = node_new(parser, token, VARIABLE);
+      node->parent = module;
+      advance(parser);
+      token = advance(parser); // Skip "import"
+      node->collection = parse_identifier_list(parser, token, LOAD);
+      return node;
+    }
+
     if (strcmp(token->lexeme, "if") == 0) {
       ASTNode *node = node_new(parser, token, IF);
       token = advance(parser);
@@ -930,6 +945,19 @@ ASTNode *parse_statement(Parser *parser) {
   return NULL;
 }
 
+bool is_definition_node(NodeType type) {
+  static const NodeType definitions[] = {FUNCTION_DEF, CLASS_DEF, IMPORT,
+                                         IMPORT_FROM};
+  size_t count = ARRAYSIZE(definitions);
+
+  for (size_t i = 0; i < count; i++) {
+    if (type == definitions[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 Parser parse(Lexer *lexer) {
   Parser parser = parser_new(lexer);
   // Create a synthetic main node to collect unbound logic
@@ -952,8 +980,7 @@ Parser parse(Lexer *lexer) {
     if (!stmt)
       break;
 
-    if (stmt->type == FUNCTION_DEF || stmt->type == CLASS_DEF ||
-        stmt->type == IMPORT) { // TODO: This should be a function
+    if (is_definition_node(stmt->type)) {
       ASTNode_add_last(&parser.ast, stmt);
     } else if (stmt->type == ASSIGNMENT && !stmt->parent) {
       ASTNode_add_last(&parser.ast, stmt);
