@@ -682,7 +682,7 @@ void test_parse_tuple_literal(void) {
   parser_free(&parser);
 }
 
-void test_from_import_statement(void) {
+void test_parse_from_import(void) {
   // Arrange
   Lexer lexer = tokenize("from datetime import datetime", "test_file.py");
 
@@ -700,6 +700,45 @@ void test_from_import_statement(void) {
   ASTNode *imported_name = ASTNode_pop(&node->collection);
   TEST_ASSERT_NOT_NULL(imported_name);
   TEST_ASSERT_EQUAL_STRING("datetime", imported_name->token->lexeme);
+
+  // Cleanup
+  parser_free(&parser);
+}
+
+void test_parse_list_literal(void) {
+  // Arrange
+  Lexer lexer = tokenize("[1, x, 3]", "test_file.py");
+
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
+
+  // Assert: node is a LIST
+  TEST_ASSERT_NOT_NULL(node);
+  TEST_ASSERT_EQUAL_INT(
+      LIST_EXPR, node->type); // Ensure LIST is defined in your ASTNodeType enum
+
+  // Assert: list elements (assuming reverse pop order like your tuple test)
+  ASTNode *el3 = ASTNode_pop(&node->collection);
+  ASTNode *el2 = ASTNode_pop(&node->collection);
+  ASTNode *el1 = ASTNode_pop(&node->collection);
+
+  TEST_ASSERT_NOT_NULL(el1);
+  TEST_ASSERT_NOT_NULL(el2);
+  TEST_ASSERT_NOT_NULL(el3);
+
+  // Check element 1: Literal 1
+  TEST_ASSERT_EQUAL_INT(LITERAL, el1->type);
+  TEST_ASSERT_EQUAL_STRING("1", el1->token->lexeme);
+
+  // Check element 2: Variable x
+  TEST_ASSERT_EQUAL_INT(VARIABLE, el2->type);
+  TEST_ASSERT_EQUAL_STRING("x", el2->token->lexeme);
+
+  // Check element 3: Literal 3
+  TEST_ASSERT_EQUAL_INT(LITERAL, el3->type);
+  TEST_ASSERT_EQUAL_STRING("3", el3->token->lexeme);
 
   // Cleanup
   parser_free(&parser);

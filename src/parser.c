@@ -442,6 +442,38 @@ ASTNode *nud(Parser *parser) {
     advance(parser);
     return first_expr;
   }
+  case LSQB: {
+    ASTNode *list_node = node_new(parser, token, LIST_EXPR);
+    list_node->collection =
+        ASTNode_new_with_allocator(&parser->ast.allocator, 4);
+    advance(parser);
+
+    // Check for an empty list: []
+    if (parser->current && parser->current->type == RSQB) {
+      return list_node;
+    }
+
+    // Parse the first element
+    ASTNode *first_expr = parse_expression(parser, 0);
+    ASTNode_add_last(&list_node->collection, first_expr);
+
+    // Parse remaining list elements separated by commas
+    while (parser->next && parser->next->type == COMMA) {
+      advance(parser); // consume comma
+      advance(parser); // move to the next expression
+
+      // Check for trailing comma: [1, 2,]
+      if (parser->current->type == RSQB) {
+        break;
+      }
+
+      ASTNode *elem = parse_expression(parser, 0);
+      ASTNode_add_last(&list_node->collection, elem);
+    }
+
+    advance(parser); // consume RSQB
+    return list_node;
+  }
   case KEYWORD:
   case OPERATOR:
     if (is_prefix_operator(token)) {
@@ -936,6 +968,7 @@ ASTNode *parse_statement(Parser *parser) {
     advance(parser);
     return parse_statement(parser);
   } break;
+  case LSQB:
   case LPAR:
     return parse_expression(parser, 0);
   default:

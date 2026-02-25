@@ -67,7 +67,8 @@ int main(void) {
   RUN_TEST(test_parse_class);
   RUN_TEST(test_parse_match_statement);
   RUN_TEST(test_parse_tuple_literal);
-  RUN_TEST(test_from_import_statement);
+  RUN_TEST(test_parse_from_import);
+  RUN_TEST(test_parse_list_literal);
   // Semantic
   RUN_TEST(test_semantic_empty_program);
   RUN_TEST(test_semantic_simple_assignment);
@@ -121,6 +122,6 @@ int main2(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_codegen_match_guard);
+  RUN_TEST(test_parse_list_literal);
   return UNITY_END();
 }
