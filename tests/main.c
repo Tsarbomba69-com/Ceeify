@@ -69,6 +69,9 @@ int main(void) {
   RUN_TEST(test_parse_tuple_literal);
   RUN_TEST(test_parse_from_import);
   RUN_TEST(test_parse_list_literal);
+  RUN_TEST(test_parse_list_comprehension);
+  RUN_TEST(test_parse_subscript);
+  RUN_TEST(test_parse_generator_expression);
   // Semantic
   RUN_TEST(test_semantic_empty_program);
   RUN_TEST(test_semantic_simple_assignment);
@@ -122,6 +125,6 @@ int main2(void) {
   cfg.nKeepOpen = true;
   slog_config_set(&cfg);
   UNITY_BEGIN();
-  RUN_TEST(test_parse_list_literal);
+  RUN_TEST(test_lexer_endmarker);
   return UNITY_END();
 }

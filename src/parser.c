@@ -39,6 +39,11 @@ ASTNode *parse_class_def(Parser *parser, ASTNode *class_node);
 
 ASTNode *parse_match_stmt(Parser *parser);
 
+static ASTNode *parse_subscript(Parser *parser, ASTNode *value);
+
+static ASTNode *parse_comprehension_body(Parser *parser, Token *origin_token,
+                                         NodeType type, ASTNode *expr);
+
 bool blacklist_tokens(TokenType type, const TokenType blacklist[], size_t size);
 
 ASTNode *bin_op_new(Parser *parser, Token *operation, ASTNode *left,
@@ -119,6 +124,10 @@ const char *node_type_to_string(NodeType type) {
     return "CASE";
   case TUPLE:
     return "TUPLE";
+  case SUBSCRIPT:
+    return "SUBSCRIPT";
+  case LIST_COMPREHENSION:
+    return "LIST COMPREHENSION";
   default:
     return "UNKNOWN";
   }
@@ -247,6 +256,17 @@ cJSON *serialize_node(ASTNode *node) {
     cJSON_AddItemToObject(root, "elements",
                           serialize_program(&node->collection));
     break;
+  case SUBSCRIPT:
+    cJSON_AddItemToObject(root, "value", serialize_node(node->subscript.value));
+    cJSON_AddItemToObject(root, "slice", serialize_node(node->subscript.slice));
+    break;
+  case LIST_COMPREHENSION:
+    cJSON_AddItemToObject(root, "expr", serialize_node(node->list_comp.expr));
+    cJSON_AddItemToObject(root, "target",
+                          serialize_node(node->list_comp.target));
+    cJSON_AddItemToObject(root, "iter", serialize_node(node->list_comp.iter));
+    cJSON_AddItemToObject(root, "ifs", serialize_program(&node->list_comp.ifs));
+    break;
   default:
     break;
   }
@@ -307,6 +327,9 @@ int8_t get_infix_precedence(const char *op) {
     return 50;
 
   if (strcmp(op, "(") == 0)
+    return 70;
+
+  if (strcmp(op, "[") == 0)
     return 70;
 
   if (strcmp(op, ".") == 0)
@@ -443,35 +466,47 @@ ASTNode *nud(Parser *parser) {
     return first_expr;
   }
   case LSQB: {
-    ASTNode *list_node = node_new(parser, token, LIST_EXPR);
-    list_node->collection =
-        ASTNode_new_with_allocator(&parser->ast.allocator, 4);
-    advance(parser);
+    Token *bracket_token = token;
+    advance(parser); // Consume '['
 
-    // Check for an empty list: []
+    // 1. Handle empty list: []
     if (parser->current && parser->current->type == RSQB) {
+      ASTNode *list_node = node_new(parser, bracket_token, LIST_EXPR);
+      list_node->collection =
+          ASTNode_new_with_allocator(&parser->ast.allocator, 1);
       return list_node;
     }
 
-    // Parse the first element
+    // 2. Parse the first expression
     ASTNode *first_expr = parse_expression(parser, 0);
+
+    // 3. Peek for 'for' keyword to identify a List Comprehension
+    if (parser->next && parser->next->type == KEYWORD &&
+        strcmp(parser->next->lexeme, "for") == 0) {
+      ASTNode *comp = parse_comprehension_body(parser, bracket_token,
+                                               LIST_COMPREHENSION, first_expr);
+      consume(parser, RSQB);
+      return comp;
+    }
+
+    // 4. Fallback: Regular List Expression [1, 2, 3]
+    ASTNode *list_node = node_new(parser, bracket_token, LIST_EXPR);
+    list_node->collection =
+        ASTNode_new_with_allocator(&parser->ast.allocator, 4);
     ASTNode_add_last(&list_node->collection, first_expr);
 
-    // Parse remaining list elements separated by commas
     while (parser->next && parser->next->type == COMMA) {
       advance(parser); // consume comma
-      advance(parser); // move to the next expression
+      advance(parser); // move to next expression
 
-      // Check for trailing comma: [1, 2,]
-      if (parser->current->type == RSQB) {
+      if (parser->current->type == RSQB)
         break;
-      }
 
       ASTNode *elem = parse_expression(parser, 0);
       ASTNode_add_last(&list_node->collection, elem);
     }
 
-    advance(parser); // consume RSQB
+    consume(parser, RSQB);
     return list_node;
   }
   case KEYWORD:
@@ -503,6 +538,10 @@ ASTNode *led(Parser *parser, ASTNode *left) {
   Token *op_token = parser->current;
   if (op_token->type == LPAR) {
     return parse_call(parser, left);
+  }
+
+  if (op_token->type == LSQB) {
+    return parse_subscript(parser, left);
   }
 
   if (strcmp(op_token->lexeme, ".") == 0) {
@@ -544,7 +583,8 @@ ASTNode *parse_expression(Parser *parser, int8_t rbp) {
   ASTNode *left = nud(parser);
 
   while (parser->next &&
-         (parser->next->type == OPERATOR || parser->next->type == KEYWORD) &&
+         (parser->next->type == OPERATOR || parser->next->type == KEYWORD ||
+          parser->next->type == LSQB) &&
          rbp < get_infix_precedence(parser->next->lexeme)) {
     if (left->type == COMPARE && !is_comparison_operator(parser->next) &&
         !is_boolean_infix(parser->next)) {
@@ -571,6 +611,17 @@ ASTNode_LinkedList parse_argument_list(Parser *parser) {
 
   do {
     ASTNode *arg = parse_expression(parser, 0);
+
+    // Detect generator expression
+    if (parser->next && parser->next->type == KEYWORD &&
+        strcmp(parser->next->lexeme, "for") == 0) {
+      ASTNode *genexp =
+          parse_comprehension_body(parser, arg->token, LIST_COMPREHENSION, arg);
+      ASTNode_add_last(&args, genexp);
+      advance(parser); // consume RPAR
+      return args;
+    }
+
     ASTNode_add_last(&args, arg);
     advance(parser);
 
@@ -1209,4 +1260,38 @@ ASTNode *parse_match_stmt(Parser *parser) {
   }
 
   return match_node;
+}
+
+static ASTNode *parse_subscript(Parser *parser, ASTNode *value) {
+  // parser->current is '[' when this is called from led()
+  Token *bracket_token = parser->current;
+  advance(parser); // move past '['
+  ASTNode *node = node_new(parser, bracket_token, SUBSCRIPT);
+  node->subscript.value = value;
+  node->subscript.slice = parse_expression(parser, 0);
+  consume(parser, RSQB); // expects and consumes ']'
+  return node;
+}
+
+static ASTNode *parse_comprehension_body(Parser *parser, Token *origin_token,
+                                         NodeType type, ASTNode *expr) {
+  ASTNode *node = node_new(parser, origin_token, type);
+  node->list_comp.expr = expr;
+  advance(parser); // move to 'for'
+  advance(parser); // consume 'for', move to target
+  node->list_comp.target = parse_expression(parser, 0);
+  consume(parser, KEYWORD); // consumes 'in'
+  advance(parser);          // move to iterable
+  node->list_comp.iter = parse_expression(parser, 0);
+  node->list_comp.ifs = ASTNode_new_with_allocator(&parser->ast.allocator, 2);
+
+  while (parser->next && parser->next->type == KEYWORD &&
+         strcmp(parser->next->lexeme, "if") == 0) {
+    advance(parser); // move to 'if'
+    advance(parser); // consume 'if', move to guard
+    ASTNode *guard = parse_expression(parser, 0);
+    ASTNode_add_last(&node->list_comp.ifs, guard);
+  }
+
+  return node;
 }

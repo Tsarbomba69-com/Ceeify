@@ -21,7 +21,9 @@ typedef enum NodeType {
   LITERAL,
   VARIABLE,
   IF,
+  IF_EXPR,
   LIST_EXPR,
+  LIST_COMPREHENSION,
   WHILE,
   FOR,
   FUNCTION_DEF,
@@ -32,6 +34,7 @@ typedef enum NodeType {
   MATCH,
   CASE,
   TUPLE,
+  SUBSCRIPT,
   END_BLOCK
 } NodeType;
 
@@ -102,6 +105,20 @@ typedef struct {
   ASTNode_LinkedList args;
 } CallExpr;
 
+typedef struct {
+  ASTNode *key;  // dict comp only, NULL otherwise
+  ASTNode *expr; // The expression being evaluated (e.g., 'i'). Value if it's a
+                 // dictionary comprehension
+  ASTNode *target; // The target variable(s) (e.g., 'i' in the for-clause)
+  ASTNode *iter;   // The iterable (e.g., 'x')
+  ASTNode_LinkedList ifs; // (Optional) Guards, e.g., 'if i > 2'
+} Comprehension;
+
+typedef struct {
+  ASTNode *value; // the object being subscripted, e.g. `item`
+  ASTNode *slice; // the key/index expression, e.g. `'amount'`
+} Subscript;
+
 typedef struct ASTNode {
   NodeType type;
   size_t depth;
@@ -119,6 +136,8 @@ typedef struct ASTNode {
     ASTNode_LinkedList collection;
     ControlFlowStatement ctrl_stmt;
     Attribute attribute;
+    Subscript subscript;
+    Comprehension list_comp;
   };
 } ASTNode;
 

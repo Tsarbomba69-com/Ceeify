@@ -744,4 +744,94 @@ void test_parse_list_literal(void) {
   parser_free(&parser);
 }
 
+void test_parse_list_comprehension(void) {
+  // Arrange
+  Lexer lexer = tokenize("[i for i in x]", "test_file.py");
+
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
+
+  // Assert
+  TEST_ASSERT_EQUAL_INT(LIST_COMPREHENSION, node->type);
+
+  // 1. Verify the element expression (the first 'i')
+  TEST_ASSERT_NOT_NULL(node->list_comp.expr);
+  TEST_ASSERT_EQUAL_STRING("i", node->list_comp.expr->token->lexeme);
+
+  // 2. Verify the target variable (the 'i' in 'for i')
+  TEST_ASSERT_NOT_NULL(node->list_comp.target);
+  TEST_ASSERT_EQUAL_STRING("i", node->list_comp.target->token->lexeme);
+
+  // 3. Verify the iterable (the 'x' in 'in x')
+  TEST_ASSERT_NOT_NULL(node->list_comp.iter);
+  TEST_ASSERT_EQUAL_STRING("x", node->list_comp.iter->token->lexeme);
+
+  // Clean
+  parser_free(&parser);
+}
+
+void test_parse_subscript(void) {
+  // Arrange
+  Lexer lexer = tokenize("item['amount']", "test_file.py");
+
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *main = ASTNode_pop(&parser.ast);
+  ASTNode *node = ASTNode_pop(&main->def.body);
+
+  // Assert
+  TEST_ASSERT_EQUAL_INT(SUBSCRIPT, node->type);
+  TEST_ASSERT_EQUAL_STRING("item", node->subscript.value->token->lexeme);
+  TEST_ASSERT_EQUAL_INT(LITERAL, node->subscript.slice->type);
+  TEST_ASSERT_EQUAL_STRING("amount", node->subscript.slice->token->lexeme);
+
+  // Clean
+  parser_free(&parser);
+}
+
+void test_parse_generator_expression(void) {
+  // Arrange
+  Lexer lexer = tokenize("total_spent = sum(item['amount'] * self.days_count "
+                         "for item in self.daily_expenses)",
+                         "test_file.py");
+  // Act
+  Parser parser = parse(&lexer);
+  ASTNode *assign = ASTNode_pop(&parser.ast);
+
+  // Assert: top level is an assignment
+  TEST_ASSERT_NOT_NULL(assign);
+  TEST_ASSERT_EQUAL_INT(ASSIGNMENT, assign->type);
+  TEST_ASSERT_EQUAL_STRING(
+      "total_spent",
+      assign->assign.targets.elements[assign->assign.targets.head]
+          .data->token->lexeme);
+
+  // Assert: RHS is a call to sum(...)
+  ASTNode *call = assign->assign.value;
+  TEST_ASSERT_EQUAL_INT(CALL, call->type);
+  TEST_ASSERT_EQUAL_STRING("sum", call->call.func->token->lexeme);
+
+  // Assert: sole argument is a generator expression
+  TEST_ASSERT_EQUAL_INT(1, call->call.args.size);
+  ASTNode *genexp = call->call.args.elements[call->call.args.head].data;
+  TEST_ASSERT_EQUAL_INT(LIST_COMPREHENSION,
+                        genexp->type); // or GENERATOR_EXPR once you add it
+
+  // Assert: genexp result expression is a binary operation (item[...] *
+  // self.days_count)
+  TEST_ASSERT_EQUAL_INT(BINARY_OPERATION, genexp->list_comp.expr->type);
+  TEST_ASSERT_EQUAL_STRING("*", genexp->list_comp.expr->token->lexeme);
+
+  // Assert: loop target and iterable
+  TEST_ASSERT_EQUAL_STRING("item", genexp->list_comp.target->token->lexeme);
+  TEST_ASSERT_EQUAL_INT(ATTRIBUTE, genexp->list_comp.iter->type);
+  TEST_ASSERT_EQUAL_STRING("daily_expenses",
+                           genexp->list_comp.iter->attribute.attr);
+
+  // Clean
+  parser_free(&parser);
+}
+
 #endif
