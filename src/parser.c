@@ -84,6 +84,8 @@ const char *node_type_to_string(NodeType type) {
   switch (type) {
   case IMPORT:
     return "IMPORT";
+  case IMPORT_FROM:
+    return "IMPORT FROM";
   case PROGRAM:
     return "PROGRAM";
   case VARIABLE:
@@ -207,6 +209,11 @@ cJSON *serialize_node(ASTNode *node) {
     break;
   case IMPORT:
     cJSON_AddItemToObject(root, "token", serialize_token(node->token));
+    cJSON_AddItemToObject(root, "names", serialize_program(&node->collection));
+    break;
+  case IMPORT_FROM:
+    cJSON_AddItemToObject(root, "token", serialize_token(node->token));
+    cJSON_AddItemToObject(root, "module", serialize_node(node->parent));
     cJSON_AddItemToObject(root, "names", serialize_program(&node->collection));
     break;
   case COMPARE:

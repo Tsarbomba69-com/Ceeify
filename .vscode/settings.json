@@ -48,7 +48,7 @@
     "cmake.debugConfig": {
         "args": [
             "-o", "output.json",
-            "-dump-ast",
+            "-emit", "c",
             "${workspaceFolder}/tests/mock/budget.py",
         ]
     }
