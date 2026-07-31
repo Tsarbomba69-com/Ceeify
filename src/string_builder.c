@@ -1,19 +1,18 @@
 #include "string_builder.h"
 
-#define sb_reserve(da, expected_capacity)                                      \
-  do {                                                                         \
-    if ((expected_capacity) > (da)->capacity) {                                \
-      if ((da)->capacity == 0) {                                               \
-        (da)->capacity = ARENA_DA_INIT_CAP;                                    \
-      }                                                                        \
-      while ((expected_capacity) > (da)->capacity) {                           \
-        (da)->capacity *= 2;                                                   \
-      }                                                                        \
-      (da)->items =                                                            \
-          (char *)allocator_realloc((da)->allocator, (da)->items, (da)->count, \
-                                    (da)->capacity * sizeof(*(da)->items));    \
-      ASSERT((da)->items != NULL, "Buy more RAM lol");                         \
-    }                                                                          \
+#define sb_reserve(da, expected_capacity)                                                          \
+  do {                                                                                             \
+    if ((expected_capacity) > (da)->capacity) {                                                    \
+      if ((da)->capacity == 0) {                                                                   \
+        (da)->capacity = ARENA_DA_INIT_CAP;                                                        \
+      }                                                                                            \
+      while ((expected_capacity) > (da)->capacity) {                                               \
+        (da)->capacity *= 2;                                                                       \
+      }                                                                                            \
+      (da)->items = (char *)allocator_realloc((da)->allocator, (da)->items, (da)->count,           \
+                                              (da)->capacity * sizeof(*(da)->items));              \
+      ASSERT((da)->items != NULL, "Buy more RAM lol");                                             \
+    }                                                                                              \
   } while (0)
 
 StringBuilder sb_init(Allocator *allocator, size_t capacity) {
@@ -45,8 +44,7 @@ void sb_append_padding(StringBuilder *sb, char pad_char, size_t count) {
   }
 }
 
-int sb_replace(StringBuilder *sb, const char *old_value,
-               const char *new_value) {
+int sb_replace(StringBuilder *sb, const char *old_value, const char *new_value) {
   if (sb == NULL || old_value == NULL || new_value == NULL) {
     return 0;
   }
@@ -96,7 +94,7 @@ int sb_replace(StringBuilder *sb, const char *old_value,
       memmove(pos + new_len, pos + old_len, tail_len);
 
       // Copy new value
-      memcpy(pos, new_value, new_len);
+      strcpy(pos, new_value);
 
       // Update count
       sb->count += (new_len - old_len);
@@ -105,7 +103,7 @@ int sb_replace(StringBuilder *sb, const char *old_value,
     // Same length, simple replacement
     pos = sb->items;
     while ((pos = strstr(pos, old_value)) != NULL) {
-      memcpy(pos, new_value, new_len);
+      strcpy(pos, new_value);
       pos += new_len;
     }
   }

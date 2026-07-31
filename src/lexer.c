@@ -3,19 +3,16 @@
 #define LEX_CAP 32
 
 const char *PYTHON_KEYWORD[NUM_KEYWORDS] = {
-    "False",  "None",   "True",    "and",      "as",       "assert", "async",
-    "await",  "break",  "class",   "continue", "def",      "del",    "elif",
-    "else",   "except", "finally", "for",      "from",     "global", "if",
-    "import", "in",     "is",      "lambda",   "nonlocal", "not",    "or",
-    "pass",   "raise",  "return",  "try",      "while",    "with",   "yield",
-    "match",  "case"};
+    "False",   "None",     "True",     "and",    "as",   "assert", "async",  "await",
+    "break",   "class",    "continue", "def",    "del",  "elif",   "else",   "except",
+    "finally", "for",      "from",     "global", "if",   "import", "in",     "is",
+    "lambda",  "nonlocal", "not",      "or",     "pass", "raise",  "return", "try",
+    "while",   "with",     "yield",    "match",  "case"};
 
-const char OPERATORS[] = {'+', '-', '*', '/', '%', '>', '<',
-                          '!', '=', '&', '|', '^', '~', '.'};
+const char OPERATORS[] = {'+', '-', '*', '/', '%', '>', '<', '!', '=', '&', '|', '^', '~', '.'};
 
-const char *EXTENDED_OPERATORS[] = {
-    "//", "==", "!=", "**", ">=",  "<=",  "&&", "||", "+=",
-    "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>"};
+const char *EXTENDED_OPERATORS[] = {"//", "==", "!=", "**", ">=",  "<=",  "&&", "||", "+=",
+                                    "-=", "*=", "/=", "%=", "//=", "**=", "<<", ">>"};
 
 const char DELIMITERS[] = {'(', ')', '{', '}', ',', ';', '.', ':', '`'};
 
@@ -130,8 +127,7 @@ Lexer tokenize(const char *source, const char *filename) {
     }
 
     if (character == '#') {
-      while (lexer.position + 1 < lexer.source_length &&
-             lexer.source[lexer.position + 1] != '\n') {
+      while (lexer.position + 1 < lexer.source_length && lexer.source[lexer.position + 1] != '\n') {
         lexer.position++;
       }
 
@@ -283,8 +279,7 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
     const char *operatorStr = EXTENDED_OPERATORS[i];
     size_t operatorLength = strlen(operatorStr);
 
-    if (strncmp(&lexer->source[lexer->position], operatorStr, operatorLength) ==
-            0 &&
+    if (strncmp(&lexer->source[lexer->position], operatorStr, operatorLength) == 0 &&
         operatorLength > max_lexeme_length) {
       max_lexeme_length = operatorLength;
       matched_operator = operatorStr;
@@ -298,8 +293,7 @@ Token *create_operator_token(Lexer *lexer, const char *matched_operator) {
     return NULL;
   }
 
-  safe_memcpy(lexeme, max_lexeme_length * sizeof(char) + 1, matched_operator,
-              max_lexeme_length);
+  safe_memcpy(lexeme, max_lexeme_length * sizeof(char) + 1, matched_operator, max_lexeme_length);
   lexeme[max_lexeme_length] = '\0';
   lexer->position += max_lexeme_length;
 
@@ -327,8 +321,7 @@ Token *create_EOF_token(Lexer *lexer) {
 }
 
 Token *create_number_token(Lexer *lexer, char character) {
-  char *lexeme =
-      allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
+  char *lexeme = allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
   if (lexeme == NULL) {
     slog_error("Failed to allocate memory for lexeme");
     return NULL;
@@ -375,8 +368,7 @@ Token *create_string_token(Lexer *lexer, char character) {
     lexer->position++;
   }
 
-  char *lexeme =
-      slice(&lexer->tokens.allocator, lexer->source, start, lexer->position);
+  char *lexeme = slice(&lexer->tokens.allocator, lexer->source, start, lexer->position);
   Token *token = allocator_alloc(&lexer->tokens.allocator, sizeof(Token));
 
   if (token == NULL) {
@@ -391,8 +383,7 @@ Token *create_string_token(Lexer *lexer, char character) {
 }
 
 Token *create_keyword_token(Lexer *lexer, char character) {
-  char *lexeme =
-      allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
+  char *lexeme = allocator_alloc(&lexer->tokens.allocator, LEX_CAP * sizeof(char));
 
   if (lexeme == NULL) {
     slog_error("Failed to allocate memory for lexeme");

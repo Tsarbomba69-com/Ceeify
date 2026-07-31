@@ -40,17 +40,7 @@ typedef enum NodeType {
 
 typedef enum Context { STORE, DEL, LOAD } Context;
 
-typedef enum DataType {
-  STR,
-  INT,
-  FLOAT,
-  COMPLEX,
-  BOOL,
-  LIST,
-  OBJECT,
-  NONE,
-  UNKNOWN
-} DataType;
+typedef enum DataType { STR, INT, FLOAT, COMPLEX, BOOL, LIST, OBJECT, NONE, UNKNOWN } DataType;
 
 typedef struct __attribute__((aligned(16))) BinOp {
   ASTNode *left;
@@ -106,11 +96,11 @@ typedef struct {
 } CallExpr;
 
 typedef struct {
-  ASTNode *key;  // dict comp only, NULL otherwise
-  ASTNode *expr; // The expression being evaluated (e.g., 'i'). Value if it's a
-                 // dictionary comprehension
-  ASTNode *target; // The target variable(s) (e.g., 'i' in the for-clause)
-  ASTNode *iter;   // The iterable (e.g., 'x')
+  ASTNode *key;           // dict comp only, NULL otherwise
+  ASTNode *expr;          // The expression being evaluated (e.g., 'i'). Value if it's a
+                          // dictionary comprehension
+  ASTNode *target;        // The target variable(s) (e.g., 'i' in the for-clause)
+  ASTNode *iter;          // The iterable (e.g., 'x')
   ASTNode_LinkedList ifs; // (Optional) Guards, e.g., 'if i > 2'
 } Comprehension;
 

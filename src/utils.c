@@ -65,8 +65,7 @@ char *load_file_text(Allocator *allocator, const char *filename) {
   return text;
 }
 
-char *slice(Allocator *allocator, const char *source, size_t start,
-            size_t end) {
+char *slice(Allocator *allocator, const char *source, size_t start, size_t end) {
   size_t length = end - start;
   if (length <= 0) {
     slog_error("The length of the slice must be greater than zero");

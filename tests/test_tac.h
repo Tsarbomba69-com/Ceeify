@@ -104,8 +104,7 @@ void test_tac_variable_reassignment(void) {
   TEST_ASSERT_EQUAL_INT(TAC_STORE, tac.instructions[3].op);
 
   // Ensure second assignment does not reuse first CONST register
-  TEST_ASSERT_NOT_EQUAL(tac.instructions[0].result.id,
-                        tac.instructions[2].result.id);
+  TEST_ASSERT_NOT_EQUAL(tac.instructions[0].result.id, tac.instructions[2].result.id);
   // Cleanup
   parser_free(&parser);
 }
@@ -216,8 +215,7 @@ void test_tac_if_statement_no_else(void) {
   TEST_ASSERT_EQUAL_INT(TAC_RETURN, tac.instructions[7].op);
 
   // Jump must target the label
-  TEST_ASSERT_EQUAL_STRING(tac.instructions[6].label,
-                           tac.instructions[4].label);
+  TEST_ASSERT_EQUAL_STRING(tac.instructions[6].label, tac.instructions[4].label);
   // Cleanup
   parser_free(&parser);
 }

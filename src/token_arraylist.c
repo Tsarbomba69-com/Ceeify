@@ -2,8 +2,7 @@
 
 Token_ArrayList Token_new(size_t capacity) {
   Allocator allocator = {0};
-  Token_ArrayList list = {
-      .size = 0, .capacity = capacity, .allocator = allocator};
+  Token_ArrayList list = {.size = 0, .capacity = capacity, .allocator = allocator};
   allocator_init(&list.allocator, "Token_ArrayList");
   list.elements = allocator_alloc(&list.allocator, capacity * sizeof(Token *));
 
@@ -14,8 +13,7 @@ Token_ArrayList Token_new(size_t capacity) {
   return list;
 }
 
-Token_ArrayList Token_new_with_allocator(Allocator *allocator,
-                                         size_t capacity) {
+Token_ArrayList Token_new_with_allocator(Allocator *allocator, size_t capacity) {
   Token_ArrayList list;
   list.elements = allocator_alloc(allocator, sizeof(Token *) * capacity);
   list.size = 0;
@@ -27,9 +25,8 @@ Token_ArrayList Token_new_with_allocator(Allocator *allocator,
 void Token_push(Token_ArrayList *list, Token *value) {
   if (list->size == list->capacity) {
     size_t cap = list->capacity * 2;
-    Token **elements =
-        allocator_realloc(&list->allocator, list->elements,
-                          list->size * sizeof(Token *), cap * sizeof(Token *));
+    Token **elements = allocator_realloc(&list->allocator, list->elements,
+                                         list->size * sizeof(Token *), cap * sizeof(Token *));
 
     if (elements == NULL) {
       slog_error("Failed to resize \"Token*\" array list");

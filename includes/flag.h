@@ -65,17 +65,15 @@
 #endif // FLAG_LIST_INIT_CAP
 
 // Works with both Flag_List and Flag_List_Mut
-#define flag_list_append(type, list, item)                                     \
-  do {                                                                         \
-    if ((list)->count >= (list)->capacity) {                                   \
-      size_t new_capacity =                                                    \
-          (list)->capacity == 0 ? FLAG_LIST_INIT_CAP : (list)->capacity * 2;   \
-      (list)->items = (type *)realloc((list)->items,                           \
-                                      new_capacity * sizeof(*(list)->items));  \
-      (list)->capacity = new_capacity;                                         \
-    }                                                                          \
-                                                                               \
-    (list)->items[(list)->count++] = item;                                     \
+#define flag_list_append(type, list, item)                                                         \
+  do {                                                                                             \
+    if ((list)->count >= (list)->capacity) {                                                       \
+      size_t new_capacity = (list)->capacity == 0 ? FLAG_LIST_INIT_CAP : (list)->capacity * 2;     \
+      (list)->items = (type *)realloc((list)->items, new_capacity * sizeof(*(list)->items));       \
+      (list)->capacity = new_capacity;                                                             \
+    }                                                                                              \
+                                                                                                   \
+    (list)->items[(list)->count++] = item;                                                         \
   } while (0)
 
 typedef struct {
@@ -108,20 +106,16 @@ float *flag_float(const char *name, float def, const char *desc);
 void flag_float_var(float *var, const char *name, float def, const char *desc);
 
 double *flag_double(const char *name, double def, const char *desc);
-void flag_double_var(double *var, const char *name, double def,
-                     const char *desc);
+void flag_double_var(double *var, const char *name, double def, const char *desc);
 
 uint64_t *flag_uint64(const char *name, uint64_t def, const char *desc);
-void flag_uint64_var(uint64_t *var, const char *name, uint64_t def,
-                     const char *desc);
+void flag_uint64_var(uint64_t *var, const char *name, uint64_t def, const char *desc);
 
 size_t *flag_size(const char *name, uint64_t def, const char *desc);
-void flag_size_var(size_t *var, const char *name, uint64_t def,
-                   const char *desc);
+void flag_size_var(size_t *var, const char *name, uint64_t def, const char *desc);
 
 char **flag_str(const char *name, const char *def, const char *desc);
-void flag_str_var(char **var, const char *name, const char *def,
-                  const char *desc);
+void flag_str_var(char **var, const char *name, const char *def, const char *desc);
 
 Flag_List *flag_list(const char *name, const char *desc);
 void flag_list_var(Flag_List *var, const char *name, const char *desc);
@@ -155,37 +149,28 @@ void flag_c_free(void *c);
 char *flag_c_name(void *c, void *val);
 
 bool *flag_c_bool(void *c, const char *name, bool def, const char *desc);
-void flag_c_bool_var(void *c, bool *var, const char *name, bool def,
-                     const char *desc);
+void flag_c_bool_var(void *c, bool *var, const char *name, bool def, const char *desc);
 
 float *flag_c_float(void *c, const char *name, float def, const char *desc);
-void flag_c_float_var(void *c, float *var, const char *name, float def,
-                      const char *desc);
+void flag_c_float_var(void *c, float *var, const char *name, float def, const char *desc);
 
 double *flag_c_double(void *c, const char *name, double def, const char *desc);
-void flag_c_double_var(void *c, double *var, const char *name, double def,
-                       const char *desc);
+void flag_c_double_var(void *c, double *var, const char *name, double def, const char *desc);
 
-uint64_t *flag_c_uint64(void *c, const char *name, uint64_t def,
-                        const char *desc);
-void flag_c_uint64_var(void *c, uint64_t *var, const char *name, uint64_t def,
-                       const char *desc);
+uint64_t *flag_c_uint64(void *c, const char *name, uint64_t def, const char *desc);
+void flag_c_uint64_var(void *c, uint64_t *var, const char *name, uint64_t def, const char *desc);
 
 size_t *flag_c_size(void *c, const char *name, uint64_t def, const char *desc);
-void flag_c_size_var(void *c, size_t *var, const char *name, uint64_t def,
-                     const char *desc);
+void flag_c_size_var(void *c, size_t *var, const char *name, uint64_t def, const char *desc);
 
 char **flag_c_str(void *c, const char *name, const char *def, const char *desc);
-void flag_c_str_var(void *c, char **var, const char *name, const char *def,
-                    const char *desc);
+void flag_c_str_var(void *c, char **var, const char *name, const char *def, const char *desc);
 
 Flag_List *flag_c_list(void *c, const char *name, const char *desc);
-void flag_c_list_var(void *c, Flag_List *var, const char *name,
-                     const char *desc);
+void flag_c_list_var(void *c, Flag_List *var, const char *name, const char *desc);
 
 Flag_List_Mut *flag_c_list_mut(void *c, const char *name, const char *desc);
-void flag_c_list_mut_var(void *c, Flag_List_Mut *var, const char *name,
-                         const char *desc);
+void flag_c_list_mut_var(void *c, Flag_List_Mut *var, const char *name, const char *desc);
 
 bool flag_c_parse(void *c, int argc, char **argv);
 int flag_c_rest_argc(void *c);
@@ -262,11 +247,9 @@ typedef struct {
 } Flag_Context;
 
 // Forward declaration of private functions
-static Flag *flag__new_flag(Flag_Context *c, Flag_Type type, const char *name,
-                            const char *desc);
+static Flag *flag__new_flag(Flag_Context *c, Flag_Type type, const char *name, const char *desc);
 static void *flag__get_ref(Flag *flag);
-static bool flag__size_calculate_multiplier(char *endptr,
-                                            unsigned long long int *result);
+static bool flag__size_calculate_multiplier(char *endptr, unsigned long long int *result);
 
 static Flag_Context flag_global_context;
 
@@ -279,8 +262,7 @@ void *flag_c_new(const char *program_name) {
 
 void flag_c_free(void *c) { free(c); }
 
-static Flag *flag__new_flag(Flag_Context *c, Flag_Type type, const char *name,
-                            const char *desc) {
+static Flag *flag__new_flag(Flag_Context *c, Flag_Type type, const char *name, const char *desc) {
   assert(c->flags_count < FLAGS_CAP);
   Flag *flag = &c->flags[c->flags_count++];
   memset(flag, 0, sizeof(*flag));
@@ -319,8 +301,7 @@ bool *flag_c_bool(void *c, const char *name, bool def, const char *desc) {
   return &flag->val.as_bool;
 }
 
-void flag_c_bool_var(void *c, bool *var, const char *name, bool def,
-                     const char *desc) {
+void flag_c_bool_var(void *c, bool *var, const char *name, bool def, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_BOOL, name, desc);
   flag->def.as_bool = def;
   flag->ref = var;
@@ -342,8 +323,7 @@ float *flag_c_float(void *c, const char *name, float def, const char *desc) {
   return &flag->val.as_float;
 }
 
-void flag_c_float_var(void *c, float *var, const char *name, float def,
-                      const char *desc) {
+void flag_c_float_var(void *c, float *var, const char *name, float def, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_FLOAT, name, desc);
   flag->def.as_float = def;
   flag->ref = var;
@@ -357,8 +337,7 @@ double *flag_c_double(void *c, const char *name, double def, const char *desc) {
   return &flag->val.as_double;
 }
 
-void flag_c_double_var(void *c, double *var, const char *name, double def,
-                       const char *desc) {
+void flag_c_double_var(void *c, double *var, const char *name, double def, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_DOUBLE, name, desc);
   flag->def.as_double = def;
   flag->ref = var;
@@ -377,21 +356,18 @@ double *flag_double(const char *name, double def, const char *desc) {
   return flag_c_double(&flag_global_context, name, def, desc);
 }
 
-void flag_double_var(double *var, const char *name, double def,
-                     const char *desc) {
+void flag_double_var(double *var, const char *name, double def, const char *desc) {
   flag_c_double_var(&flag_global_context, var, name, def, desc);
 }
 
-uint64_t *flag_c_uint64(void *c, const char *name, uint64_t def,
-                        const char *desc) {
+uint64_t *flag_c_uint64(void *c, const char *name, uint64_t def, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_UINT64, name, desc);
   flag->val.as_uint64 = def;
   flag->def.as_uint64 = def;
   return &flag->val.as_uint64;
 }
 
-void flag_c_uint64_var(void *c, uint64_t *var, const char *name, uint64_t def,
-                       const char *desc) {
+void flag_c_uint64_var(void *c, uint64_t *var, const char *name, uint64_t def, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_UINT64, name, desc);
   flag->def.as_uint64 = def;
   flag->ref = var;
@@ -402,8 +378,7 @@ uint64_t *flag_uint64(const char *name, uint64_t def, const char *desc) {
   return flag_c_uint64(&flag_global_context, name, def, desc);
 }
 
-void flag_uint64_var(uint64_t *var, const char *name, uint64_t def,
-                     const char *desc) {
+void flag_uint64_var(uint64_t *var, const char *name, uint64_t def, const char *desc) {
   flag_c_uint64_var(&flag_global_context, var, name, def, desc);
 }
 
@@ -414,8 +389,7 @@ size_t *flag_c_size(void *c, const char *name, uint64_t def, const char *desc) {
   return &flag->val.as_size;
 }
 
-void flag_c_size_var(void *c, size_t *var, const char *name, uint64_t def,
-                     const char *desc) {
+void flag_c_size_var(void *c, size_t *var, const char *name, uint64_t def, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_SIZE, name, desc);
   flag->ref = var;
   flag->def.as_size = def;
@@ -426,21 +400,18 @@ size_t *flag_size(const char *name, uint64_t def, const char *desc) {
   return flag_c_size(&flag_global_context, name, def, desc);
 }
 
-void flag_size_var(size_t *var, const char *name, uint64_t def,
-                   const char *desc) {
+void flag_size_var(size_t *var, const char *name, uint64_t def, const char *desc) {
   flag_c_size_var(&flag_global_context, var, name, def, desc);
 }
 
-char **flag_c_str(void *c, const char *name, const char *def,
-                  const char *desc) {
+char **flag_c_str(void *c, const char *name, const char *def, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_STR, name, desc);
   flag->val.as_str = (char *)def;
   flag->def.as_str = (char *)def;
   return &flag->val.as_str;
 }
 
-void flag_c_str_var(void *c, char **var, const char *name, const char *def,
-                    const char *desc) {
+void flag_c_str_var(void *c, char **var, const char *name, const char *def, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_STR, name, desc);
   flag->ref = var;
   flag->def.as_str = (char *)def;
@@ -451,8 +422,7 @@ char **flag_str(const char *name, const char *def, const char *desc) {
   return flag_c_str(&flag_global_context, name, def, desc);
 }
 
-void flag_str_var(char **var, const char *name, const char *def,
-                  const char *desc) {
+void flag_str_var(char **var, const char *name, const char *def, const char *desc) {
   flag_c_str_var(&flag_global_context, var, name, def, desc);
 }
 
@@ -461,8 +431,7 @@ Flag_List *flag_c_list(void *c, const char *name, const char *desc) {
   return &flag->val.as_list;
 }
 
-void flag_c_list_var(void *c, Flag_List *var, const char *name,
-                     const char *desc) {
+void flag_c_list_var(void *c, Flag_List *var, const char *name, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_LIST, name, desc);
   flag->ref = var;
 }
@@ -472,8 +441,7 @@ Flag_List_Mut *flag_c_list_mut(void *c, const char *name, const char *desc) {
   return &flag->val.as_list_mut;
 }
 
-void flag_c_list_mut_var(void *c, Flag_List_Mut *var, const char *name,
-                         const char *desc) {
+void flag_c_list_mut_var(void *c, Flag_List_Mut *var, const char *name, const char *desc) {
   Flag *flag = flag__new_flag((Flag_Context *)c, FLAG_LIST_MUT, name, desc);
   flag->ref = var;
 }
@@ -512,16 +480,13 @@ char **flag_c_rest_argv(void *c) { return ((Flag_Context *)c)->rest_argv; }
 
 const char *flag_program_name(void) { return flag_global_context.program_name; }
 
-const char *flag_c_program_name(void *c) {
-  return ((Flag_Context *)c)->program_name;
-}
+const char *flag_c_program_name(void *c) { return ((Flag_Context *)c)->program_name; }
 
 void flag_c_set_program_name(void *c, const char *program_name) {
   ((Flag_Context *)c)->program_name = program_name;
 }
 
-static bool flag__size_calculate_multiplier(char *endptr,
-                                            unsigned long long int *result) {
+static bool flag__size_calculate_multiplier(char *endptr, unsigned long long int *result) {
   if (strcmp(endptr, "c") == 0) {
     (*result) *= 1ULL;
   } else if (strcmp(endptr, "w") == 0) {
@@ -534,8 +499,7 @@ static bool flag__size_calculate_multiplier(char *endptr,
     (*result) *= 1024ULL;
   } else if (strcmp(endptr, "MB") == 0) {
     (*result) *= 1000ULL * 1000ULL;
-  } else if (strcmp(endptr, "M") == 0 || strcmp(endptr, "MiB") == 0 ||
-             strcmp(endptr, "xM") == 0) {
+  } else if (strcmp(endptr, "M") == 0 || strcmp(endptr, "MiB") == 0 || strcmp(endptr, "xM") == 0) {
     (*result) *= 1024ULL * 1024ULL;
   } else if (strcmp(endptr, "GB") == 0) {
     (*result) *= 1000ULL * 1000ULL * 1000ULL;
@@ -554,17 +518,13 @@ static bool flag__size_calculate_multiplier(char *endptr,
   } else if (strcmp(endptr, "E") == 0 || strcmp(endptr, "EiB") == 0) {
     (*result) *= 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL;
   } else if (strcmp(endptr, "ZB") == 0) {
-    (*result) *=
-        1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL;
+    (*result) *= 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL;
   } else if (strcmp(endptr, "Z") == 0 || strcmp(endptr, "ZiB") == 0) {
-    (*result) *=
-        1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL;
+    (*result) *= 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL;
   } else if (strcmp(endptr, "YB") == 0) {
-    (*result) *= 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL *
-                 1000ULL * 1000ULL;
+    (*result) *= 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL;
   } else if (strcmp(endptr, "Y") == 0 || strcmp(endptr, "YiB") == 0) {
-    (*result) *= 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL *
-                 1024ULL * 1024ULL;
+    (*result) *= 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL;
   } else if (strcmp(endptr, "") != 0) {
     return false;
   }
@@ -700,14 +660,13 @@ bool flag_c_parse(void *c, int argc, char **argv) {
             arg = equals;
           }
 
-          static_assert(
-              sizeof(unsigned long long int) == sizeof(uint64_t),
-              "The original author designed this for x86_64 machine with the "
-              "compiler that expects unsigned long long int and uint64_t to be "
-              "the same thing, so they could use strtoull() function to parse "
-              "it. Please adjust this code for your case and maybe even send "
-              "the patch to upstream to make it work on a wider range of "
-              "environments.");
+          static_assert(sizeof(unsigned long long int) == sizeof(uint64_t),
+                        "The original author designed this for x86_64 machine with the "
+                        "compiler that expects unsigned long long int and uint64_t to be "
+                        "the same thing, so they could use strtoull() function to parse "
+                        "it. Please adjust this code for your case and maybe even send "
+                        "the patch to upstream to make it work on a wider range of "
+                        "environments.");
           char *endptr;
           unsigned long long int result = strtoull(arg, &endptr, 10);
 
@@ -802,14 +761,13 @@ bool flag_c_parse(void *c, int argc, char **argv) {
             arg = equals;
           }
 
-          static_assert(
-              sizeof(unsigned long long int) == sizeof(size_t),
-              "The original author designed this for x86_64 machine with the "
-              "compiler that expects unsigned long long int and size_t to be "
-              "the same thing, so they could use strtoull() function to parse "
-              "it. Please adjust this code for your case and maybe even send "
-              "the patch to upstream to make it work on a wider range of "
-              "environments.");
+          static_assert(sizeof(unsigned long long int) == sizeof(size_t),
+                        "The original author designed this for x86_64 machine with the "
+                        "compiler that expects unsigned long long int and size_t to be "
+                        "the same thing, so they could use strtoull() function to parse "
+                        "it. Please adjust this code for your case and maybe even send "
+                        "the patch to upstream to make it work on a wider range of "
+                        "environments.");
           char *endptr;
           unsigned long long int result = strtoull(arg, &endptr, 10);
 
@@ -854,30 +812,25 @@ bool flag_c_parse(void *c, int argc, char **argv) {
   return true;
 }
 
-bool flag_parse(int argc, char **argv) {
-  return flag_c_parse(&flag_global_context, argc, argv);
-}
+bool flag_parse(int argc, char **argv) { return flag_c_parse(&flag_global_context, argc, argv); }
 
 void flag_c_print_options(void *c, FILE *stream) {
   Flag_Context *fc = (Flag_Context *)c;
   for (size_t i = 0; i < fc->flags_count; ++i) {
     Flag *flag = &fc->flags[i];
 
-    static_assert(COUNT_FLAG_TYPES == 8,
-                  "Exhaustive flag type defaults printing");
+    static_assert(COUNT_FLAG_TYPES == 8, "Exhaustive flag type defaults printing");
     switch (fc->flags[i].type) {
     case FLAG_LIST_MUT:
     case FLAG_LIST:
-      fprintf(stream, "    -%s <str> ... -%s <str> ...\n", flag->name,
-              flag->name);
+      fprintf(stream, "    -%s <str> ... -%s <str> ...\n", flag->name, flag->name);
       fprintf(stream, "        %s\n", flag->desc);
       break;
     case FLAG_BOOL:
       fprintf(stream, "    -%s\n", flag->name);
       fprintf(stream, "        %s\n", flag->desc);
       if (flag->def.as_bool) {
-        fprintf(stream, "        Default: %s\n",
-                flag->def.as_bool ? "true" : "false");
+        fprintf(stream, "        Default: %s\n", flag->def.as_bool ? "true" : "false");
       }
       break;
     case FLAG_UINT64:
@@ -915,9 +868,7 @@ void flag_c_print_options(void *c, FILE *stream) {
   }
 }
 
-void flag_print_options(FILE *stream) {
-  flag_c_print_options(&flag_global_context, stream);
-}
+void flag_print_options(FILE *stream) { flag_c_print_options(&flag_global_context, stream); }
 
 void flag_c_print_error(void *c, FILE *stream) {
   Flag_Context *fc = (Flag_Context *)c;
@@ -926,9 +877,8 @@ void flag_c_print_error(void *c, FILE *stream) {
   case FLAG_NO_ERROR:
     // NOTE: don't call flag_print_error() if flag_parse() didn't return false,
     // okay? ._.
-    fprintf(stream,
-            "Operation Failed Successfully! Please tell the developer of this "
-            "software that they don't know what they are doing! :)");
+    fprintf(stream, "Operation Failed Successfully! Please tell the developer of this "
+                    "software that they don't know what they are doing! :)");
     break;
   case FLAG_ERROR_UNKNOWN:
     fprintf(stream, "ERROR: -%s: unknown flag\n", fc->flag_error_name);
@@ -951,8 +901,7 @@ void flag_c_print_error(void *c, FILE *stream) {
     break;
   case FLAG_ERROR_INVALID_SIZE_SUFFIX:
     fprintf(stream, "ERROR: -%s: invalid size suffix\n", fc->flag_error_name);
-    fprintf(stream, "    Got %s suffix which is not expected\n",
-            fc->flag_error_value);
+    fprintf(stream, "    Got %s suffix which is not expected\n", fc->flag_error_value);
     break;
   case COUNT_FLAG_ERRORS:
   default:
@@ -961,9 +910,7 @@ void flag_c_print_error(void *c, FILE *stream) {
   }
 }
 
-void flag_print_error(FILE *stream) {
-  flag_c_print_error(&flag_global_context, stream);
-}
+void flag_print_error(FILE *stream) { flag_c_print_error(&flag_global_context, stream); }
 
 #endif // FLAG_IMPLEMENTATION
 

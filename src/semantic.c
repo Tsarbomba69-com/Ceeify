@@ -10,16 +10,14 @@ const char *COMPARISON_OPS[] = {
     "==", "!=", "<", ">", "<=", ">=", // comparison
 };
 
-Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type,
-                         SymbolType kind);
+Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type, SymbolType kind);
 DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node);
 cJSON *serialize_symbol(Symbol *sym);
 cJSON *serialize_symbol_table(SymbolTable *st);
 cJSON *serialize_symbol(Symbol *sym);
 bool analyze_match_stmt(SemanticAnalyzer *sa, ASTNode *node);
 
-static SymbolTable *symbol_table_new(Allocator *allocator, SymbolTable *parent,
-                                     size_t depth) {
+static SymbolTable *symbol_table_new(Allocator *allocator, SymbolTable *parent, size_t depth) {
   ASSERT(allocator != NULL, "Allocator cannot be NULL in symbol_table_new");
   SymbolTable *st = allocator_alloc(allocator, sizeof(SymbolTable));
   st->entries = NULL;
@@ -126,9 +124,8 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
     }
 
     sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
-                 "unsupported operand type(s) for %s: '%s' and '%s'",
-                 node->token->lexeme, datatype_to_string(lt),
-                 datatype_to_string(rt));
+                 "unsupported operand type(s) for %s: '%s' and '%s'", node->token->lexeme,
+                 datatype_to_string(lt), datatype_to_string(rt));
     return UNKNOWN;
   }
 
@@ -141,8 +138,8 @@ static DataType infer_binary_op(SemanticAnalyzer *sa, ASTNode *node) {
       return BOOL;
 
     sa_set_error(sa, SEM_TYPE_MISMATCH, node->token,
-                 "unsupported operand types for comparison: '%s' and '%s'",
-                 datatype_to_string(lt), datatype_to_string(rt));
+                 "unsupported operand types for comparison: '%s' and '%s'", datatype_to_string(lt),
+                 datatype_to_string(rt));
     return UNKNOWN;
   }
 
@@ -179,15 +176,13 @@ bool analyze_class_def(SemanticAnalyzer *sa, ASTNode *node) {
       class_sym->base_class = base;
     } else {
       sa_set_error(sa, SEM_TYPE_MISMATCH, node->child->token,
-                   "base class '%s' is undefined or not a class",
-                   node->child->token->lexeme);
+                   "base class '%s' is undefined or not a class", node->child->token->lexeme);
       return false;
     }
   }
 
   // TODO: fix code duplication for body
-  for (size_t cur = node->def.body.head; cur != SIZE_MAX;
-       cur = node->def.body.elements[cur].next) {
+  for (size_t cur = node->def.body.head; cur != SIZE_MAX; cur = node->def.body.elements[cur].next) {
     ASTNode *body_node = node->def.body.elements[cur].data;
     if (!analyze_node(sa, body_node)) {
       return false;
@@ -243,8 +238,7 @@ bool is_self_reference(SemanticAnalyzer *sa, ASTNode *node) {
             if (params->size > 0) {
               ASTNode *first_param = params->elements[params->head].data;
 
-              if (strcmp(node->token->lexeme, first_param->token->lexeme) ==
-                  0) {
+              if (strcmp(node->token->lexeme, first_param->token->lexeme) == 0) {
                 return true;
               }
             }
@@ -276,13 +270,11 @@ bool is_self_reference(SemanticAnalyzer *sa, ASTNode *node) {
 /**
  * @brief Registers a new attribute symbol into a class's member scope.
  */
-void sa_define_member(SemanticAnalyzer *sa, Symbol *class_sym,
-                      Symbol *member_sym) {
+void sa_define_member(SemanticAnalyzer *sa, Symbol *class_sym, Symbol *member_sym) {
   if (!class_sym || !class_sym->scope || !member_sym)
     return;
 
-  SymbolTableEntry *entry =
-      allocator_alloc(&sa->parser.ast.allocator, sizeof(SymbolTableEntry));
+  SymbolTableEntry *entry = allocator_alloc(&sa->parser.ast.allocator, sizeof(SymbolTableEntry));
   entry->symbol = member_sym;
   entry->next = class_sym->scope->entries;
   class_sym->scope->entries = entry;
@@ -302,10 +294,8 @@ bool analyze_func_def(SemanticAnalyzer *sa, ASTNode *node) {
     // TODO: it will need to check for static also to not set it to object
     // automatically
     ASTNode *param = node->def.params.elements[cur].data;
-    Symbol *param_sym =
-        allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
-    param_sym->name =
-        arena_strdup(&sa->parser.ast.allocator.base, param->token->lexeme);
+    Symbol *param_sym = allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
+    param_sym->name = arena_strdup(&sa->parser.ast.allocator.base, param->token->lexeme);
     param_sym->kind = VAR;
     param_sym->dtype = UNKNOWN;
     param_sym->decl_node = param;
@@ -321,8 +311,7 @@ bool analyze_func_def(SemanticAnalyzer *sa, ASTNode *node) {
     sa_define_symbol(sa, param_sym);
   }
 
-  for (size_t cur = node->def.body.head; cur != SIZE_MAX;
-       cur = node->def.body.elements[cur].next) {
+  for (size_t cur = node->def.body.head; cur != SIZE_MAX; cur = node->def.body.elements[cur].next) {
     ASTNode *body_node = node->def.body.elements[cur].data;
     if (!analyze_node(sa, body_node)) {
       return false;
@@ -388,8 +377,7 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
       return LIST;
     }
 
-    sa_set_error(sa, SEM_UNKNOWN, tok, "cannot infer type of literal '%s'",
-                 lex);
+    sa_set_error(sa, SEM_UNKNOWN, tok, "cannot infer type of literal '%s'", lex);
     return UNKNOWN;
   } break;
   case ASSIGNMENT: {
@@ -418,8 +406,8 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
     if (sym) {
       return sym->dtype;
     } else {
-      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->token,
-                   "name '%s' is not defined", node->token->lexeme);
+      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->token, "name '%s' is not defined",
+                   node->token->lexeme);
       return UNKNOWN;
     }
   } break;
@@ -438,8 +426,7 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
         sa_set_error(sa, SEM_TYPE_MISMATCH, node->def.returns->token,
                      "function return type annotation '%s' does not match "
                      "inferred return type '%s'",
-                     datatype_to_string(annotation_type),
-                     datatype_to_string(ret_type));
+                     datatype_to_string(annotation_type), datatype_to_string(ret_type));
         return UNKNOWN;
       }
       return annotation_type;
@@ -451,8 +438,8 @@ DataType sa_infer_type(SemanticAnalyzer *sa, ASTNode *node) {
     if (sym) {
       return sym->dtype;
     } else {
-      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->call.func->token,
-                   "name '%s' is not defined", node->call.func->token->lexeme);
+      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->call.func->token, "name '%s' is not defined",
+                   node->call.func->token->lexeme);
       return UNKNOWN;
     }
   } break;
@@ -535,8 +522,8 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
     sym = sa_lookup(sa, node->token->lexeme);
 
     if (!sym) {
-      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->token,
-                   "name '%s' is not defined", node->token->lexeme);
+      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->token, "name '%s' is not defined",
+                   node->token->lexeme);
       return false;
     }
 
@@ -580,16 +567,14 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
       if (target->child) {
         if (local_sym) {
           sa_set_error(sa, SEM_REDECLARATION, target->token,
-                       "variable '%s' already declared in this scope",
-                       target->token->lexeme);
+                       "variable '%s' already declared in this scope", target->token->lexeme);
           return false;
         }
 
       define_sym:
         sym = sa_create_symbol(sa, target, rhs_type, VAR);
         sa_define_symbol(sa, sym);
-        sym->dtype =
-            target->type == VARIABLE && target->child ? UNKNOWN : rhs_type;
+        sym->dtype = target->type == VARIABLE && target->child ? UNKNOWN : rhs_type;
 
         if (!analyze_node(sa, target)) {
           return false;
@@ -598,11 +583,9 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
         goto define_sym;
       } else if (sym && !types_compatible(sym->dtype, rhs_type)) {
         // Type compatibility check
-        sa_set_error(
-            sa, SEM_TYPE_MISMATCH, sym->decl_node->token,
-            "cannot assign value of type '%s' to variable '%s' of type '%s'",
-            datatype_to_string(rhs_type), sym->name,
-            datatype_to_string(sym->dtype));
+        sa_set_error(sa, SEM_TYPE_MISMATCH, sym->decl_node->token,
+                     "cannot assign value of type '%s' to variable '%s' of type '%s'",
+                     datatype_to_string(rhs_type), sym->name, datatype_to_string(sym->dtype));
         return false;
       }
     }
@@ -625,13 +608,13 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
   case CALL: {
     Symbol *sym = sa_lookup(sa, node->call.func->token->lexeme);
     if (!sym) {
-      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->call.func->token,
-                   "name '%s' is not defined", node->call.func->token->lexeme);
+      sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->call.func->token, "name '%s' is not defined",
+                   node->call.func->token->lexeme);
       return false;
     }
     if (sym->kind != FUNCTION) {
-      sa_set_error(sa, SEM_INVALID_OPERATION, node->call.func->token,
-                   "'%s' is not a function", sym->name);
+      sa_set_error(sa, SEM_INVALID_OPERATION, node->call.func->token, "'%s' is not a function",
+                   sym->name);
       return false;
     }
 
@@ -640,28 +623,24 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
 
     if (num_args != num_params) {
       sa_set_error(sa, SEM_ARITY_MISMATCH, node->call.func->token,
-                   "function '%s' expects %zu arguments but got %zu", sym->name,
-                   num_params, num_args);
+                   "function '%s' expects %zu arguments but got %zu", sym->name, num_params,
+                   num_args);
       return false;
     }
 
     // Validate argument types match parameter types
     for (size_t i = 0; i < num_args; i++) {
-      ASTNode *arg_node =
-          node->call.args.elements[node->call.args.head + i].data;
+      ASTNode *arg_node = node->call.args.elements[node->call.args.head + i].data;
       ASTNode *param_node =
-          sym->decl_node->parent->def.params
-              .elements[sym->decl_node->parent->def.params.head + i]
+          sym->decl_node->parent->def.params.elements[sym->decl_node->parent->def.params.head + i]
               .data;
       DataType arg_type = sa_infer_type(sa, arg_node);
       DataType param_type = sa_infer_type(sa, param_node);
 
       if (!types_compatible(param_type, arg_type)) {
-        sa_set_error(
-            sa, SEM_TYPE_MISMATCH, node->call.func->token,
-            "argument %zu to '%s' has type '%s' but parameter expects '%s'",
-            i + 1, sym->name, datatype_to_string(arg_type),
-            datatype_to_string(param_type));
+        sa_set_error(sa, SEM_TYPE_MISMATCH, node->call.func->token,
+                     "argument %zu to '%s' has type '%s' but parameter expects '%s'", i + 1,
+                     sym->name, datatype_to_string(arg_type), datatype_to_string(param_type));
         return false;
       }
     }
@@ -700,32 +679,29 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node) {
 
     DataType base_dtype = sa_infer_type(sa, node->attribute.value);
     Symbol *obj_sym = sa_lookup(sa, node->attribute.value->token->lexeme);
-    Symbol *class_sym =
-        (obj_sym && obj_sym->dtype == OBJECT) ? obj_sym->base_class : NULL;
+    Symbol *class_sym = (obj_sym && obj_sym->dtype == OBJECT) ? obj_sym->base_class : NULL;
     Symbol *member = sa_lookup_member(class_sym, node->attribute.attr);
 
     if (node->ctx == LOAD) {
       if (!member) {
         sa_set_error(sa, SEM_UNDEFINED_VARIABLE, node->token,
-                     "Object of type '%s' has no attribute '%s'",
-                     datatype_to_string(base_dtype), node->attribute.attr);
+                     "Object of type '%s' has no attribute '%s'", datatype_to_string(base_dtype),
+                     node->attribute.attr);
         return false;
       }
     } else if (node->ctx == STORE) {
       if (!member) {
-        if (is_inside_constructor(sa) &&
-            is_self_reference(sa, node->attribute.value)) {
+        if (is_inside_constructor(sa) && is_self_reference(sa, node->attribute.value)) {
           DataType inferred = sa_infer_type(sa, node->parent->assign.value);
           char *inferred_str = (char *)datatype_to_string(inferred);
-          Token *tok_var = create_token_from_str(
-              &sa->parser.lexer, node->token->lexeme, IDENTIFIER);
+          Token *tok_var =
+              create_token_from_str(&sa->parser.lexer, node->token->lexeme, IDENTIFIER);
           tok_var->ident = node->parent->parent->token->ident;
           tok_var->line = node->token->line;
           tok_var->col = node->token->col;
           ASTNode *var = node_new(&sa->parser, tok_var, VARIABLE);
           var->ctx = STORE;
-          Token *t = create_token_from_str(&sa->parser.lexer, inferred_str,
-                                           IDENTIFIER);
+          Token *t = create_token_from_str(&sa->parser.lexer, inferred_str, IDENTIFIER);
           t->ident = node->parent->parent->token->ident;
           t->line = node->token->line;
           t->col = node->token->col + 1;
@@ -758,8 +734,7 @@ void sa_define_symbol(SemanticAnalyzer *sa, Symbol *sym) {
     return;
   }
 
-  SymbolTableEntry *entry =
-      allocator_alloc(&sa->parser.ast.allocator, sizeof(SymbolTableEntry));
+  SymbolTableEntry *entry = allocator_alloc(&sa->parser.ast.allocator, sizeof(SymbolTableEntry));
   entry->symbol = sym;
   entry->next = sa->current_scope->entries;
   sa->current_scope->entries = entry;
@@ -773,9 +748,7 @@ void sa_exit_scope(SemanticAnalyzer *sa) {
   sa->current_scope = old_scope->parent;
 }
 
-bool sa_has_error(SemanticAnalyzer *sa) {
-  return sa && sa->last_error.type != SEM_OK;
-}
+bool sa_has_error(SemanticAnalyzer *sa) { return sa && sa->last_error.type != SEM_OK; }
 
 char *error_to_string(SemanticErrorType type) {
   switch (type) {
@@ -857,8 +830,7 @@ frame_done:;
   highlight[col - 1] = '^';
   highlight[col] = 0;
   const char *filename = sa->parser.lexer.filename;
-  size_t buf_size =
-      strlen(filename) + strlen(line_content) + strlen(highlight) + 256;
+  size_t buf_size = strlen(filename) + strlen(line_content) + strlen(highlight) + 256;
   char *msg = allocator_alloc(&sa->parser.ast.allocator, buf_size);
   snprintf(msg, buf_size,
            "  File \"%s\", line %zu, in %s\n"
@@ -874,9 +846,8 @@ frame_done:;
 
 void sa_enter_scope(SemanticAnalyzer *sa) {
   ASSERT(sa != NULL, "SemanticAnalyzer pointer is NULL in sa_enter_scope");
-  SymbolTable *new_scope =
-      symbol_table_new(&sa->parser.ast.allocator, sa->current_scope,
-                       sa->current_scope ? sa->current_scope->depth + 1 : 0);
+  SymbolTable *new_scope = symbol_table_new(&sa->parser.ast.allocator, sa->current_scope,
+                                            sa->current_scope ? sa->current_scope->depth + 1 : 0);
   ASSERT(new_scope != NULL, "Failed to allocate memory for new scope");
   new_scope->entries = NULL;
   new_scope->parent = sa->current_scope;
@@ -884,8 +855,7 @@ void sa_enter_scope(SemanticAnalyzer *sa) {
 }
 
 PRINTF_FORMAT(4, 5)
-void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
-                  const char *fmt, ...) {
+void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok, const char *fmt, ...) {
   if (!sa) {
     slog_error("SemanticAnalyzer pointer is NULL in sa_set_error");
     return;
@@ -914,8 +884,7 @@ SemanticError sa_get_error(SemanticAnalyzer *sa) {
   return sa->last_error;
 }
 
-Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type,
-                         SymbolType kind) {
+Symbol *sa_create_symbol(SemanticAnalyzer *sa, ASTNode *node, DataType type, SymbolType kind) {
   Symbol *sym = allocator_alloc(&sa->parser.ast.allocator, sizeof(Symbol));
   sym->id = sa->next_symbol_id++;
   sym->name = arena_strdup(&sa->parser.ast.allocator.base, node->token->lexeme);
@@ -1058,8 +1027,7 @@ static Symbol *resolve_base_class(SemanticAnalyzer *sa, Symbol *cls) {
   SymbolTable *st = sa->current_scope;
   while (st) {
     for (SymbolTableEntry *e = st->entries; e; e = e->next) {
-      if (e->symbol->kind == CLASS &&
-          strcmp(e->symbol->name, cls->base_class->name) == 0) {
+      if (e->symbol->kind == CLASS && strcmp(e->symbol->name, cls->base_class->name) == 0) {
         return e->symbol;
       }
     }
@@ -1068,8 +1036,7 @@ static Symbol *resolve_base_class(SemanticAnalyzer *sa, Symbol *cls) {
   return NULL;
 }
 
-AttrOwnership resolve_attribute_owner(SemanticAnalyzer *sa,
-                                      ASTNode *attr_node) {
+AttrOwnership resolve_attribute_owner(SemanticAnalyzer *sa, ASTNode *attr_node) {
   if (!sa || !attr_node || attr_node->type != ATTRIBUTE)
     return ATTR_OWN_CURRENT;
 
@@ -1097,8 +1064,7 @@ AttrOwnership resolve_attribute_owner(SemanticAnalyzer *sa,
   return ATTR_OWN_CURRENT;
 }
 
-static bool analyze_pattern(SemanticAnalyzer *sa, ASTNode *pat,
-                            PatternBindings *pb) {
+static bool analyze_pattern(SemanticAnalyzer *sa, ASTNode *pat, PatternBindings *pb) {
   if (!pat)
     return true;
 

@@ -32,10 +32,8 @@ void test_parse_arithmetic_expression(void) {
   TEST_ASSERT_EQUAL_STRING("+", result->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("3", result->bin_op.left->token->lexeme);
   TEST_ASSERT_EQUAL_STRING("*", result->bin_op.right->token->lexeme);
-  TEST_ASSERT_EQUAL_STRING("5",
-                           result->bin_op.right->bin_op.left->token->lexeme);
-  TEST_ASSERT_EQUAL_STRING("2",
-                           result->bin_op.right->bin_op.right->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("5", result->bin_op.right->bin_op.left->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("2", result->bin_op.right->bin_op.right->token->lexeme);
   // Cleanup
   parser_free(&parser);
 }
@@ -300,8 +298,7 @@ void test_while_statement(void) {
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
   ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
   TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
-  TEST_ASSERT_EQUAL_STRING(
-      "1", body_stmt->assign.value->bin_op.right->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("1", body_stmt->assign.value->bin_op.right->token->lexeme);
 
   // cleanup
   parser_free(&parser);
@@ -334,8 +331,7 @@ void test_while_else_statement(void) {
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, body_stmt->type);
   ASTNode *target = ASTNode_pop(&body_stmt->assign.targets);
   TEST_ASSERT_EQUAL_STRING("x", target->token->lexeme);
-  TEST_ASSERT_EQUAL_STRING(
-      "1", body_stmt->assign.value->bin_op.right->token->lexeme);
+  TEST_ASSERT_EQUAL_STRING("1", body_stmt->assign.value->bin_op.right->token->lexeme);
 
   // Check ELSE block
   ASTNode *else_stmt = ASTNode_pop(&node->ctrl_stmt.orelse);
@@ -716,8 +712,7 @@ void test_parse_list_literal(void) {
 
   // Assert: node is a LIST
   TEST_ASSERT_NOT_NULL(node);
-  TEST_ASSERT_EQUAL_INT(
-      LIST_EXPR, node->type); // Ensure LIST is defined in your ASTNodeType enum
+  TEST_ASSERT_EQUAL_INT(LIST_EXPR, node->type); // Ensure LIST is defined in your ASTNodeType enum
 
   // Assert: list elements (assuming reverse pop order like your tuple test)
   ASTNode *el3 = ASTNode_pop(&node->collection);
@@ -805,8 +800,7 @@ void test_parse_generator_expression(void) {
   TEST_ASSERT_EQUAL_INT(ASSIGNMENT, assign->type);
   TEST_ASSERT_EQUAL_STRING(
       "total_spent",
-      assign->assign.targets.elements[assign->assign.targets.head]
-          .data->token->lexeme);
+      assign->assign.targets.elements[assign->assign.targets.head].data->token->lexeme);
 
   // Assert: RHS is a call to sum(...)
   ASTNode *call = assign->assign.value;
@@ -827,8 +821,7 @@ void test_parse_generator_expression(void) {
   // Assert: loop target and iterable
   TEST_ASSERT_EQUAL_STRING("item", genexp->list_comp.target->token->lexeme);
   TEST_ASSERT_EQUAL_INT(ATTRIBUTE, genexp->list_comp.iter->type);
-  TEST_ASSERT_EQUAL_STRING("daily_expenses",
-                           genexp->list_comp.iter->attribute.attr);
+  TEST_ASSERT_EQUAL_STRING("daily_expenses", genexp->list_comp.iter->attribute.attr);
 
   // Clean
   parser_free(&parser);

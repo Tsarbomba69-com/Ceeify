@@ -139,10 +139,8 @@ int main(int argc, char **argv) {
 #if ARENA_DEBUG_MODE
   atexit(allocator_global_report_leaks);
 #endif
-  bool *help =
-      flag_bool("help", false, "Print this help to stdout and exit with 0");
-  bool *dump_flag = flag_bool("dump-ast", false,
-                              "Dump the parse tree after parsing and stop");
+  bool *help = flag_bool("help", false, "Print this help to stdout and exit with 0");
+  bool *dump_flag = flag_bool("dump-ast", false, "Dump the parse tree after parsing and stop");
   char **out_file = flag_str("o", NULL, "Output file (default: stdout)");
   char **emit = flag_str("emit", "c", "Output kind: c | tac | llvm");
 
@@ -179,8 +177,7 @@ int main(int argc, char **argv) {
 
   if (strcmp(*emit, "c") == 0) {
     // Python → C
-    Codegen cg = compile_to_c(load_file_text(&allocator_global, in_filepath),
-                              in_filepath);
+    Codegen cg = compile_to_c(load_file_text(&allocator_global, in_filepath), in_filepath);
     if (*out_file != NULL && strlen(*out_file) > 0) {
       if (!save_file_text(*out_file, cg.output.items))
         return EXIT_FAILURE;

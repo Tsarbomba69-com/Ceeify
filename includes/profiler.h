@@ -1,7 +1,7 @@
 #ifndef PROFILER_H
 #define PROFILER_H
 #pragma once
-#define _POSIX_C_SOURCE 199309L
+#define POSIX_C_SOURCE 199309L
 #include "allocator.h"
 #include "utils.h"
 #include <cJSON.h>

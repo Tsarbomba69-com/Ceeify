@@ -1,0 +1,9 @@
+Checks: >
+  bugprone-*,
+  clang-analyzer-*,
+  cert-*,
+  performance-*
+WarningsAsErrors: 'clang-analyzer-*'
+HeaderFilterRegex: '.*'            # or '^/absolute/path/to/your/repo' to restrict to project headers
+FormatStyle: file        # use .clang-format (and .editorconfig settings)
+CheckOptions: []

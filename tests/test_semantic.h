@@ -214,8 +214,7 @@ void test_func_type_error_int_str(void) {
   Lexer lexer = tokenize("def fun(age: int, name: str) -> None:\n"
                          "    result = age - name\n",
                          "test.py");
-  const char *expected_msg =
-      "TypeError: unsupported operand type(s) for -: 'int' and 'str'";
+  const char *expected_msg = "TypeError: unsupported operand type(s) for -: 'int' and 'str'";
   // Act
   Parser parser = parse(&lexer);
   SemanticAnalyzer sa = analyze_program(&parser);
@@ -260,9 +259,8 @@ void test_semantic_class_inheritance_and_init(void) {
   // Assert: Animal has field 'name'
   Symbol *animal_name = NULL;
   if (animal->scope) {
-    animal_name = sa_lookup(
-        (SemanticAnalyzer *)&(SemanticAnalyzer){.current_scope = animal->scope},
-        "name");
+    animal_name =
+        sa_lookup((SemanticAnalyzer *)&(SemanticAnalyzer){.current_scope = animal->scope}, "name");
   }
   TEST_ASSERT_NOT_NULL(animal_name);
   TEST_ASSERT_EQUAL(VAR, animal_name->kind);
@@ -271,9 +269,8 @@ void test_semantic_class_inheritance_and_init(void) {
   // Assert: Dog has field 'tails'
   Symbol *dog_tails = NULL;
   if (dog->scope) {
-    dog_tails = sa_lookup(
-        (SemanticAnalyzer *)&(SemanticAnalyzer){.current_scope = dog->scope},
-        "tails");
+    dog_tails =
+        sa_lookup((SemanticAnalyzer *)&(SemanticAnalyzer){.current_scope = dog->scope}, "tails");
   }
   TEST_ASSERT_NOT_NULL(dog_tails);
   TEST_ASSERT_EQUAL(VAR, dog_tails->kind);

@@ -9,15 +9,15 @@
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof((a)[0]))
 
-#define ANY(arr, size, el, cmp_expr, result)                                   \
-  {                                                                            \
-    (result) = false;                                                          \
-    for (size_t index = 0; index < (size); index++) {                          \
-      if (cmp_expr) {                                                          \
-        (result) = true;                                                       \
-        break;                                                                 \
-      }                                                                        \
-    }                                                                          \
+#define ANY(arr, size, el, cmp_expr, result)                                                       \
+  {                                                                                                \
+    (result) = false;                                                                              \
+    for (size_t index = 0; index < (size); index++) {                                              \
+      if (cmp_expr) {                                                                              \
+        (result) = true;                                                                           \
+        break;                                                                                     \
+      }                                                                                            \
+    }                                                                                              \
   }
 
 enum {
@@ -53,8 +53,7 @@ int safe_fprintf(FILE *f, const char *fmt, ...);
 
 void normalize_whitespace(char *str);
 
-static inline int safe_memcpy(void *dest, size_t destsz, const void *src,
-                              size_t count) {
+static inline int safe_memcpy(void *dest, size_t destsz, const void *src, size_t count) {
   if (!dest || !src)
     return EINVAL;
   if (count > destsz)
@@ -64,48 +63,48 @@ static inline int safe_memcpy(void *dest, size_t destsz, const void *src,
   return 0;
 }
 
-#define ASSERT(cond, msg)                                                      \
-  do {                                                                         \
-    if (!(cond)) {                                                             \
-      slog_error("\"%s\" %s failed at %s:%d", #cond, msg, __FILE__, __LINE__); \
-      abort();                                                                 \
-    }                                                                          \
+#define ASSERT(cond, msg)                                                                          \
+  do {                                                                                             \
+    if (!(cond)) {                                                                                 \
+      slog_error("\"%s\" %s failed at %s:%d", #cond, msg, __FILE__, __LINE__);                     \
+      abort();                                                                                     \
+    }                                                                                              \
   } while (0)
 
 #if defined(_MSC_VER)
 /* MSVC: __assume is a hint to the optimizer, does not terminate execution */
-#define UNREACHABLE(msg)                                                       \
-  do {                                                                         \
-    slog_fatal("UNREACHABLE: %s", (msg));                                      \
-    __assume(0);                                                               \
-    abort();                                                                   \
+#define UNREACHABLE(msg)                                                                           \
+  do {                                                                                             \
+    slog_fatal("UNREACHABLE: %s", (msg));                                                          \
+    __assume(0);                                                                                   \
+    abort();                                                                                       \
   } while (0)
 #elif defined(__clang__) || defined(__GNUC__)
 /* GCC / Clang have builtin_unreachable() and __builtin_unreachable() is a hint
  */
-#define UNREACHABLE(msg)                                                       \
-  do {                                                                         \
-    slog_fatal("UNREACHABLE: %s", (msg));                                      \
-                                                                               \
-    __builtin_unreachable();                                                   \
-    abort();                                                                   \
+#define UNREACHABLE(msg)                                                                           \
+  do {                                                                                             \
+    slog_fatal("UNREACHABLE: %s", (msg));                                                          \
+                                                                                                   \
+    __builtin_unreachable();                                                                       \
+    abort();                                                                                       \
   } while (0)
 #else
 /* Fallback: no compiler hint available, just print and abort */
-#define UNREACHABLE(msg)                                                       \
-  do {                                                                         \
-    slog_fatal("UNREACHABLE: %s", (msg));                                      \
-    abort();                                                                   \
+#define UNREACHABLE(msg)                                                                           \
+  do {                                                                                             \
+    slog_fatal("UNREACHABLE: %s", (msg));                                                          \
+    abort();                                                                                       \
   } while (0)
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
 //   https://gcc.gnu.org/onlinedocs/gcc-4.7.2/gcc/Function-Attributes.html
 #ifdef __MINGW_PRINTF_FORMAT
-#define PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK)                            \
+#define PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK)                                                \
   __attribute__((format(__MINGW_PRINTF_FORMAT, STRING_INDEX, FIRST_TO_CHECK)))
 #else
-#define PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK)                            \
+#define PRINTF_FORMAT(STRING_INDEX, FIRST_TO_CHECK)                                                \
   __attribute__((format(printf, STRING_INDEX, FIRST_TO_CHECK)))
 #endif // __MINGW_PRINTF_FORMAT
 #else

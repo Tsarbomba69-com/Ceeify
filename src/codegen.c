@@ -4,8 +4,7 @@
  *  INTERNAL API
  * ----------------------------- */
 
-void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix,
-                      const char *self_type);
+void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix, const char *self_type);
 
 void gen_ctrl_flow(Codegen *cg, ASTNode *node);
 
@@ -55,8 +54,7 @@ const char *ctype_to_string(Codegen *cg, ASTNode *node) {
     return "void";
   case OBJECT: {
     Symbol *obj_sym = sa_lookup(&cg->sa, node->token->lexeme);
-    Symbol *class_sym =
-        (obj_sym && obj_sym->dtype == OBJECT) ? obj_sym->base_class : NULL;
+    Symbol *class_sym = (obj_sym && obj_sym->dtype == OBJECT) ? obj_sym->base_class : NULL;
     return class_sym ? class_sym->base_class->name : "void*";
   } break;
   default:
@@ -175,8 +173,7 @@ bool gen_code(Codegen *cg, ASTNode *node) {
 
     sb_appendf(&cg->output, "} %s;\n\n", class_name);
 
-    for (size_t cur = methods.head; cur != SIZE_MAX;
-         cur = methods.elements[cur].next) {
+    for (size_t cur = methods.head; cur != SIZE_MAX; cur = methods.elements[cur].next) {
       ASTNode *method = methods.elements[cur].data;
       gen_function_def(cg, method, class_name, class_name);
     }
@@ -221,10 +218,8 @@ bool gen_code(Codegen *cg, ASTNode *node) {
 
     if (node->ctrl_stmt.orelse.size > 0) {
       sb_appendf(&cg->output, "}");
-      ASTNode *last =
-          node->ctrl_stmt.orelse.elements[node->ctrl_stmt.orelse.head].data;
-      sb_append_padding(&cg->output, ' ',
-                        last->type == IF ? 0 : node->token->ident);
+      ASTNode *last = node->ctrl_stmt.orelse.elements[node->ctrl_stmt.orelse.head].data;
+      sb_append_padding(&cg->output, ' ', last->type == IF ? 0 : node->token->ident);
       sb_appendf(&cg->output, last->type == IF ? "else " : "else {\n");
       for (size_t cur = node->ctrl_stmt.orelse.head; cur != SIZE_MAX;
            cur = node->ctrl_stmt.orelse.elements[cur].next) {
@@ -327,8 +322,7 @@ bool codegen_has_error(Codegen *cg) { return cg->last_error.type != CG_OK; }
 
 CodegenError codegen_get_error(Codegen *cg) { return cg->last_error; }
 
-void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix,
-                      const char *self_type) {
+void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix, const char *self_type) {
   // 1. Return Type
   sb_appendf(&cg->output, "%s ", ctype_to_string(cg, node->def.returns));
 
@@ -364,8 +358,7 @@ void gen_function_def(Codegen *cg, ASTNode *node, const char *prefix,
   Symbol *fun_sym = sa_lookup(&cg->sa, node->def.name->token->lexeme);
   cg->sa.current_scope = fun_sym ? fun_sym->scope : cg->sa.current_scope;
   // 4. Body
-  for (size_t cur = node->def.body.head; cur != SIZE_MAX;
-       cur = node->def.body.elements[cur].next) {
+  for (size_t cur = node->def.body.head; cur != SIZE_MAX; cur = node->def.body.elements[cur].next) {
     ASTNode *body_node = node->def.body.elements[cur].data;
     cg->is_standalone = true;
     gen_code(cg, body_node);
@@ -407,8 +400,7 @@ void gen_match_stmt(Codegen *cg, ASTNode *node) {
 
   // 1. Generate the temporary variable for the scrutinee
   sb_append_padding(&cg->output, ' ', node->token->ident);
-  sb_appendf(&cg->output, "%s _tmp%d = ", ctype_to_string(cg, scrutinee),
-             current_tmp_id);
+  sb_appendf(&cg->output, "%s _tmp%d = ", ctype_to_string(cg, scrutinee), current_tmp_id);
 
   bool saved_standalone = cg->is_standalone;
   cg->is_standalone = false;
@@ -428,10 +420,8 @@ void gen_match_stmt(Codegen *cg, ASTNode *node) {
 
     sb_append_padding(&cg->output, ' ', node->token->ident);
 
-    bool is_wildcard =
-        (pattern->type == VARIABLE && strcmp(pattern->token->lexeme, "_") == 0);
-    bool is_capture =
-        (pattern->type == VARIABLE && strcmp(pattern->token->lexeme, "_") != 0);
+    bool is_wildcard = (pattern->type == VARIABLE && strcmp(pattern->token->lexeme, "_") == 0);
+    bool is_capture = (pattern->type == VARIABLE && strcmp(pattern->token->lexeme, "_") != 0);
 
     // Header: if / else if / else
     char tmp_name[16];
@@ -460,9 +450,8 @@ void gen_match_stmt(Codegen *cg, ASTNode *node) {
     // 3. Body: Handle variable capture assignment
     if (is_capture) {
       sb_append_padding(&cg->output, ' ', node->token->ident + 4);
-      sb_appendf(&cg->output, "%s %s = _tmp%d;\n",
-                 ctype_to_string(cg, scrutinee), pattern->token->lexeme,
-                 current_tmp_id);
+      sb_appendf(&cg->output, "%s %s = _tmp%d;\n", ctype_to_string(cg, scrutinee),
+                 pattern->token->lexeme, current_tmp_id);
     }
 
     // 4. Body: Generate statements
@@ -497,10 +486,8 @@ static void gen_expr(Codegen *cg, ASTNode *node, VarSubst *subst) {
     // Normal variable emit — check for definition vs usage
     Symbol *var_sym = sa_lookup(&cg->sa, name);
     Symbol *class_sym = var_sym ? NULL : find_enclosing_class(&cg->sa);
-    var_sym =
-        !var_sym && class_sym ? sa_lookup_member(class_sym, name) : var_sym;
-    if (var_sym && ((node->ctx == STORE && var_sym->decl_node == node) ||
-                    var_sym->base_class)) {
+    var_sym = !var_sym && class_sym ? sa_lookup_member(class_sym, name) : var_sym;
+    if (var_sym && ((node->ctx == STORE && var_sym->decl_node == node) || var_sym->base_class)) {
       sb_appendf(&cg->output, "%s %s", ctype_to_string(cg, node), name);
     } else {
       sb_appendf(&cg->output, "%s", name);

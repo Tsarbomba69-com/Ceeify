@@ -31,8 +31,7 @@ typedef struct ASTNode_LinkedList {
 // Stack allocated linkedlist constructor
 ASTNode_LinkedList ASTNode_new(size_t capacity);
 
-ASTNode_LinkedList ASTNode_new_with_allocator(Allocator *allocator,
-                                              size_t capacity);
+ASTNode_LinkedList ASTNode_new_with_allocator(Allocator *allocator, size_t capacity);
 
 // Adds an element at the beginning of the list
 void ASTNode_add_first(ASTNode_LinkedList *list, ASTNode *data);
@@ -44,8 +43,7 @@ void ASTNode_add_last(ASTNode_LinkedList *list, ASTNode *data);
 ASTNode *ASTNode_pop(ASTNode_LinkedList *list);
 
 // Get the element stored at the index. Returns NULL if index is out-of-bounds
-static inline ASTNode *ASTNode_get(ASTNode_LinkedList const *list,
-                                   size_t index) {
+static inline ASTNode *ASTNode_get(ASTNode_LinkedList const *list, size_t index) {
   return index < list->size ? list->elements[index].data : NULL;
 }
 

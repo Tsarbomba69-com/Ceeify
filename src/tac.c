@@ -16,8 +16,7 @@ static void gen_function_def(Tac *tac, ASTNode *node);
 
 TACValue gen_const_value(Tac *tac, ASTNode *node);
 
-size_t tac_add_constant(TACProgram *program, ConstantValue value,
-                        DataType type);
+size_t tac_add_constant(TACProgram *program, ConstantValue value, DataType type);
 
 ConstantEntry *tac_get_constant(TACProgram *program, size_t id);
 
@@ -28,8 +27,8 @@ static TACValue new_tac_value(size_t id, DataType type) {
   return val;
 }
 
-static TACInstruction create_instruction(TACOp op, TACValue lhs, TACValue rhs,
-                                         TACValue result, const char *label) {
+static TACInstruction create_instruction(TACOp op, TACValue lhs, TACValue rhs, TACValue result,
+                                         const char *label) {
   TACInstruction instr;
   instr.op = op;
   instr.lhs = lhs;
@@ -43,12 +42,10 @@ static void append_instruction(Tac *tac, TACInstruction instr) {
   ASSERT(tac != NULL, "Tac cannot be NULL in append_instruction");
 
   if (tac->program.count >= tac->program.capacity) {
-    size_t new_capacity =
-        tac->program.capacity == 0 ? 16 : tac->program.capacity * 2;
-    tac->program.instructions =
-        allocator_realloc(tac->program.allocator, tac->program.instructions,
-                          tac->program.capacity * sizeof(TACInstruction),
-                          new_capacity * sizeof(TACInstruction));
+    size_t new_capacity = tac->program.capacity == 0 ? 16 : tac->program.capacity * 2;
+    tac->program.instructions = allocator_realloc(tac->program.allocator, tac->program.instructions,
+                                                  tac->program.capacity * sizeof(TACInstruction),
+                                                  new_capacity * sizeof(TACInstruction));
     tac->program.capacity = new_capacity;
   }
 
@@ -129,8 +126,7 @@ TACProgram tac_generate(SemanticAnalyzer *sa) {
   tac.sa = sa;
   tac.reg_counter = 0;
   tac.program.instructions =
-      allocator_alloc(&sa->parser.ast.allocator,
-                      sizeof(TACInstruction) * sa->parser.ast.capacity);
+      allocator_alloc(&sa->parser.ast.allocator, sizeof(TACInstruction) * sa->parser.ast.capacity);
   tac.program.count = 0;
   tac.program.capacity = sa->parser.ast.capacity;
   tac.program.allocator = &sa->parser.ast.allocator;
@@ -183,8 +179,8 @@ static void gen_assign(Tac *tac, ASTNode *node) {
       Symbol *sym = sa_lookup(tac->sa, target->token->lexeme);
       if (sym) {
         TACValue var_addr = new_tac_value(sym->id, sym->dtype);
-        TACInstruction instr = create_instruction(
-            TAC_STORE, value, new_tac_value(sym->id, NONE), var_addr, NULL);
+        TACInstruction instr =
+            create_instruction(TAC_STORE, value, new_tac_value(sym->id, NONE), var_addr, NULL);
         append_instruction(tac, instr);
       }
     }
@@ -206,8 +202,8 @@ static TACValue gen_expr(Tac *tac, ASTNode *node) {
 
     TACValue reg = new_reg(tac, sym->dtype);
     TACValue var_addr = new_tac_value(sym->id, sym->dtype);
-    TACInstruction instr = create_instruction(
-        TAC_LOAD, var_addr, new_tac_value(0, NONE), reg, NULL);
+    TACInstruction instr =
+        create_instruction(TAC_LOAD, var_addr, new_tac_value(0, NONE), reg, NULL);
     append_instruction(tac, instr);
     return reg;
   }
@@ -247,8 +243,7 @@ TACValue gen_const_value(Tac *tac, ASTNode *node) {
     const_val.float_val = strtod(node->token->lexeme, NULL);
     break;
   case STR:
-    const_val.str_val =
-        arena_strdup(&tac->sa->parser.ast.allocator.base, node->token->lexeme);
+    const_val.str_val = arena_strdup(&tac->sa->parser.ast.allocator.base, node->token->lexeme);
     break;
   default:
     UNREACHABLE("Unsupported literal type in gen_const_value");
@@ -258,8 +253,8 @@ TACValue gen_const_value(Tac *tac, ASTNode *node) {
   TACValue result = new_reg(tac, dtype);
   TACValue const_value = new_tac_value(const_id, dtype);
 
-  TACInstruction instr = create_instruction(
-      TAC_CONST, const_value, new_tac_value(0, NONE), result, NULL);
+  TACInstruction instr =
+      create_instruction(TAC_CONST, const_value, new_tac_value(0, NONE), result, NULL);
   append_instruction(tac, instr);
   return result;
 }
@@ -324,8 +319,7 @@ static TACValue gen_unary_op(Tac *tac, ASTNode *node) {
     ASTNode *zero_node = node_new(&tac->sa->parser, &zero_token, LITERAL);
     TACValue zero_val = gen_const_value(tac, zero_node);
     TACValue result = new_reg(tac, result_type);
-    TACInstruction instr =
-        create_instruction(TAC_SUB, zero_val, operand, result, NULL);
+    TACInstruction instr = create_instruction(TAC_SUB, zero_val, operand, result, NULL);
     append_instruction(tac, instr);
     return result;
   }
@@ -353,8 +347,7 @@ static void format_value(StringBuilder *sb, TACValue val, const char *prefix) {
   sb_appendf(sb, "%s%zu:%s", prefix, val.id, type_to_str(val.type));
 }
 
-static void format_value_ref(StringBuilder *sb, TACValue val,
-                             const char *prefix) {
+static void format_value_ref(StringBuilder *sb, TACValue val, const char *prefix) {
   if (val.type == NONE) {
     sb_appendf(sb, "_");
     return;
@@ -367,8 +360,7 @@ static void format_value_ref(StringBuilder *sb, TACValue val,
 StringBuilder tac_generate_code(TACProgram *program) {
   StringBuilder sb = {0};
   sb.allocator = program->allocator;
-  sb.items =
-      allocator_alloc(program->allocator, ARENA_DA_INIT_CAP * sizeof(char));
+  sb.items = allocator_alloc(program->allocator, ARENA_DA_INIT_CAP * sizeof(char));
   sb.count = 0;
   sb.capacity = ARENA_DA_INIT_CAP;
   if (!program) {
@@ -402,24 +394,23 @@ StringBuilder tac_generate_code(TACProgram *program) {
 
       switch (c->type) {
       case INT:
-        sb_appendf(&sb, "    %.*s = CONST %ld\n", (int)res_sb.count,
-                   res_sb.items, c->value.int_val);
+        sb_appendf(&sb, "    %.*s = CONST %ld\n", (int)res_sb.count, res_sb.items,
+                   c->value.int_val);
         break;
       case FLOAT:
-        sb_appendf(&sb, "    %.*s = CONST %f\n", (int)res_sb.count,
-                   res_sb.items, c->value.float_val);
+        sb_appendf(&sb, "    %.*s = CONST %f\n", (int)res_sb.count, res_sb.items,
+                   c->value.float_val);
         break;
       case STR:
-        sb_appendf(&sb, "    %.*s = CONST \"%s\"\n", (int)res_sb.count,
-                   res_sb.items, c->value.str_val);
+        sb_appendf(&sb, "    %.*s = CONST \"%s\"\n", (int)res_sb.count, res_sb.items,
+                   c->value.str_val);
         break;
       case BOOL:
-        sb_appendf(&sb, "    %.*s = CONST %zu\n", (int)res_sb.count,
-                   res_sb.items, c->value.int_val);
+        sb_appendf(&sb, "    %.*s = CONST %zu\n", (int)res_sb.count, res_sb.items,
+                   c->value.int_val);
         break;
       default:
-        sb_appendf(&sb, "    %.*s = CONST <unknown>\n", (int)res_sb.count,
-                   res_sb.items);
+        sb_appendf(&sb, "    %.*s = CONST <unknown>\n", (int)res_sb.count, res_sb.items);
       }
       break;
     }
@@ -429,8 +420,8 @@ StringBuilder tac_generate_code(TACProgram *program) {
                     res_sb = {.allocator = program->allocator};
       format_value_ref(&lhs_sb, instr->lhs, "v");
       format_value(&res_sb, instr->result, "t");
-      sb_appendf(&sb, "    %.*s = %.*s\n", (int)res_sb.count, res_sb.items,
-                 (int)lhs_sb.count, lhs_sb.items);
+      sb_appendf(&sb, "    %.*s = %.*s\n", (int)res_sb.count, res_sb.items, (int)lhs_sb.count,
+                 lhs_sb.items);
       break;
     }
 
@@ -441,8 +432,8 @@ StringBuilder tac_generate_code(TACProgram *program) {
       format_value_ref(&src_sb, instr->lhs, "t");
       format_value(&dst_sb, instr->result, "v");
 
-      sb_appendf(&sb, "    %.*s = %.*s\n", (int)dst_sb.count, dst_sb.items,
-                 (int)src_sb.count, src_sb.items);
+      sb_appendf(&sb, "    %.*s = %.*s\n", (int)dst_sb.count, dst_sb.items, (int)src_sb.count,
+                 src_sb.items);
       break;
     }
 
@@ -457,18 +448,17 @@ StringBuilder tac_generate_code(TACProgram *program) {
       format_value_ref(&lhs_sb, instr->lhs, "t");
       format_value_ref(&rhs_sb, instr->rhs, "t");
       format_value(&res_sb, instr->result, "t");
-      sb_appendf(&sb, "    %.*s = %s %.*s, %.*s\n", (int)res_sb.count,
-                 res_sb.items, op_to_str(instr->op), (int)lhs_sb.count,
-                 lhs_sb.items, (int)rhs_sb.count, rhs_sb.items);
+      sb_appendf(&sb, "    %.*s = %s %.*s, %.*s\n", (int)res_sb.count, res_sb.items,
+                 op_to_str(instr->op), (int)lhs_sb.count, lhs_sb.items, (int)rhs_sb.count,
+                 rhs_sb.items);
       break;
     }
 
     case TAC_CALL: {
       StringBuilder res_sb = {0};
       format_value(&res_sb, instr->result, "t");
-      sb_appendf(&sb, "    %.*s = CALL %s(%lu args)\n", (int)res_sb.count,
-                 res_sb.items, instr->label ? instr->label : "unknown",
-                 instr->lhs.id);
+      sb_appendf(&sb, "    %.*s = CALL %s(%lu args)\n", (int)res_sb.count, res_sb.items,
+                 instr->label ? instr->label : "unknown", instr->lhs.id);
       break;
     }
 
@@ -507,8 +497,7 @@ StringBuilder tac_generate_code(TACProgram *program) {
     case TAC_ARG: {
       StringBuilder res_sb = {.allocator = program->allocator};
       format_value(&res_sb, instr->result, "v");
-      sb_appendf(&sb, "    %.*s = ARG %zu\n", (int)res_sb.count, res_sb.items,
-                 instr->lhs.id);
+      sb_appendf(&sb, "    %.*s = ARG %zu\n", (int)res_sb.count, res_sb.items, instr->lhs.id);
       break;
     }
     default:
@@ -522,8 +511,7 @@ StringBuilder tac_generate_code(TACProgram *program) {
 }
 
 // Helper function to append TAC instruction to StringBuilder
-void tac_append_instruction(StringBuilder *sb, TACInstruction *instr,
-                            size_t index) {
+void tac_append_instruction(StringBuilder *sb, TACInstruction *instr, size_t index) {
   if (!sb || !instr)
     return;
 
@@ -574,8 +562,7 @@ void tac_append_instruction(StringBuilder *sb, TACInstruction *instr,
   }
 }
 
-size_t tac_add_constant(TACProgram *program, ConstantValue value,
-                        DataType type) {
+size_t tac_add_constant(TACProgram *program, ConstantValue value, DataType type) {
   if (!program)
     return 0;
 
@@ -608,11 +595,10 @@ size_t tac_add_constant(TACProgram *program, ConstantValue value,
 
   // Grow constant table if needed
   if (program->constants.count >= program->constants.capacity) {
-    size_t new_capacity =
-        program->constants.capacity == 0 ? 16 : program->constants.capacity * 2;
-    ConstantEntry *new_entries = allocator_realloc(
-        program->allocator, program->constants.entries,
-        program->constants.count, new_capacity * sizeof(ConstantEntry));
+    size_t new_capacity = program->constants.capacity == 0 ? 16 : program->constants.capacity * 2;
+    ConstantEntry *new_entries =
+        allocator_realloc(program->allocator, program->constants.entries, program->constants.count,
+                          new_capacity * sizeof(ConstantEntry));
     if (!new_entries)
       return 0;
 
@@ -664,8 +650,7 @@ static void gen_if(Tac *tac, ASTNode *node) {
   /* if not cond -> else or end */
   append_instruction(tac,
                      create_instruction(TAC_JZ, cond, new_tac_value(0, NONE),
-                                        new_tac_value(0, NONE),
-                                        has_else ? else_label : end_label));
+                                        new_tac_value(0, NONE), has_else ? else_label : end_label));
 
   /* then-body */
   for (size_t cur = node->ctrl_stmt.body.head; cur != SIZE_MAX;
@@ -676,12 +661,10 @@ static void gen_if(Tac *tac, ASTNode *node) {
   /* jump over else */
   if (has_else) {
     append_instruction(tac,
-                       create_instruction(TAC_JMP, new_tac_value(0, NONE),
-                                          new_tac_value(0, NONE),
+                       create_instruction(TAC_JMP, new_tac_value(0, NONE), new_tac_value(0, NONE),
                                           new_tac_value(0, NONE), end_label));
     append_instruction(tac,
-                       create_instruction(TAC_LABEL, new_tac_value(0, NONE),
-                                          new_tac_value(0, NONE),
+                       create_instruction(TAC_LABEL, new_tac_value(0, NONE), new_tac_value(0, NONE),
                                           new_tac_value(0, NONE), else_label));
 
     for (size_t cur = node->ctrl_stmt.orelse.head; cur != SIZE_MAX;
@@ -692,8 +675,7 @@ static void gen_if(Tac *tac, ASTNode *node) {
 
   /* end label */
   append_instruction(tac,
-                     create_instruction(TAC_LABEL, new_tac_value(0, NONE),
-                                        new_tac_value(0, NONE),
+                     create_instruction(TAC_LABEL, new_tac_value(0, NONE), new_tac_value(0, NONE),
                                         new_tac_value(0, NONE), end_label));
 }
 
@@ -707,8 +689,7 @@ static void gen_function_def(Tac *tac, ASTNode *node) {
   // We use the function name as the label so CALL instructions can find it.
   const char *func_name = node->def.name->token->lexeme;
   append_instruction(tac,
-                     create_instruction(TAC_LABEL, new_tac_value(0, NONE),
-                                        new_tac_value(0, NONE),
+                     create_instruction(TAC_LABEL, new_tac_value(0, NONE), new_tac_value(0, NONE),
                                         new_tac_value(0, NONE), func_name));
 
   // 2. Handle Parameters
@@ -723,25 +704,22 @@ static void gen_function_def(Tac *tac, ASTNode *node) {
     if (sym) {
       TACValue local_var = new_tac_value(sym->id, sym->dtype);
       TACValue idx = new_tac_value(arg_index++, NONE);
-      append_instruction(
-          tac, create_instruction(TAC_ARG,
-                                  idx, // Which argument index is this?
-                                  new_tac_value(0, NONE), // Unused
-                                  local_var, // Where to store it locally
-                                  NULL));
+      append_instruction(tac, create_instruction(TAC_ARG,
+                                                 idx, // Which argument index is this?
+                                                 new_tac_value(0, NONE), // Unused
+                                                 local_var, // Where to store it locally
+                                                 NULL));
     }
   }
 
   // 3. Generate Body
-  for (size_t cur = node->def.body.head; cur != SIZE_MAX;
-       cur = node->def.body.elements[cur].next) {
+  for (size_t cur = node->def.body.head; cur != SIZE_MAX; cur = node->def.body.elements[cur].next) {
     gen_stmt(tac, node->def.body.elements[cur].data);
   }
 
   // 4. Implicit Return
   append_instruction(tac, create_instruction(TAC_RETURN, new_tac_value(0, NONE),
-                                             new_tac_value(0, NONE),
-                                             new_tac_value(0, NONE), NULL));
+                                             new_tac_value(0, NONE), new_tac_value(0, NONE), NULL));
 }
 
 static cJSON *serialize_tac_value(TACValue val) {
@@ -786,8 +764,7 @@ cJSON *serialize_tac_program(TACProgram *program) {
   cJSON *constants = cJSON_CreateArray();
   cJSON_AddItemToObject(root, "constants", constants);
   for (size_t i = 0; i < program->constants.count; i++) {
-    cJSON_AddItemToArray(constants,
-                         serialize_constant(&program->constants.entries[i]));
+    cJSON_AddItemToArray(constants, serialize_constant(&program->constants.entries[i]));
   }
 
   // 2. Serialize Instructions
@@ -803,8 +780,7 @@ cJSON *serialize_tac_program(TACProgram *program) {
     // Add operands
     cJSON_AddItemToObject(j_instr, "lhs", serialize_tac_value(instr->lhs));
     cJSON_AddItemToObject(j_instr, "rhs", serialize_tac_value(instr->rhs));
-    cJSON_AddItemToObject(j_instr, "result",
-                          serialize_tac_value(instr->result));
+    cJSON_AddItemToObject(j_instr, "result", serialize_tac_value(instr->result));
 
     // Add label if it exists
     if (instr->label) {

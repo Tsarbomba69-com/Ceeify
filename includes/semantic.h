@@ -121,8 +121,7 @@ bool analyze_node(SemanticAnalyzer *sa, ASTNode *node);
  * @param ...   Additional arguments for the format string.
  * * @note This function uses an internal arena allocator for the error strings.
  */
-void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok,
-                  const char *fmt, ...);
+void sa_set_error(SemanticAnalyzer *sa, SemanticErrorType type, Token *tok, const char *fmt, ...);
 
 bool sa_has_error(SemanticAnalyzer *sa);
 

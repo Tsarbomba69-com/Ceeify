@@ -23,8 +23,8 @@ static bool pb_contains(PatternBindings *pb, const char *name) {
 static void pb_add(PatternBindings *pb, const char *name) {
   if (pb->count == pb->capacity) {
     pb->capacity *= 2;
-    pb->names = allocator_realloc(pb->allocator, pb->names, pb->count,
-                                  pb->capacity * sizeof(char *));
+    pb->names =
+        allocator_realloc(pb->allocator, pb->names, pb->count, pb->capacity * sizeof(char *));
   }
   pb->names[pb->count++] = name;
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+BUILD_DIR="./build"
 
 # Generate build system files
 gen() {
@@ -42,18 +42,16 @@ analyze() {
     -p ./build \
     -quiet \
     -header-filter='^'$(pwd) \
-    -checks='bugprone-*,clang-analyzer-*,cert-*,performance-*' \
-    -warnings-as-errors='clang-analyzer-*' \
+    --config-file='.clang-tidy' \
     --use-color \
-    --format-style=llvm \
     --fix-errors \
     $files
 }
 
 ikos() {
-  set -euo pipefail
-
-  BUILD_DIR="./build"
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    set -euo pipefail
+  fi
 
   if [[ -d "$BUILD_DIR" ]]; then
     echo "Removing existing build directory…"
@@ -68,10 +66,17 @@ ikos() {
   ikos-view "$BUILD_DIR/ceeify.db"
 }
 
+clean() {
+    rm -rf -- "$BUILD_DIR"
+}
+
 # If a function name was passed, call it
-if [[ $# -gt 0 ]]; then
-  "$@"
-else
-  echo "Usage: $0 <command> [args...]"
-  echo "Available commands: gen, build, valgrind_run, valgrind_test, lint"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    set -e
+
+    if [[ $# -gt 0 ]]; then
+        "$@"
+    else
+        echo "Usage: $0 <command>"
+    fi
 fi

@@ -113,15 +113,13 @@ static void track_free(void *p, const char *file, int line) {
   for (size_t i = 0; i < alloc_count; ++i) {
     if (allocs[i].ptr == p) {
       // shift others down
-      memmove(&allocs[i], &allocs[i + 1],
-              (alloc_count - i - 1) * sizeof(AllocInfo));
+      memmove(&allocs[i], &allocs[i + 1], (alloc_count - i - 1) * sizeof(AllocInfo));
       alloc_count--;
       return;
     }
   }
 
-  fprintf(stderr, "[ARENA DEBUG] Freeing untracked pointer %p at %s:%d\n", p,
-          file, line);
+  fprintf(stderr, "[ARENA DEBUG] Freeing untracked pointer %p at %s:%d\n", p, file, line);
 }
 
 static inline void dump_allocs(void) {
@@ -132,8 +130,8 @@ static inline void dump_allocs(void) {
 
   printf("[ARENA DEBUG] Outstanding allocations (%zu):\n", alloc_count);
   for (size_t i = 0; i < alloc_count; ++i) {
-    printf("  #%zu ptr=%p size=%zu from %s:%d\n", i, allocs[i].ptr,
-           allocs[i].size, allocs[i].file, allocs[i].line);
+    printf("  #%zu ptr=%p size=%zu from %s:%d\n", i, allocs[i].ptr, allocs[i].size, allocs[i].file,
+           allocs[i].line);
   }
 }
 
@@ -147,33 +145,29 @@ static inline void allocator_global_report_leaks(void) {
             "  total_allocated:   %zu bytes\n"
             "  total_freed:       %zu bytes\n"
             "  current_usage:     %zu bytes (POSSIBLE LEAK)\n",
-            g_arena_global_stats.allocators_active,
-            g_arena_global_stats.total_allocated,
-            g_arena_global_stats.total_freed,
-            g_arena_global_stats.current_usage);
+            g_arena_global_stats.allocators_active, g_arena_global_stats.total_allocated,
+            g_arena_global_stats.total_freed, g_arena_global_stats.current_usage);
   } else {
     fprintf(stderr,
             "\n[GlobalArenaLeakReport] No leaks detected. "
             "(total allocs: %zu, frees: %zu)\n",
-            g_arena_global_stats.total_allocated,
-            g_arena_global_stats.total_freed);
+            g_arena_global_stats.total_allocated, g_arena_global_stats.total_freed);
   }
   pthread_mutex_unlock(&g_arena_global_stats.lock);
 }
 #endif // ARENA_DEBUG_MODE
 
 // ---- Internal helpers ----
-static inline void allocator_stats_log(const Allocator *arena, const char *msg,
-                                       const char *file, int line) {
+static inline void allocator_stats_log(const Allocator *arena, const char *msg, const char *file,
+                                       int line) {
 #if ARENA_DEBUG_MODE
   const char *tag = arena->tag ? arena->tag : "(unnamed)";
   fprintf(stderr,
           "[ArenaDebug] [%s] %s at %s:%d\n"
           "  total=%zu bytes | current=%zu | allocs=%zu | frees=%zu | "
           "reallocs=%zu\n",
-          tag, msg, file, line, arena->stats.total_allocated,
-          arena->stats.current_usage, arena->stats.allocation_count,
-          arena->stats.free_count, arena->stats.realloc_count);
+          tag, msg, file, line, arena->stats.total_allocated, arena->stats.current_usage,
+          arena->stats.allocation_count, arena->stats.free_count, arena->stats.realloc_count);
 #else
   (void)arena;
   (void)msg;
@@ -183,8 +177,7 @@ static inline void allocator_stats_log(const Allocator *arena, const char *msg,
 }
 
 // ---- Wrapped allocation functions ----
-static inline void *allocator_alloc_dbg(Allocator *arena, size_t size,
-                                        const char *file, int line) {
+static inline void *allocator_alloc_dbg(Allocator *arena, size_t size, const char *file, int line) {
   void *ptr = arena_alloc(&arena->base, size);
 #if ARENA_DEBUG_MODE
   if (ptr) {
@@ -202,9 +195,8 @@ static inline void *allocator_alloc_dbg(Allocator *arena, size_t size,
   return ptr;
 }
 
-static inline void *allocator_realloc_dbg(Allocator *allocator, void *old_ptr,
-                                          size_t old_size, size_t new_size,
-                                          const char *file, int line) {
+static inline void *allocator_realloc_dbg(Allocator *allocator, void *old_ptr, size_t old_size,
+                                          size_t new_size, const char *file, int line) {
   void *ptr = arena_realloc(&allocator->base, old_ptr, old_size, new_size);
 #if ARENA_DEBUG_MODE
   if (ptr) {
@@ -227,8 +219,7 @@ static inline void *allocator_realloc_dbg(Allocator *allocator, void *old_ptr,
   return ptr;
 }
 
-static inline void allocator_free_dbg(Allocator *arena, const char *file,
-                                      int line) {
+static inline void allocator_free_dbg(Allocator *arena, const char *file, int line) {
   arena_free(&arena->base);
 #if ARENA_DEBUG_MODE
   track_free(arena->base.begin, file, line);
@@ -243,8 +234,8 @@ static inline void allocator_free_dbg(Allocator *arena, const char *file,
 #endif
 }
 
-static inline char *allocator_sprintf_dbg(Allocator *arena, const char *format,
-                                          const char *file, int line, ...) {
+static inline char *allocator_sprintf_dbg(Allocator *arena, const char *format, const char *file,
+                                          int line, ...) {
 #if ARENA_DEBUG_MODE
   va_list args;
   va_start(args, line);
@@ -272,16 +263,14 @@ static inline char *allocator_sprintf_dbg(Allocator *arena, const char *format,
 }
 
 // ---- Convenience macros ----
-#define allocator_alloc(arena, size)                                           \
-  allocator_alloc_dbg((arena), (size), __FILE__, __LINE__)
+#define allocator_alloc(arena, size) allocator_alloc_dbg((arena), (size), __FILE__, __LINE__)
 
-#define allocator_realloc(allocator, old, old_size, new_size)                  \
-  allocator_realloc_dbg((allocator), (old), (old_size), (new_size), __FILE__,  \
-                        __LINE__)
+#define allocator_realloc(allocator, old, old_size, new_size)                                      \
+  allocator_realloc_dbg((allocator), (old), (old_size), (new_size), __FILE__, __LINE__)
 
 #define allocator_free(arena) allocator_free_dbg((arena), __FILE__, __LINE__)
 
-#define allocator_sprintf(arena, fmt, ...)                                     \
+#define allocator_sprintf(arena, fmt, ...)                                                         \
   allocator_sprintf_dbg((arena), (fmt), __FILE__, __LINE__, __VA_ARGS__)
 
 // ---- Init/Reset ----

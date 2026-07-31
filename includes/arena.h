@@ -98,18 +98,17 @@ void arena_free(Arena *a);
 #define cast_ptr(...)
 #endif
 
-#define arena_da_append(a, da, item)                                           \
-  do {                                                                         \
-    if ((da)->count >= (da)->capacity) {                                       \
-      size_t new_capacity =                                                    \
-          (da)->capacity == 0 ? ARENA_DA_INIT_CAP : (da)->capacity * 2;        \
-      (da)->items = cast_ptr((da)->items) arena_realloc(                       \
-          (a), (da)->items, (da)->capacity * sizeof(*(da)->items),             \
-          new_capacity * sizeof(*(da)->items));                                \
-      (da)->capacity = new_capacity;                                           \
-    }                                                                          \
-                                                                               \
-    (da)->items[(da)->count++] = (item);                                       \
+#define arena_da_append(a, da, item)                                                               \
+  do {                                                                                             \
+    if ((da)->count >= (da)->capacity) {                                                           \
+      size_t new_capacity = (da)->capacity == 0 ? ARENA_DA_INIT_CAP : (da)->capacity * 2;          \
+      (da)->items = cast_ptr((da)->items)                                                          \
+          arena_realloc((a), (da)->items, (da)->capacity * sizeof(*(da)->items),                   \
+                        new_capacity * sizeof(*(da)->items));                                      \
+      (da)->capacity = new_capacity;                                                               \
+    }                                                                                              \
+                                                                                                   \
+    (da)->items[(da)->count++] = (item);                                                           \
   } while (0)
 
 #endif // ARENA_H_
@@ -143,8 +142,7 @@ void free_region(Region *r) { free(r); }
 
 Region *new_region(size_t capacity) {
   size_t size_bytes = sizeof(Region) + sizeof(uintptr_t) * capacity;
-  Region *r = mmap(NULL, size_bytes, PROT_READ | PROT_WRITE,
-                   MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  Region *r = mmap(NULL, size_bytes, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   ARENA_ASSERT(r != MAP_FAILED);
   r->next = NULL;
   r->count = 0;
@@ -171,12 +169,11 @@ void free_region(Region *r) {
 
 Region *new_region(size_t capacity) {
   SIZE_T size_bytes = sizeof(Region) + sizeof(uintptr_t) * capacity;
-  Region *r = VirtualAllocEx(
-      GetCurrentProcess(),      /* Allocate in current process address space */
-      NULL,                     /* Unknown position */
-      size_bytes,               /* Bytes to allocate */
-      MEM_COMMIT | MEM_RESERVE, /* Reserve and commit allocated page */
-      PAGE_READWRITE            /* Permissions ( Read/Write )*/
+  Region *r = VirtualAllocEx(GetCurrentProcess(), /* Allocate in current process address space */
+                             NULL,                /* Unknown position */
+                             size_bytes,          /* Bytes to allocate */
+                             MEM_COMMIT | MEM_RESERVE, /* Reserve and commit allocated page */
+                             PAGE_READWRITE            /* Permissions ( Read/Write )*/
   );
   if (INV_HANDLE(r))
     ARENA_ASSERT(0 && "VirtualAllocEx() failed.");
@@ -191,12 +188,12 @@ void free_region(Region *r) {
   if (INV_HANDLE(r))
     return;
 
-  BOOL free_result = VirtualFreeEx(
-      GetCurrentProcess(), /* Deallocate from current process address space */
-      (LPVOID)r,           /* Address to deallocate */
-      0,          /* Bytes to deallocate ( Unknown, deallocate entire page ) */
-      MEM_RELEASE /* Release the page ( And implicitly decommit it ) */
-  );
+  BOOL free_result =
+      VirtualFreeEx(GetCurrentProcess(), /* Deallocate from current process address space */
+                    (LPVOID)r,           /* Address to deallocate */
+                    0,          /* Bytes to deallocate ( Unknown, deallocate entire page ) */
+                    MEM_RELEASE /* Release the page ( And implicitly decommit it ) */
+      );
 
   if (FALSE == free_result)
     ARENA_ASSERT(0 && "VirtualFreeEx() failed.");

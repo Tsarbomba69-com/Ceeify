@@ -1,14 +1,10 @@
 #include "ASTNode_linkedlist.h"
 
 ASTNode_LinkedList ASTNode_new(size_t capacity) {
-  ASTNode_LinkedList list = {.capacity = capacity,
-                             .head = SIZE_MAX,
-                             .tail = SIZE_MAX,
-                             .free = 0,
-                             .size = 0};
+  ASTNode_LinkedList list = {
+      .capacity = capacity, .head = SIZE_MAX, .tail = SIZE_MAX, .free = 0, .size = 0};
   allocator_init(&list.allocator, "ASTNode_LinkedList");
-  list.elements =
-      allocator_alloc(&list.allocator, capacity * sizeof(ASTNode_Node));
+  list.elements = allocator_alloc(&list.allocator, capacity * sizeof(ASTNode_Node));
 
   for (size_t i = 0; i < capacity - 1; i++) {
     list.elements[i].next = i + 1;
@@ -18,8 +14,7 @@ ASTNode_LinkedList ASTNode_new(size_t capacity) {
   return list;
 }
 
-ASTNode_LinkedList ASTNode_new_with_allocator(Allocator *allocator,
-                                              size_t capacity) {
+ASTNode_LinkedList ASTNode_new_with_allocator(Allocator *allocator, size_t capacity) {
   ASSERT(capacity > 0, "Capacity was not provided");
   ASTNode_LinkedList list = {0};
   list.capacity = capacity;
@@ -42,9 +37,9 @@ void expand(ASTNode_LinkedList *list) {
   size_t old_cap = list->capacity;
   size_t new_cap = list->capacity * 2;
 
-  list->elements = allocator_realloc(&list->allocator, list->elements,
-                                     list->size * sizeof(ASTNode_Node),
-                                     new_cap * sizeof(ASTNode_Node));
+  list->elements =
+      allocator_realloc(&list->allocator, list->elements, list->size * sizeof(ASTNode_Node),
+                        new_cap * sizeof(ASTNode_Node));
 
   for (size_t i = old_cap; i < new_cap - 1; i++) {
     list->elements[i].next = i + 1;
